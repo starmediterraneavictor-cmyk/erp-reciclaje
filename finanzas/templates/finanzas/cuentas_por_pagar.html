@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Cuentas por Pagar - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>💸 Cuentas por Pagar</h2>
+    <a href="{% url 'nueva_cuenta_por_pagar' %}" class="btn btn-danger">
+        <i class="bi bi-plus-circle"></i> Nueva deuda
+    </a>
+</div>
+
+<!-- KPIs -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">💰 Total pendiente</h6>
+                <h3>{{ total_pendiente|formato_es }} €</h3>
+                <small>{{ pendientes.count }} cuentas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-danger">🚨 Vencidas</h6>
+                <h3 class="text-danger">{{ total_vencido|formato_es }} €</h3>
+                <small>{{ vencidas|length }} cuentas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">📋 Total cuentas</h6>
+                <h3>{{ cuentas.count }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label small">Categoría</label>
+                <select name="categoria" class="form-select form-select-sm">
+                    <option value="">Todas</option>
+                    {% for key, value in categorias %}
+                    <option value="{{ key }}" {% if categoria_filtro == key %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small">Estado</label>
+                <select name="estado" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    {% for key, value in estados %}
+                    <option value="{{ key }}" {% if estado_filtro == key %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary btn-sm me-2">
+                    <i class="bi bi-filter"></i> Filtrar
+                </button>
+                <a href="{% url 'cuentas_por_pagar' %}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card card-custom">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Concepto</th>
+                    <th>Categoría</th>
+                    <th>Proveedor</th>
+                    <th>Importe</th>
+                    <th>Pendiente</th>
+                    <th>Vence</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in cuentas %}
+                <tr {% if c.esta_vencida %}class="table-danger"{% elif c.alerta %}class="table-warning"{% endif %}>
+                    <td><strong>{{ c.concepto }}</strong></td>
+                    <td><span class="badge bg-secondary">{{ c.get_categoria_display }}</span></td>
+                    <td>{{ c.proveedor.nombre|default:"-" }}</td>
+                    <td>{{ c.importe_total|formato_es }} €</td>
+                    <td><strong>{{ c.saldo_pendiente|formato_es }} €</strong></td>
+                    <td>
+                        {{ c.fecha_vencimiento|date:"d/m/Y" }}
+                        {% if c.esta_vencida %}
+                        <br><small class="text-danger">{{ c.dias_para_vencer }} días</small>
+                        {% elif c.alerta %}
+                        <br><small class="text-warning">{{ c.dias_para_vencer }} días</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if c.estado == 'PAGADO' %}
+                        <span class="badge bg-success">Pagado</span>
+                        {% elif c.estado == 'PARCIAL' %}
+                        <span class="badge bg-info">Parcial</span>
+                        {% elif c.estado == 'VENCIDO' %}
+                        <span class="badge bg-danger">Vencido</span>
+                        {% else %}
+                        <span class="badge bg-warning">Pendiente</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if c.estado != 'PAGADO' %}
+                        <a href="{% url 'registrar_pago_cuenta' c.id %}" class="btn btn-success btn-sm" title="Registrar pago">
+                            <i class="bi bi-cash"></i> Pagar
+                        </a>
+                        {% endif %}
+                        {% if not c.tiene_factura %}
+                        <a href="{% url 'confirmar_eliminar_cuenta_por_pagar' c.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                        {% else %}
+                        <span class="badge bg-secondary" title="Vinculada a factura {{ c.numero_factura }}">
+                            🔒 Factura
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <p class="text-muted">No hay cuentas por pagar</p>
+                        <a href="{% url 'nueva_cuenta_por_pagar' %}" class="btn btn-danger btn-sm">
+                            <i class="bi bi-plus-circle"></i> Crear primera deuda
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,405 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+{% load l10n %}
+{% block title %}Análisis - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<h2 class="mb-2">📈 Análisis y Reportes</h2>
+<p class="text-muted">Mes actual: {{ mes_actual }}/{{ year_actual }} | Actualizado: {{ fecha|date:"d/m/Y H:i" }}</p>
+
+<!-- BLOQUE 1: ANÁLISIS FINANCIERO -->
+<div class="bloque-titulo">
+    <h4 class="mb-0">💰 1. Análisis Financiero</h4>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="kpi-card kpi-ingresos">
+            <h6>💰 Ingresos</h6>
+            <h3>{{ total_ingresos|formato_es }} €</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card kpi-gastos">
+            <h6>💸 Gastos</h6>
+            <h3>{{ total_gastos|formato_es }} €</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card kpi-beneficio">
+            <h6>📊 Beneficio</h6>
+            <h3>{{ beneficio|formato_es }} €</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card kpi-pedidos">
+            <h6>📋 Pedidos</h6>
+            <h3>{{ total_pedidos }}</h3>
+            <small>✅ {{ pedidos_completados }} | ⏳ {{ pedidos_pendientes }}</small>
+        </div>
+    </div>
+</div>
+
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <h5>📈 Evolución mensual (últimos 6 meses)</h5>
+        <canvas id="graficoEvolucion" height="80"></canvas>
+    </div>
+</div>
+
+<!-- BLOQUE 2: ANÁLISIS POR CLIENTE -->
+<div class="bloque-titulo">
+    <h4 class="mb-0">👥 2. Análisis por Cliente (Ranking)</h4>
+</div>
+
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <h5>🏆 Top 5 Clientes del mes</h5>
+        <table class="table table-hover mt-3">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Cliente</th>
+                    <th>País</th>
+                    <th>Pedidos</th>
+                    <th>Total</th>
+                    <th>Ticket medio</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in top_clientes %}
+                <tr>
+                    <td><strong>{{ forloop.counter }}</strong></td>
+                    <td><strong>{{ c.nombre }}</strong></td>
+                    <td>{{ c.pais }}</td>
+                    <td>{{ c.pedidos }}</td>
+                    <td>{{ c.total|formato_es }} €</td>
+                    <td>{{ c.ticket_medio|formato_es_sin_decimales }} €</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">Sin datos. Crea pedidos para ver el ranking.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- BLOQUE 3: ANÁLISIS DE INVENTARIO -->
+<div class="bloque-titulo">
+    <h4 class="mb-0">📦 3. Análisis de Inventario (Stock)</h4>
+</div>
+
+{% if alertas_stock %}
+<div class="alert alert-danger">
+    <h5>🚨 Alertas de stock crítico</h5>
+    <ul class="mb-0">
+        {% for a in alertas_stock %}
+        <li><strong>{{ a.material }}</strong>: {{ a.cantidad|floatformat:2 }} tn → ¡Faltan {{ a.faltan|floatformat:2 }} tn!</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card card-custom h-100">
+            <div class="card-body">
+                <h5>Estado del inventario</h5>
+                <div class="tabla-scroll">
+                    <table class="table table-hover table-sm mt-3">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Material</th>
+                                <th>Stock (tn)</th>
+                                <th>Valor</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in inventario %}
+                            <tr>
+                                <td><strong>{{ i.nombre }}</strong></td>
+                                <td>{{ i.cantidad|floatformat:2 }}</td>
+                                <td>{{ i.valor|formato_es_sin_decimales }} €</td>
+                                <td><span class="badge bg-{{ i.color }}">{{ i.estado }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">Sin inventario.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom h-100">
+            <div class="card-body text-center">
+                <h5>💎 Valor total del inventario</h5>
+                <h2 class="text-success mt-3">{{ valor_total_inventario|formato_es_sin_decimales }} €</h2>
+                <hr>
+                <p class="text-muted">Suma de todo el stock valorado a precio de compra</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BLOQUE 4: ANÁLISIS INTERNACIONAL -->
+<div class="bloque-titulo">
+    <h4 class="mb-0">🌍 4. Análisis Internacional (Demanda por país)</h4>
+</div>
+
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <h5>Demanda por país</h5>
+        <table class="table table-hover mt-3">
+            <thead>
+                <tr>
+                    <th>País</th>
+                    <th>Clientes</th>
+                    <th>Pedidos</th>
+                    <th>TN</th>
+                    <th>Interés</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in demanda_internacional %}
+                <tr>
+                    <td><strong>{{ d.pais }}</strong></td>
+                    <td>{{ d.clientes }}</td>
+                    <td>{{ d.pedidos }}</td>
+                    <td>{{ d.kg|floatformat:2 }}</td>
+                    <td><span class="badge bg-{{ d.color }}">{{ d.interes }}</span></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">Sin datos. Añade clientes internacionales.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- ============================================ -->
+<!-- BLOQUE 5: ANÁLISIS POR MATERIAL -->
+<!-- ============================================ -->
+<div class="bloque-titulo">
+    <h4 class="mb-0">💎 5. Análisis por Material </h4>
+</div>
+
+<!-- Selector de rango -->
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Rango de fechas</label>
+                <select name="rango" class="form-select" onchange="this.form.submit()">
+                    <option value="mes" {% if rango_filtro == 'mes' %}selected{% endif %}>📅 Mes actual</option>
+                    <option value="3meses" {% if rango_filtro == '3meses' %}selected{% endif %}>📅 Últimos 3 meses</option>
+                    <option value="6meses" {% if rango_filtro == '6meses' %}selected{% endif %}>📅 Últimos 6 meses</option>
+                    <option value="año" {% if rango_filtro == 'año' %}selected{% endif %}>📅 Año actual</option>
+                    <option value="todo" {% if rango_filtro == 'todo' %}selected{% endif %}>📅 Todo el histórico</option>
+                </select>
+            </div>
+            <div class="col-md-8 text-muted">
+                <small>
+                    Mostrando datos del <strong>{{ fecha_inicio|date:"d/m/Y" }}</strong>
+                    al <strong>{{ fecha_fin|date:"d/m/Y" }}</strong>
+                </small>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Gráfico -->
+{% if analisis_por_material %}
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <h5>📊 Comparativa €/TN por material</h5>
+        <canvas id="graficoMaterialesTn" height="80"></canvas>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tabla -->
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <h5>📋 Detalle por material</h5>
+        {% if analisis_por_material %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mt-3">
+                <thead class="table-light">
+                    <tr>
+                        <th>Material</th>
+                        <th class="text-end">TN Compradas</th>
+                        <th class="text-end">€/TN Compra</th>
+                        <th class="text-end">TN Vendidas</th>
+                        <th class="text-end">€/TN Venta</th>
+                        <th class="text-end">€/TN Transporte</th>
+                        <th class="text-end">€/TN Beneficio</th>
+                        <th class="text-end">Margen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in analisis_por_material %}
+                    <tr>
+                        <td>
+                            <strong>{{ m.nombre }}</strong><br>
+                            <small class="text-muted">{{ m.codigo }}</small>
+                        </td>
+                        <td class="text-end">{{ m.tn_compradas|formato_es }} tn</td>
+                        <td class="text-end">
+                            {% if m.precio_compra_tn %}
+                                {{ m.precio_compra_tn|formato_es }} €
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ m.tn_vendidas|formato_es }} tn</td>
+                        <td class="text-end">
+                            {% if m.precio_venta_tn %}
+                                {{ m.precio_venta_tn|formato_es }} €
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if m.transporte_tn %}
+                                {{ m.transporte_tn|formato_es }} €
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if m.beneficio_tn %}
+                                <span class="badge {% if m.beneficio_tn >= 0 %}bg-success{% else %}bg-danger{% endif %} fs-6">
+                                    {% if m.beneficio_tn >= 0 %}+{% endif %}{{ m.beneficio_tn|formato_es }} €
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if m.margen_pct %}
+                                <span class="{% if m.margen_pct >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    <strong>
+                                        {% if m.margen_pct >= 0 %}+{% endif %}{{ m.margen_pct|floatformat:1 }}%
+                                    </strong>
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="alert alert-info small mt-3 mb-0">
+            💡 <strong>Nota:</strong> el €/TN de beneficio solo se calcula para pedidos de venta que tienen un <strong>pedido de compra origen</strong> asignado. Si un material no tiene operaciones con origen, se muestra "—".
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-4">
+            📭 No hay movimientos de material en el rango seleccionado.<br>
+            <small>Crea pedidos de compra o venta para ver el análisis.</small>
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const evolucionData = [
+        {% for e in evolucion %}
+        { etiqueta: "{{ e.etiqueta }}", ingresos: {{ e.ingresos }}, gastos: {{ e.gastos }}, beneficio: {{ e.beneficio }} },
+        {% endfor %}
+    ];
+
+    new Chart(document.getElementById('graficoEvolucion').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: evolucionData.map(e => e.etiqueta),
+            datasets: [
+                { label: 'Ingresos', data: evolucionData.map(e => e.ingresos),
+                  borderColor: '#2d6a4f', backgroundColor: 'rgba(45, 106, 79, 0.1)', tension: 0.3, fill: true },
+                { label: 'Gastos', data: evolucionData.map(e => e.gastos),
+                  borderColor: '#dc3545', backgroundColor: 'rgba(220, 53, 69, 0.1)', tension: 0.3, fill: true },
+                { label: 'Beneficio', data: evolucionData.map(e => e.beneficio),
+                  borderColor: '#ffc107', backgroundColor: 'rgba(255, 193, 7, 0.1)', tension: 0.3, fill: true }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    
+    
+        // ============================================
+    // GRÁFICO: €/TN POR MATERIAL
+    // ============================================
+    const materialesTnData = [
+        {% for m in analisis_por_material %}
+        {
+            nombre: "{{ m.nombre|escapejs }}",
+            precio_compra: {{ m.precio_compra_tn|default:0|unlocalize }},
+            precio_venta: {{ m.precio_venta_tn|default:0|unlocalize }},
+            beneficio: {{ m.beneficio_tn|default:0|unlocalize }},
+        },
+        {% endfor %}
+    ];
+
+    const canvasTn = document.getElementById('graficoMaterialesTn');
+    if (canvasTn && materialesTnData.length > 0) {
+        new Chart(canvasTn.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: materialesTnData.map(m => m.nombre),
+                datasets: [
+                    {
+                        label: '€/TN Compra',
+                        data: materialesTnData.map(m => m.precio_compra),
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                        borderColor: '#dc3545',
+                        borderWidth: 1,
+                    },
+                    {
+                        label: '€/TN Venta',
+                        data: materialesTnData.map(m => m.precio_venta),
+                        backgroundColor: 'rgba(45, 106, 79, 0.7)',
+                        borderColor: '#2d6a4f',
+                        borderWidth: 1,
+                    },
+                    {
+                        label: '€/TN Beneficio',
+                        data: materialesTnData.map(m => m.beneficio),
+                        backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                        borderColor: '#0d6efd',
+                        borderWidth: 1,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: {
+                        display: true,
+                        text: 'Comparativa €/TN por material'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '€/TN'
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

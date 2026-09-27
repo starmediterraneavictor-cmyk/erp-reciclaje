@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Seguimiento Internacional - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>🌍 Seguimiento de Pedidos Internacionales y Nacionales</h2>
+</div>
+
+<!-- Alertas de cobro -->
+{% if alertas %}
+<div class="alert alert-danger">
+    <h5>🚨 Alertas de cobro pendiente</h5>
+    <p>Los siguientes pedidos están próximos a llegar y tienen saldo pendiente:</p>
+    <ul class="mb-0">
+        {% for a in alertas %}
+        <li>
+            <strong>{{ a.pedido.numero_pedido }}</strong> - 
+            {{ a.pedido.cliente.nombre }} - 
+            {{ a.puerto_destino }} - 
+            Saldo pendiente: <strong>{{ a.saldo_pendiente|floatformat:2 }} €</strong> - 
+            ETA: {{ a.fecha_eta|date:"d/m/Y" }} ({{ a.dias_para_llegada }} días)
+            <a href="{% url 'detalle_pedido_internacional' a.id %}" class="btn btn-sm btn-danger ms-2">Ver</a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- KPIs -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">💰 Valor total abierto</h6>
+                <h3>{{ total_valor_abierto|floatformat:2 }} €</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">✅ Cobrado</h6>
+                <h3 class="text-success">{{ total_pagado_abierto|floatformat:2 }} €</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">⏳ Pendiente de cobro</h6>
+                <h3 class="text-danger">{{ total_pendiente|floatformat:2 }} €</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pedidos abiertos -->
+<div class="card card-custom mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">📦 Pedidos abiertos</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Nº Pedido</th>
+                    <th>Cliente</th>
+                    <th>Destino</th>
+                    <th>Incoterm</th>
+                    <th>ETA</th>
+                    <th>Valor</th>
+                    <th>Cobrado</th>
+                    <th>Pendiente</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pedidos_abiertos %}
+                <tr {% if p.alerta_cobro %}class="table-warning"{% endif %}>
+                    <td><strong>{{ p.pedido.numero_pedido }}</strong></td>
+                    <td>{{ p.pedido.cliente.nombre }}</td>
+                    <td>{{ p.puerto_destino }}</td>
+                    <td><span class="badge bg-secondary">{{ p.incoterm }}</span></td>
+                    <td>
+                        {{ p.fecha_eta|date:"d/m/Y"|default:"-" }}
+                        {% if p.dias_para_llegada is not None %}
+                            <br><small class="text-muted">({{ p.dias_para_llegada }} días)</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ p.valor_total|floatformat:0 }} €</td>
+                    <td>
+                        <span class="badge bg-success">{{ p.porcentaje_pagado|floatformat:1 }}%</span>
+                        <br><small>{{ p.total_pagado|floatformat:0 }} €</small>
+                    </td>
+                    <td class="text-danger"><strong>{{ p.saldo_pendiente|floatformat:0 }} €</strong></td>
+                    <td>
+                        {% if p.estado == 'ABIERTO' %}
+                        <span class="badge bg-warning">Abierto</span>
+                        {% elif p.estado == 'EN_TRANSITO' %}
+                        <span class="badge bg-info">En tránsito</span>
+                        {% elif p.estado == 'EN_DESTINO' %}
+                        <span class="badge bg-primary">En destino</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{% url 'detalle_pedido_internacional' p.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center py-4">
+                        <p class="text-muted">No hay pedidos internacionales abiertos</p>
+                        <p class="text-muted small">Crea uno desde <a href="/pedidos/">Pedidos</a></p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pedidos cerrados -->
+<div class="card card-custom">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">✅ Pedidos cerrados / entregados</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Nº Pedido</th>
+                    <th>Cliente</th>
+                    <th>Destino</th>
+                    <th>Entrega</th>
+                    <th>Valor</th>
+                    <th>Cobrado</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pedidos_cerrados %}
+                <tr>
+                    <td>{{ p.pedido.numero_pedido }}</td>
+                    <td>{{ p.pedido.cliente.nombre }}</td>
+                    <td>{{ p.puerto_destino }}</td>
+                    <td>{{ p.fecha_entrega_real|date:"d/m/Y"|default:"-" }}</td>
+                    <td>{{ p.valor_total|floatformat:0 }} €</td>
+                    <td><span class="badge bg-success">{{ p.porcentaje_pagado|floatformat:1 }}%</span></td>
+                    <td><span class="badge bg-success">{{ p.get_estado_display }}</span></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted">No hay pedidos cerrados</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

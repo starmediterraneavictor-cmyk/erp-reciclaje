@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Detalle Pedido - {{ pedido.numero_pedido }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📋 Pedido {{ pedido.numero_pedido }}</h2>
+    <div class="d-flex gap-2">
+        {# Factura: solo para pedidos de venta #}
+        {% if pedido.tipo in 'VENTA_MAT,TRADE,CONSULTA,PREVISION' %}
+            {% if not factura_existente %}
+            <a href="{% url 'generar_factura_desde_pedido' pedido.id %}" class="btn btn-success">
+                <i class="bi bi-file-earmark-text"></i> 📄 Generar Factura
+            </a>
+            {% else %}
+            <a href="{% url 'editar_factura' factura_existente.id %}" class="btn btn-info">
+                <i class="bi bi-receipt"></i> Ver Factura {{ factura_existente.numero_factura }}
+            </a>
+            {% endif %}
+        {% endif %}
+
+        {# Seguimiento internacional #}
+        {% if pedido.es_internacional and pedido.internacional %}
+            <a href="{% url 'detalle_pedido_internacional' pedido.internacional.id %}" class="btn btn-primary">
+                🌍 Ver seguimiento internacional
+            </a>
+        {% endif %}
+
+        <a href="{% url 'editar_pedido' pedido.id %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+        <a href="{% url 'lista_pedidos' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<!-- Datos del pedido -->
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <h6 class="text-muted">
+                    {% if pedido.tipo in 'VENTA_MAT,TRADE,CONSULTA,PREVISION' %}
+                        Cliente
+                    {% else %}
+                        Proveedor
+                    {% endif %}
+                </h6>
+                <p><strong>{{ pedido.entidad_nombre }}</strong></p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">Tipo</h6>
+                <p>{{ pedido.get_tipo_display }}</p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">Fecha</h6>
+                <p>{{ pedido.fecha|date:"d/m/Y H:i" }}</p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">Estado</h6>
+                <span class="badge bg-{% if pedido.estado == 'COMPLETADO' %}success{% elif pedido.estado == 'PENDIENTE' %}warning{% else %}secondary{% endif %}">
+                    {{ pedido.get_estado_display }}
+                </span>
+            </div>
+        </div>
+
+        {% if pedido.es_internacional %}
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <span class="badge bg-primary">🌍 Pedido internacional</span>
+            </div>
+            {% if pedido.incoterm %}
+            <div class="col-md-6">
+                <h6 class="text-muted">Incoterm</h6>
+                <p><strong>{{ pedido.get_incoterm_display }}</strong></p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if pedido.pedido_origen %}
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <span class="badge bg-info">🔗 Viene del pedido de compra</span>
+                <a href="{% url 'detalle_pedido' pedido.pedido_origen.id %}">
+                    <strong>{{ pedido.pedido_origen.numero_pedido }}</strong>
+                </a>
+                - {{ pedido.pedido_origen.entidad_nombre }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if pedido.pedidos_venta.all %}
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <span class="badge bg-success">📤 Ventas asociadas</span>
+                {% for venta in pedido.pedidos_venta.all %}
+                    <a href="{% url 'detalle_pedido' venta.id %}" class="ms-2">
+                        <strong>{{ venta.numero_pedido }}</strong>
+                    </a>
+                    - {{ venta.entidad_nombre }}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 📊 ANÁLISIS ECONÓMICO -->
+{% if pedido.pedido_origen %}
+<div class="card card-custom mb-4 border-success">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">📊 Análisis económico de la operación</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card border-0 bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-1">€/TN Venta</h6>
+                        <h3 class="text-primary mb-0">{{ pedido.precio_venta_tn|formato_es }} €</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-1">€/TN Compra origen</h6>
+                        <h3 class="text-secondary mb-0">{{ pedido.coste_compra_tn|formato_es }} €</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-1">€/TN Transporte</h6>
+                        <h3 class="text-warning mb-0">{{ pedido.coste_transporte_tn|formato_es }} €</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 {% if pedido.beneficio_tn >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+                    <div class="card-body text-center">
+                        <h6 class="mb-1">€/TN Beneficio</h6>
+                        <h3 class="mb-0">
+                            {% if pedido.beneficio_tn >= 0 %}+{% endif %}{{ pedido.beneficio_tn|formato_es }} €
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="row">
+            <div class="col-md-3">
+                <h6 class="text-muted">Cantidad</h6>
+                <p><strong>{{ pedido.total_kg|formato_es }} tn</strong></p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">Importe total venta</h6>
+                <p><strong>{{ pedido.total_importe|formato_es }} €</strong></p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">Beneficio total</h6>
+                <p class="{% if pedido.beneficio_total >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    <strong>
+                        {% if pedido.beneficio_total >= 0 %}+{% endif %}{{ pedido.beneficio_total|formato_es }} €
+                    </strong>
+                </p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">Margen</h6>
+                <p class="{% if pedido.margen_pct >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    <strong>{% if pedido.margen_pct >= 0 %}+{% endif %}{{ pedido.margen_pct|floatformat:2 }}%</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% elif pedido.tipo in 'VENTA_MAT,TRADE,CONSULTA,PREVISION' %}
+<div class="alert alert-warning">
+    ⚠️ <strong>Sin pedido de compra origen</strong>. Para ver el análisis de beneficio, edita este pedido y asígnale el pedido de compra del que proviene el material.
+</div>
+{% endif %}
+
+<!-- Si es compra, mostrar resumen -->
+{% if pedido.tipo in 'COMPRA_MAT,MAQUILA' %}
+<div class="card card-custom mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">📊 Resumen de la compra</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <h6 class="text-muted">€/TN Compra</h6>
+                <h3 class="text-secondary">{{ pedido.precio_compra_tn|formato_es }} €</h3>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-muted">Cantidad</h6>
+                <h3>{{ pedido.total_kg|formato_es }} tn</h3>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-muted">Importe total</h6>
+                <h3>{{ pedido.total_importe|formato_es }} €</h3>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Materiales -->
+<div class="card card-custom mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">📦 Materiales del pedido</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Material</th>
+                    <th>Cantidad (tn)</th>
+                    <th>Precio (€/tn)</th>
+                    <th>Subtotal</th>
+                    <th>Transporte</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in pedido.detalles.all %}
+                <tr>
+                    <td><strong>{{ d.material.nombre }}</strong></td>
+                    <td>{{ d.cantidad|formato_es }} tn</td>
+                    <td>{{ d.precio_unitario|formato_es }} €</td>
+                    <td><strong>{{ d.subtotal|formato_es }} €</strong></td>
+                    <td>{{ d.transporte|formato_es }} €</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted">Sin detalles</td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-success">
+                    <td colspan="2"><strong>TOTAL</strong></td>
+                    <td><strong>{{ total_kg|formato_es }} tn</strong></td>
+                    <td colspan="2"><strong>{{ total_importe|formato_es }} €</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- Notas -->
+{% if pedido.notas %}
+<div class="card card-custom mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">📝 Notas</h5>
+    </div>
+    <div class="card-body">
+        {{ pedido.notas|linebreaks }}
+    </div>
+</div>
+{% endif %}
+
+<!-- Si ya tiene factura -->
+{% if factura_existente %}
+<div class="alert alert-info">
+    <h5>💰 Factura asociada</h5>
+    <p>Este pedido ya tiene la factura <strong>{{ factura_existente.numero_factura }}</strong> 
+       por un importe de <strong>{{ factura_existente.total|formato_es }} €</strong>.</p>
+    <a href="{% url 'editar_factura' factura_existente.id %}" class="btn btn-info btn-sm">
+        Ver factura
+    </a>
+</div>
+{% endif %}
+{% endblock %}

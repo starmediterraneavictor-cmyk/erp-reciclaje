@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Generar Factura - {{ pedido.numero_pedido }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📄 Generar Factura</h2>
+    <a href="{% url 'detalle_pedido' pedido.id %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="row">
+    <!-- Resumen del pedido -->
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">📋 Pedido {{ pedido.numero_pedido }}</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr><td><strong>Cliente:</strong></td><td>{{ pedido.cliente.nombre }}</td></tr>
+                    <tr><td><strong>País:</strong></td><td>{{ pedido.cliente.pais }}</td></tr>
+                    <tr><td><strong>Tipo:</strong></td><td>{{ pedido.get_tipo_display }}</td></tr>
+                    <tr><td><strong>Fecha:</strong></td><td>{{ pedido.fecha|date:"d/m/Y" }}</td></tr>
+                </table>
+                
+                <h6>Materiales:</h6>
+                <ul>
+                    {% for d in pedido.detalles.all %}
+                    <li>{{ d.material.nombre }}: {{ d.cantidad|formato_es }} tn × {{ d.precio_unitario|formato_es }} €/tn = <strong>{{ d.subtotal|formato_es }} €</strong></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Factura a generar -->
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">💰 Datos de la Factura</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Nº Factura <span class="text-danger">*</span></label>
+                        <input type="text" name="numero_factura" class="form-control" 
+                               value="{{ numero_sugerido }}" required>
+                        <small class="text-muted">Sugerido automáticamente, puedes cambiarlo</small>
+                    </div>
+                    
+                    <table class="table">
+                        <tr>
+                            <td><strong>Base imponible:</strong></td>
+                            <td class="text-end">{{ base|formato_es }} €</td>
+                        </tr>
+                        <tr>
+                            <td><strong>IVA ({{ iva_porcentaje }}%):</strong></td>
+                            <td class="text-end">{{ iva|formato_es }} €</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><strong>TOTAL:</strong></td>
+                            <td class="text-end"><strong>{{ total|formato_es }} €</strong></td>
+                        </tr>
+                    </table>
+                    
+                    <div class="alert alert-info small">
+                        {% if iva_porcentaje == 0 %}
+                        💡 Cliente extranjero → IVA 0% (exportación)
+                        {% else %}
+                        💡 Cliente nacional → IVA 21%
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle"></i> Generar Factura
+                        </button>
+                        <a href="{% url 'detalle_pedido' pedido.id %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

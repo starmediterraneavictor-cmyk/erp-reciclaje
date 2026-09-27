@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Cuentas por Cobrar - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>💰 Cuentas por Cobrar</h2>
+    <a href="{% url 'nueva_cuenta_por_cobrar' %}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Nueva cuenta por cobrar
+    </a>
+</div>
+
+<!-- KPIs -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">💰 Total pendiente</h6>
+                <h3 class="text-success">{{ total_pendiente|formato_es }} €</h3>
+                <small>{{ pendientes.count }} cuentas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-danger">🚨 Vencidas</h6>
+                <h3 class="text-danger">{{ total_vencido|formato_es }} €</h3>
+                <small>{{ vencidas|length }} cuentas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">📋 Total cuentas</h6>
+                <h3>{{ cuentas.count }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card card-custom">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Concepto</th>
+                    <th>Cliente</th>
+                    <th>Importe</th>
+                    <th>Pendiente</th>
+                    <th>Vence</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in cuentas %}
+                <tr {% if c.alerta %}class="table-warning"{% endif %}>
+                    <td><strong>{{ c.concepto }}</strong></td>
+                    <td>{{ c.cliente.nombre }}</td>
+                    <td>{{ c.importe_total|formato_es }} €</td>
+                    <td><strong>{{ c.saldo_pendiente|formato_es }} €</strong></td>
+                    <td>
+                        {{ c.fecha_vencimiento|date:"d/m/Y" }}
+                        {% if c.dias_para_vencer < 0 %}
+                        <br><small class="text-danger">{{ c.dias_para_vencer }} días</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if c.estado == 'COBRADO' %}
+                        <span class="badge bg-success">Cobrado</span>
+                        {% elif c.estado == 'PARCIAL' %}
+                        <span class="badge bg-info">Parcial</span>
+                        {% else %}
+                        <span class="badge bg-warning">Pendiente</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if c.estado != 'COBRADO' %}
+                        <a href="{% url 'registrar_cobro_cuenta' c.id %}" class="btn btn-success btn-sm" title="Registrar cobro">
+                            <i class="bi bi-cash"></i> Cobrar
+                        </a>
+                        {% endif %}
+                        {% if not c.tiene_factura %}
+                        <a href="{% url 'confirmar_eliminar_cuenta_por_cobrar' c.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                        {% else %}
+                        <span class="badge bg-secondary" title="Vinculada a factura {{ c.numero_factura }}">
+                            🔒 Factura
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-4">
+                        <p class="text-muted">No hay cuentas por cobrar</p>
+                        <a href="{% url 'nueva_cuenta_por_cobrar' %}" class="btn btn-success btn-sm">
+                            <i class="bi bi-plus-circle"></i> Crear primera
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

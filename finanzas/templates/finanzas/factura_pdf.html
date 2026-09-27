@@ -1,0 +1,289 @@
+{% load formato_es %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            color: #333;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 3px solid #2d6a4f;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo-section img {
+            max-height: 80px;
+            max-width: 200px;
+        }
+        
+        .logo-section h1 {
+            color: #2d6a4f;
+            font-size: 24px;
+            margin: 0;
+        }
+        
+        .empresa-info {
+            text-align: right;
+            font-size: 10px;
+            line-height: 1.6;
+        }
+        
+        .empresa-info strong {
+            color: #2d6a4f;
+            font-size: 12px;
+        }
+        
+        .titulo-factura {
+            background: #2d6a4f;
+            color: white;
+            padding: 10px 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .info-factura {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .info-factura > div {
+            width: 48%;
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid #2d6a4f;
+        }
+        
+        .info-factura h3 {
+            color: #2d6a4f;
+            font-size: 12px;
+            margin: 0 0 8px 0;
+            text-transform: uppercase;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        table thead {
+            background: #2d6a4f;
+            color: white;
+        }
+        
+        table th {
+            padding: 8px;
+            text-align: left;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        
+        table td {
+            padding: 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .totales {
+            margin-top: 20px;
+            text-align: right;
+        }
+        
+        .totales table {
+            width: 50%;
+            margin-left: auto;
+        }
+        
+        .totales td {
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        .totales .total-final {
+            background: #2d6a4f;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .info-pago {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #2d6a4f;
+        }
+        
+        .info-pago h3 {
+            color: #2d6a4f;
+            font-size: 12px;
+            margin: 0 0 8px 0;
+            text-transform: uppercase;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 2px solid #e9ecef;
+            font-size: 9px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .footer strong {
+            color: #2d6a4f;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- CABECERA -->
+    <div class="header">
+        <div class="logo-section">
+            {% if empresa.logo %}
+                <img src="{{ empresa.logo.url }}" alt="Logo">
+            {% else %}
+                <h1>♻️ {{ empresa.nombre|default:"TU EMPRESA" }}</h1>
+            {% endif %}
+        </div>
+        <div class="empresa-info">
+            <strong>{{ empresa.nombre|default:"TU EMPRESA" }}</strong><br>
+            NIF: {{ empresa.nif|default:"-" }}<br>
+            {{ empresa.direccion|default:"" }}<br>
+            {{ empresa.codigo_postal|default:"" }} {{ empresa.ciudad|default:"" }}<br>
+            {{ empresa.provincia|default:"" }}, {{ empresa.pais|default:"" }}<br>
+            {% if empresa.telefono %}Tel: {{ empresa.telefono }}<br>{% endif %}
+            {% if empresa.email %}{{ empresa.email }}<br>{% endif %}
+            {% if empresa.web %}{{ empresa.web }}{% endif %}
+        </div>
+    </div>
+
+    <!-- TÍTULO -->
+    <div class="titulo-factura">
+        FACTURA Nº {{ factura.numero_factura }}
+    </div>
+
+    <!-- INFO FACTURA Y CLIENTE -->
+    <div class="info-factura">
+        <div>
+            <h3>📅 Datos de la factura</h3>
+            <strong>Fecha:</strong> {{ factura.fecha|date:"d/m/Y" }}<br>
+            {% if factura.fecha_vencimiento %}
+            <strong>Vencimiento:</strong> {{ factura.fecha_vencimiento|date:"d/m/Y" }}<br>
+            {% endif %}
+            <strong>Tipo:</strong> {{ factura.get_tipo_display }}<br>
+            <strong>Estado:</strong> {{ factura.get_estado_pago_display }}
+        </div>
+        <div>
+            <h3>👤 Datos del cliente</h3>
+            <strong>{{ factura.entidad.nombre }}</strong><br>
+            {% if factura.entidad.nif %}NIF: {{ factura.entidad.nif }}<br>{% endif %}
+            {% if factura.entidad.direccion %}{{ factura.entidad.direccion }}<br>{% endif %}
+            {% if factura.entidad.pais %}{{ factura.entidad.pais }}<br>{% endif %}
+            {% if factura.entidad.email %}{{ factura.entidad.email }}{% endif %}
+        </div>
+    </div>
+
+    <!-- TABLA DE CONCEPTOS -->
+    <table>
+        <thead>
+            <tr>
+                <th>Descripción</th>
+                <th style="text-align: right;">Cantidad</th>
+                <th style="text-align: right;">Precio</th>
+                <th style="text-align: right;">Importe</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if factura.pedido %}
+                {% for detalle in factura.pedido.detalles.all %}
+                <tr>
+                    <td>
+                        <strong>{{ detalle.material.nombre }}</strong><br>
+                        <small>Código: {{ detalle.material.codigo }}</small>
+                    </td>
+                    <td style="text-align: right;">{{ detalle.cantidad|formato_es }} kg</td>
+                    <td style="text-align: right;">{{ detalle.precio_unitario|formato_es }} €/kg</td>
+                    <td style="text-align: right;">{{ detalle.subtotal|formato_es }} €</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: #999;">
+                        {{ factura.notas|default:"Sin conceptos detallados" }}
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <!-- TOTALES -->
+    <div class="totales">
+        <table>
+            <tr>
+                <td><strong>Base imponible:</strong></td>
+                <td style="text-align: right;">{{ factura.base|formato_es }} €</td>
+            </tr>
+            <tr>
+                <td><strong>IVA ({{ factura.iva_porcentaje }}%):</strong></td>
+                <td style="text-align: right;">{{ factura.iva|formato_es }} €</td>
+            </tr>
+            <tr class="total-final">
+                <td>TOTAL:</td>
+                <td style="text-align: right;">{{ factura.total|formato_es }} €</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- INFO DE PAGO -->
+    {% if empresa.iban %}
+    <div class="info-pago">
+        <h3>💳 Datos para el pago</h3>
+        <strong>Banco:</strong> {{ empresa.banco }}<br>
+        <strong>IBAN:</strong> {{ empresa.iban }}<br>
+        {% if empresa.swift %}<strong>SWIFT/BIC:</strong> {{ empresa.swift }}<br>{% endif %}
+    </div>
+    {% endif %}
+
+    <!-- NOTAS -->
+    {% if factura.notas %}
+    <div class="info-pago">
+        <h3>📝 Notas</h3>
+        {{ factura.notas }}
+    </div>
+    {% endif %}
+
+    <!-- PIE DE PÁGINA -->
+    <div class="footer">
+        {% if empresa.texto_pie %}
+        <p><strong>{{ empresa.texto_pie }}</strong></p>
+        {% endif %}
+        <p>{{ empresa.nombre }} | NIF: {{ empresa.nif }} | {{ empresa.direccion }}, {{ empresa.codigo_postal }} {{ empresa.ciudad }}</p>
+        <p>Documento generado el {{ fecha_actual|date:"d/m/Y H:i" }}</p>
+    </div>
+
+</body>
+</html>

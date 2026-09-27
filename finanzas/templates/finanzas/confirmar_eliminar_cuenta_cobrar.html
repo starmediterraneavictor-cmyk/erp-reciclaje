@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Cuenta por Cobrar - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card card-custom {% if tiene_factura %}border-warning{% else %}border-danger{% endif %}">
+            <div class="card-body p-4">
+
+                <div class="text-center mb-4">
+                    <h1 style="font-size: 4rem;">{% if tiene_factura %}⚠️{% else %}🗑️{% endif %}</h1>
+                    <h3 class="{% if tiene_factura %}text-warning{% else %}text-danger{% endif %}">
+                        {% if tiene_factura %}No se puede eliminar{% else %}¿Eliminar esta cuenta por cobrar?{% endif %}
+                    </h3>
+                </div>
+
+                <div class="alert alert-light border">
+                    <h5>💰 Datos de la cuenta:</h5>
+                    <table class="table table-sm mb-0">
+                        <tr><td><strong>Concepto:</strong></td><td>{{ cuenta.concepto }}</td></tr>
+                        <tr><td><strong>Cliente:</strong></td><td>{{ cuenta.cliente.nombre }}</td></tr>
+                        <tr><td><strong>Importe total:</strong></td><td>{{ cuenta.importe_total }} €</td></tr>
+                        <tr><td><strong>Saldo pendiente:</strong></td><td><strong>{{ cuenta.saldo_pendiente }} €</strong></td></tr>
+                        {% if cuenta.numero_factura %}
+                        <tr><td><strong>Nº Factura:</strong></td><td>{{ cuenta.numero_factura }}</td></tr>
+                        {% endif %}
+                    </table>
+                </div>
+
+                {% if tiene_factura %}
+                <div class="alert alert-warning">
+                    <strong>⚠️ Esta cuenta está vinculada a una factura.</strong><br>
+                    Para eliminarla, primero elimina la factura <strong>{{ cuenta.numero_factura }}</strong>.
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'cuentas_por_cobrar' %}" class="btn btn-secondary btn-lg">
+                        Volver
+                    </a>
+                </div>
+                {% else %}
+                <div class="alert alert-danger">
+                    Esta acción <strong>no se puede deshacer</strong>. Se eliminarán también los cobros registrados.
+                </div>
+                <form method="POST" action="{% url 'eliminar_cuenta_por_cobrar' cuenta.id %}">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            🗑️ Sí, eliminar definitivamente
+                        </button>
+                        <a href="{% url 'cuentas_por_cobrar' %}" class="btn btn-secondary btn-lg">
+                            ❌ Cancelar
+                        </a>
+                    </div>
+                </form>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

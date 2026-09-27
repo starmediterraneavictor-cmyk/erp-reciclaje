@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Nuevo Proveedor - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>➕ Nuevo Proveedor</h2>
+    <a href="{% url 'lista_proveedores' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="card card-custom">
+    <div class="card-body">
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" name="nombre" class="form-control" required placeholder="Ej: Iberdrola">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">NIF / CIF</label>
+                    <input type="text" name="nif" class="form-control" placeholder="Ej: B12345678">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                    <select name="tipo" class="form-select" required>
+                        {% for codigo, nombre in tipos %}
+                        <option value="{{ codigo }}">{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        {% for codigo, nombre in estados %}
+                        <option value="{{ codigo }}" {% if codigo == 'ACTIVO' %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">País</label>
+                    <input type="text" name="pais" class="form-control" value="España">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="contacto@proveedor.com">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Teléfono</label>
+                    <input type="text" name="telefono" class="form-control" placeholder="+34 900 000 000">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Dirección</label>
+                <input type="text" name="direccion" class="form-control" placeholder="Calle, número, ciudad">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">IBAN</label>
+                <input type="text" name="iban" class="form-control" placeholder="ES00 0000 0000 0000 0000 0000">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Notas</label>
+                <textarea name="notas" class="form-control" rows="3" placeholder="Observaciones..."></textarea>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-check-circle"></i> Guardar proveedor
+                </button>
+                <a href="{% url 'lista_proveedores' %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

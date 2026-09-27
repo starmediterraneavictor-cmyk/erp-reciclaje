@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Proveedor - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-body text-center p-4">
+                <h3 class="text-danger mb-3">⚠️ Eliminar Proveedor</h3>
+                <p>¿Estás seguro de que quieres eliminar este proveedor?</p>
+                <h4 class="my-3">{{ proveedor.nombre }}</h4>
+                <p class="text-muted">
+                    Esta acción <strong>no se puede deshacer</strong>.<br>
+                    Si tiene facturas asociadas, no se podrá eliminar.
+                </p>
+                <form method="POST" action="{% url 'eliminar_proveedor' proveedor.id %}" class="d-flex justify-content-center gap-2 mt-4">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="bi bi-trash"></i> Sí, eliminar
+                    </button>
+                    <a href="{% url 'lista_proveedores' %}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

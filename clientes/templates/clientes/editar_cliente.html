@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Cliente - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>✏️ Editar Cliente</h2>
+    <a href="{% url 'lista_clientes' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="card card-custom">
+    <div class="card-body">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" name="nombre" class="form-control" required value="{{ cliente.nombre }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">País</label>
+                    <input type="text" name="pais" class="form-control" value="{{ cliente.pais }}">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" value="{{ cliente.email }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Teléfono</label>
+                    <input type="text" name="telefono" class="form-control" value="{{ cliente.telefono }}">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Categoría</label>
+                    <select name="tipo" class="form-select">
+                        <option value="RECICLAJE" {% if cliente.tipo == 'RECICLAJE' %}selected{% endif %}>Reciclaje</option>
+                        <option value="SERVICIOS" {% if cliente.tipo == 'SERVICIOS' %}selected{% endif %}>Servicios (parking, alquiler...)</option>
+                    </select>
+                    <small class="text-muted">Solo los de "Reciclaje" aparecen en el análisis internacional</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        <option value="ACTIVO" {% if cliente.estado == 'ACTIVO' %}selected{% endif %}>Activo</option>
+                        <option value="SEGUIMIENTO" {% if cliente.estado == 'SEGUIMIENTO' %}selected{% endif %}>En seguimiento</option>
+                        <option value="EN_PAUSA" {% if cliente.estado == 'EN_PAUSA' %}selected{% endif %}>En pausa</option>
+                        <option value="DESCARTADO" {% if cliente.estado == 'DESCARTADO' %}selected{% endif %}>Descartado</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Notas</label>
+                <textarea name="notas" class="form-control" rows="3">{{ cliente.notas }}</textarea>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-circle"></i> Guardar cambios
+                </button>
+                <a href="{% url 'lista_clientes' %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

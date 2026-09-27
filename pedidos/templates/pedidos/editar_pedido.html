@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+{% load l10n %}
+
+{% block title %}Editar Pedido - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>✏️ Editar Pedido {{ pedido.numero_pedido }}</h2>
+    <a href="{% url 'lista_pedidos' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<form method="POST" id="formPedido">
+    {% csrf_token %}
+    
+    <!-- Datos del pedido -->
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <h5 class="mb-3">📋 Datos del pedido</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                    <select name="tipo" id="id_tipo" class="form-select" required>
+                        {% for key, value in tipos %}
+                        <option value="{{ key }}" {% if pedido.tipo == key %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        {% for key, value in estados %}
+                        <option value="{{ key }}" {% if pedido.estado == key %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                    <input type="datetime-local" name="fecha" class="form-control" 
+                           value="{{ pedido.fecha|date:'Y-m-d\TH:i' }}" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3" id="bloque-cliente">
+                    <label class="form-label">Cliente <span class="text-danger">*</span></label>
+                    <select name="cliente" class="form-select">
+                        <option value="">-- Seleccionar cliente --</option>
+                        {% for c in clientes %}
+                        <option value="{{ c.id }}" 
+                                data-pais="{{ c.pais }}"
+                                {% if pedido.cliente and pedido.cliente.id == c.id %}selected{% endif %}>
+                            {{ c.nombre }} ({{ c.pais }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Para VENTA, TRADE, CONSULTA y PREVISIÓN</small>
+                </div>
+                <div class="col-md-6 mb-3 d-none" id="bloque-proveedor">
+                    <label class="form-label">Proveedor <span class="text-danger">*</span></label>
+                    <select name="proveedor" class="form-select">
+                        <option value="">-- Seleccionar proveedor --</option>
+                        {% for p in proveedores %}
+                        <option value="{{ p.id }}" 
+                                data-pais="{{ p.pais }}"
+                                {% if pedido.proveedor and pedido.proveedor.id == p.id %}selected{% endif %}>
+                            {{ p.nombre }} ({{ p.pais }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Para COMPRA y MAQUILA</small>
+                </div>
+                <div class="col-md-6 mb-3" id="bloque-incoterm">
+                    <label class="form-label">Incoterm</label>
+                    <select name="incoterm" class="form-select">
+                        {% for key, value in incoterms %}
+                        <option value="{{ key }}" {% if pedido.incoterm == key %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Solo para pedidos internacionales</small>
+                </div>
+                <div class="col-md-6 mb-3 d-none" id="bloque-pedido-origen">
+                    <label class="form-label">Pedido de compra origen</label>
+                    <select name="pedido_origen" class="form-select">
+                        <option value="">-- Sin pedido origen --</option>
+                        {% for pc in pedidos_compra %}
+                        <option value="{{ pc.id }}" {% if pedido.pedido_origen and pedido.pedido_origen.id == pc.id %}selected{% endif %}>
+                            {{ pc.numero_pedido }} - {{ pc.entidad_nombre }} - {{ pc.total_kg|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Solo para ventas: de qué compra proviene</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Materiales -->
+    <div class="card card-custom mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📦 Materiales</h5>
+            <button type="button" class="btn btn-success btn-sm" onclick="añadirLinea()">
+                <i class="bi bi-plus-circle"></i> Añadir línea
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="lineasContainer">
+                {% for d in pedido.detalles.all %}
+                <div class="linea-item border rounded p-3 mb-2">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label small">Material</label>
+                            <select name="material[]" class="form-select form-select-sm">
+                                <option value="">-- Seleccionar --</option>
+                                {% for m in materiales %}
+                                <option value="{{ m.id }}" data-precio="{{ m.precio_venta }}"
+                                        {% if d.material.id == m.id %}selected{% endif %}>
+                                    {{ m.codigo }} - {{ m.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label small">Cantidad (tn)</label>
+                            <input type="number" step="0.001" name="cantidad[]" 
+                                   class="form-control form-control-sm cantidad-input" 
+                                   value="{{ d.cantidad|unlocalize }}">
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label small">Precio €/tn</label>
+                            <input type="number" step="0.01" name="precio[]" 
+                                   class="form-control form-control-sm precio-input" 
+                                   value="{{ d.precio_unitario|unlocalize }}">
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label small">Transporte €</label>
+                            <input type="number" step="0.01" name="transporte[]" 
+                                   class="form-control form-control-sm" 
+                                   value="{{ d.transporte|unlocalize }}">
+                        </div>
+                        <div class="col-md-2 mb-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-danger btn-sm w-100" onclick="eliminarLinea(this)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="linea-item border rounded p-3 mb-2">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label small">Material</label>
+                            <select name="material[]" class="form-select form-select-sm">
+                                <option value="">-- Seleccionar --</option>
+                                {% for m in materiales %}
+                                <option value="{{ m.id }}" data-precio="{{ m.precio_venta }}">
+                                    {{ m.codigo }} - {{ m.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label small">Cantidad (tn)</label>
+                            <input type="number" step="0.001" name="cantidad[]" class="form-control form-control-sm cantidad-input">
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label small">Precio €/tn</label>
+                            <input type="number" step="0.01" name="precio[]" class="form-control form-control-sm precio-input">
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label small">Transporte €</label>
+                            <input type="number" step="0.01" name="transporte[]" class="form-control form-control-sm" value="0">
+                        </div>
+                        <div class="col-md-2 mb-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-danger btn-sm w-100" onclick="eliminarLinea(this)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Notas -->
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <label class="form-label">📝 Notas</label>
+            <textarea name="notas" class="form-control" rows="3">{{ pedido.notas }}</textarea>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-check-circle"></i> Guardar cambios
+        </button>
+        <a href="{% url 'lista_pedidos' %}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-x-circle"></i> Cancelar
+        </a>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectTipo = document.getElementById('id_tipo');
+    const bloqueCliente = document.getElementById('bloque-cliente');
+    const bloqueProveedor = document.getElementById('bloque-proveedor');
+    const bloquePedidoOrigen = document.getElementById('bloque-pedido-origen');
+
+    function actualizarClienteProveedor() {
+        const tipo = selectTipo.value;
+        const esVenta = ['VENTA_MAT', 'TRADE', 'CONSULTA', 'PREVISION'].includes(tipo);
+        
+        if (esVenta) {
+            bloqueCliente.classList.remove('d-none');
+            bloqueProveedor.classList.add('d-none');
+            bloquePedidoOrigen.classList.remove('d-none');
+        } else {
+            bloqueCliente.classList.add('d-none');
+            bloqueProveedor.classList.remove('d-none');
+            bloquePedidoOrigen.classList.add('d-none');
+        }
+    }
+
+    selectTipo.addEventListener('change', actualizarClienteProveedor);
+    actualizarClienteProveedor();
+});
+
+function añadirLinea() {
+    const container = document.getElementById('lineasContainer');
+    const template = container.querySelector('.linea-item').cloneNode(true);
+    template.querySelectorAll('input').forEach(i => i.value = '');
+    template.querySelector('select').selectedIndex = 0;
+    container.appendChild(template);
+}
+
+function eliminarLinea(btn) {
+    const lineas = document.querySelectorAll('.linea-item');
+    if (lineas.length > 1) {
+        btn.closest('.linea-item').remove();
+    } else {
+        alert('Debe haber al menos una línea');
+    }
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'material[]') {
+        const precio = e.target.options[e.target.selectedIndex]?.dataset?.precio;
+        const linea = e.target.closest('.linea-item');
+        const precioInput = linea.querySelector('.precio-input');
+        if (precio && !precioInput.value) {
+            precioInput.value = precio;
+        }
+    }
+});
+</script>
+{% endblock %}

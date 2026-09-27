@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Pedidos - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2>📋 Pedidos</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'seguimiento_internacional' %}" class="btn btn-info">
+            <i class="bi bi-globe"></i> 🌍 Seguimiento Int/Nac
+        </a>
+        <a href="{% url 'nuevo_pedido' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nuevo pedido
+        </a>
+    </div>
+</div>
+
+<div class="card card-custom">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Nº Pedido</th>
+                    <th>Cliente / Proveedor</th>
+                    <th>Tipo</th>
+                    <th>Ámbito</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th class="text-end">€/TN</th>
+                    <th class="text-end">Beneficio €/TN</th>
+                    <th class="text-end">Total</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pedidos %}
+                <tr>
+                    <td>
+                        <a href="{% url 'detalle_pedido' p.id %}">
+                            <strong>{{ p.numero_pedido }}</strong>
+                        </a>
+                    </td>
+                    <td>{{ p.entidad_nombre }}</td>
+                    <td>{{ p.get_tipo_display }}</td>
+                    <td>
+                        {% if p.es_internacional %}
+                        <span class="badge bg-primary">🌍 Int</span>
+                        {% else %}
+                        <span class="badge bg-secondary">🇪🇸 Nac</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ p.fecha|date:"d/m/Y" }}</td>
+                    <td>
+                        {% if p.estado == 'COMPLETADO' %}
+                        <span class="badge bg-success">Completado</span>
+                        {% elif p.estado == 'PENDIENTE' %}
+                        <span class="badge bg-warning">Pendiente</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ p.get_estado_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if p.tipo in 'VENTA_MAT,TRADE,CONSULTA,PREVISION' %}
+                            <strong>{{ p.precio_venta_tn|formato_es }} €</strong>
+                        {% else %}
+                            <strong>{{ p.precio_compra_tn|formato_es }} €</strong>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if p.pedido_origen %}
+                            <span class="badge {% if p.beneficio_tn >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                {% if p.beneficio_tn >= 0 %}+{% endif %}{{ p.beneficio_tn|formato_es }} €
+                            </span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end"><strong>{{ p.total_importe|formato_es }} €</strong></td>
+                    <td class="text-center">
+                        <a href="{% url 'detalle_pedido' p.id %}" class="btn btn-outline-secondary btn-sm" title="Ver detalle">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if p.es_internacional and p.internacional %}
+                        <a href="{% url 'detalle_pedido_internacional' p.internacional.id %}" class="btn btn-info btn-sm" title="Ver seguimiento internacional">
+                            <i class="bi bi-globe"></i> 🌍
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'editar_pedido' p.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'confirmar_eliminar_pedido' p.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center py-4">
+                        <p class="text-muted">No hay pedidos</p>
+                        <a href="{% url 'nuevo_pedido' %}" class="btn btn-success btn-sm">
+                            <i class="bi bi-plus-circle"></i> Crear primer pedido
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

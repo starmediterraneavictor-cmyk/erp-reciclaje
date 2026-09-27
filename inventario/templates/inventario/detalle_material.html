@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Detalle Material - {{ material.nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📦 {{ material.codigo }} - {{ material.nombre }}</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'editar_material' material.id %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+        <a href="{% url 'lista_inventario' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<!-- Datos del material -->
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <h6 class="text-muted">Código</h6>
+                <p><strong>{{ material.codigo }}</strong></p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">Nombre</h6>
+                <p>{{ material.nombre }}</p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">Tipo</h6>
+                <p>{{ material.tipo.nombre }}</p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">Subgrupo</h6>
+                <p>{{ material.subgrupo.nombre|default:"—" }}</p>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-3">
+                <h6 class="text-muted">Unidad</h6>
+                <p><span class="badge bg-info">{{ material.get_unidad_display }}</span></p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">P. Compra referencia</h6>
+                <p>{{ material.precio_compra|formato_es }} €/tn</p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">P. Venta referencia</h6>
+                <p>{{ material.precio_venta|formato_es }} €/tn</p>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted">Stock actual</h6>
+                <p><strong class="{% if stock_actual > 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ stock_actual|formato_es }} tn
+                </strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen de precios -->
+<div class="card card-custom mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">💰 Estadísticas históricas</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card border-0 bg-light text-center h-100">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Precio medio COMPRA</h6>
+                <h3 class="text-secondary mb-0">
+                    {% if precio_medio_compra %}
+                        {{ precio_medio_compra|formato_es }} €
+                    {% else %}
+                        —
+                    {% endif %}
+                </h3>
+                <small class="text-muted">{{ total_compras }} compras</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 bg-light text-center h-100">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Precio medio VENTA</h6>
+                <h3 class="text-primary mb-0">
+                    {% if precio_medio_venta %}
+                        {{ precio_medio_venta|formato_es }} €
+                    {% else %}
+                        —
+                    {% endif %}
+                </h3>
+                <small class="text-muted">{{ total_ventas }} ventas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 bg-light text-center h-100">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">€/TN Transporte</h6>
+                <h3 class="text-warning mb-0">
+                    {% if transporte_tn %}
+                        {{ transporte_tn|formato_es }} €
+                    {% else %}
+                        —
+                    {% endif %}
+                </h3>
+                <small class="text-muted">Total: {{ transporte_total|formato_es|default:"—" }} €</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 {% if beneficio_medio >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white text-center h-100">
+            <div class="card-body">
+                <h6 class="mb-1">Beneficio medio €/tn</h6>
+                <h3 class="mb-0">
+                    {% if beneficio_medio %}
+                        {% if beneficio_medio >= 0 %}+{% endif %}{{ beneficio_medio|formato_es }} €
+                    {% else %}
+                        —
+                    {% endif %}
+                </h3>
+                <small>Beneficio total: {% if beneficio_total %}{{ beneficio_total|formato_es }} €{% else %}—{% endif %}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fila 2: Volumen -->
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card border-0 bg-light text-center">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">TN Compradas</h6>
+                <h4 class="mb-0 text-secondary">{{ tn_compradas|formato_es }} tn</h4>
+                <small class="text-muted">{{ importe_comprado|formato_es }} €</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 bg-light text-center">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">TN Vendidas</h6>
+                <h4 class="mb-0 text-primary">{{ tn_vendidas|formato_es }} tn</h4>
+                <small class="text-muted">{{ importe_vendido|formato_es }} €</small>
+            </div>
+        </div>
+    </div>
+</div>
+            
+
+        <hr>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-muted">Última compra</h6>
+                {% if ultimo_compra %}
+                    <p>
+                        <strong>{{ ultimo_compra.pedido.numero_pedido }}</strong> ·
+                        {{ ultimo_compra.pedido.proveedor.nombre }} ·
+                        {{ ultimo_compra.cantidad|formato_es }} tn a
+                        <strong>{{ ultimo_compra.precio_unitario|formato_es }} €/tn</strong> ·
+                        {{ ultimo_compra.pedido.fecha|date:"d/m/Y" }}
+                    </p>
+                {% else %}
+                    <p class="text-muted">Sin compras registradas</p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted">Última venta</h6>
+                {% if ultimo_venta %}
+                    <p>
+                        <strong>{{ ultimo_venta.pedido.numero_pedido }}</strong> ·
+                        {{ ultimo_venta.pedido.cliente.nombre }} ·
+                        {{ ultimo_venta.cantidad|formato_es }} tn a
+                        <strong>{{ ultimo_venta.precio_unitario|formato_es }} €/tn</strong> ·
+                        {{ ultimo_venta.pedido.fecha|date:"d/m/Y" }}
+                    </p>
+                {% else %}
+                    <p class="text-muted">Sin ventas registradas</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Últimas compras -->
+<div class="card card-custom mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">📥 Últimas 10 compras</h5>
+    </div>
+    <div class="card-body">
+        {% if compras %}
+        <table class="table table-hover table-sm">
+            <thead>
+                <tr>
+                    <th>Pedido</th>
+                    <th>Proveedor</th>
+                    <th>Fecha</th>
+                    <th class="text-end">Cantidad</th>
+                    <th class="text-end">€/tn</th>
+                    <th class="text-end">Total</th>
+                    <th class="text-end">Transporte</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in compras %}
+                <tr>
+                    <td>
+                        <a href="{% url 'detalle_pedido' c.pedido.id %}">
+                            <strong>{{ c.pedido.numero_pedido }}</strong>
+                        </a>
+                    </td>
+                    <td>{{ c.pedido.proveedor.nombre|default:"—" }}</td>
+                    <td>{{ c.pedido.fecha|date:"d/m/Y" }}</td>
+                    <td class="text-end">{{ c.cantidad|formato_es }} tn</td>
+                    <td class="text-end">{{ c.precio_unitario|formato_es }} €</td>
+                    <td class="text-end"><strong>{{ c.subtotal|formato_es }} €</strong></td>
+                    <td class="text-end">{{ c.transporte|formato_es }} €</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted text-center">Este material no tiene compras registradas</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Últimas ventas -->
+<div class="card card-custom mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">📤 Últimas 10 ventas</h5>
+    </div>
+    <div class="card-body">
+        {% if ventas %}
+        <table class="table table-hover table-sm">
+            <thead>
+                <tr>
+                    <th>Pedido</th>
+                    <th>Cliente</th>
+                    <th>Fecha</th>
+                    <th class="text-end">Cantidad</th>
+                    <th class="text-end">€/tn</th>
+                    <th class="text-end">Total</th>
+                    <th class="text-end">Transporte</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in ventas %}
+                <tr>
+                    <td>
+                        <a href="{% url 'detalle_pedido' v.pedido.id %}">
+                            <strong>{{ v.pedido.numero_pedido }}</strong>
+                        </a>
+                    </td>
+                    <td>{{ v.pedido.cliente.nombre|default:"—" }}</td>
+                    <td>{{ v.pedido.fecha|date:"d/m/Y" }}</td>
+                    <td class="text-end">{{ v.cantidad|formato_es }} tn</td>
+                    <td class="text-end">{{ v.precio_unitario|formato_es }} €</td>
+                    <td class="text-end"><strong>{{ v.subtotal|formato_es }} €</strong></td>
+                    <td class="text-end">{{ v.transporte|formato_es }} €</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted text-center">Este material no tiene ventas registradas</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

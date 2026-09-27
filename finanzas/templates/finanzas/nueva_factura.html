@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}Nueva Factura - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>➕ Nueva Factura</h2>
+    <a href="{% url 'lista_facturas' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<form method="POST">
+    {% csrf_token %}
+    
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <h5 class="mb-3">💰 Datos de la factura</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Nº Factura <span class="text-danger">*</span></label>
+                    <input type="text" name="numero_factura" class="form-control" required placeholder="2026001">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                    <select name="tipo" id="id_tipo" class="form-select" required>
+                        {% for key, value in tipos %}
+                        <option value="{{ key }}" {% if key == 'INGRESO' %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Categoría</label>
+                    <select name="categoria" class="form-select">
+                        {% for key, value in categorias %}
+                        <option value="{{ key }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                    <input type="date" name="fecha" class="form-control" value="{{ fecha_actual }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Fecha vencimiento</label>
+                    <input type="date" name="fecha_vencimiento" class="form-control">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3" id="bloque-cliente">
+                    <label class="form-label">Cliente <span class="text-danger">*</span></label>
+                    <select name="cliente" class="form-select">
+                        <option value="">-- Seleccionar cliente --</option>
+                        {% for c in clientes %}
+                        <option value="{{ c.id }}">{{ c.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Para facturas de INGRESO (ventas)</small>
+                </div>
+                <div class="col-md-6 mb-3 d-none" id="bloque-proveedor">
+                    <label class="form-label">Proveedor <span class="text-danger">*</span></label>
+                    <select name="proveedor" class="form-select">
+                        <option value="">-- Seleccionar proveedor --</option>
+                        {% for p in proveedores %}
+                        <option value="{{ p.id }}">{{ p.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Para facturas de GASTO (compras)</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Pedido asociado (opcional)</label>
+                    <select name="pedido" class="form-select">
+                        <option value="">-- Sin pedido --</option>
+                        {% for p in pedidos %}
+                        <option value="{{ p.id }}">{{ p.numero_pedido }} - {{ p.cliente.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <h5 class="mb-3">💵 Importes</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Base (€)</label>
+                    <input type="number" step="0.01" name="base" class="form-control" value="0" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">IVA (%)</label>
+                    <input type="number" step="0.01" name="iva_porcentaje" class="form-control" value="21">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Estado pago</label>
+                    <select name="estado_pago" class="form-select">
+                        {% for key, value in estados %}
+                        <option value="{{ key }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Notas</label>
+                <textarea name="notas" class="form-control" rows="3"></textarea>
+            </div>
+            <!-- Checkbox para crear cuenta asociada -->
+            <div class="form-check mt-3 p-3 bg-light rounded">
+                <input class="form-check-input" type="checkbox" name="crear_cuenta" 
+                       id="id_crear_cuenta" checked>
+                <label class="form-check-label" for="id_crear_cuenta">
+                    📋 Crear cuenta por <strong id="tipo-cuenta">cobrar</strong> automáticamente
+                </label>
+                <br>
+                <small class="text-muted">
+                    <span id="texto-cuenta">
+                        Se creará una cuenta por cobrar con los datos de esta factura.
+                    </span>
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success btn-lg">
+            <i class="bi bi-check-circle"></i> Guardar factura
+        </button>
+        <a href="{% url 'lista_facturas' %}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-x-circle"></i> Cancelar
+        </a>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectTipo = document.getElementById('id_tipo');
+    const bloqueCliente = document.getElementById('bloque-cliente');
+    const bloqueProveedor = document.getElementById('bloque-proveedor');
+
+    function actualizarBloques() {
+        const tipo = selectTipo.value;
+        if (tipo === 'INGRESO') {
+            bloqueCliente.classList.remove('d-none');
+            bloqueProveedor.classList.add('d-none');
+        } else {
+            bloqueCliente.classList.add('d-none');
+            bloqueProveedor.classList.remove('d-none');
+        }
+    }
+
+    selectTipo.addEventListener('change', actualizarBloques);
+    actualizarBloques(); // ejecutar al cargar
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectTipo = document.getElementById('id_tipo');
+    const tipoCuenta = document.getElementById('tipo-cuenta');
+    const textoCuenta = document.getElementById('texto-cuenta');
+
+    function actualizarTexto() {
+        if (selectTipo.value === 'INGRESO') {
+            tipoCuenta.textContent = 'cobrar';
+            textoCuenta.textContent = 'Se creará una cuenta por cobrar con los datos de esta factura.';
+        } else {
+            tipoCuenta.textContent = 'pagar';
+            textoCuenta.textContent = 'Se creará una cuenta por pagar con los datos de esta factura.';
+        }
+    }
+
+    selectTipo.addEventListener('change', actualizarTexto);
+    actualizarTexto();
+});
+</script>
+
+{% endblock %}

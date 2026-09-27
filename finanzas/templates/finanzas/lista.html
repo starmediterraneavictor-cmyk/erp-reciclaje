@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Facturas - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2>💰 Facturas</h2>
+    <a href="{% url 'nueva_factura' %}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Nueva factura
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-success">💰 Ingresos</h6>
+                <h3>{{ total_ingresos|formato_es }} €</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-danger">💸 Gastos</h6>
+                <h3>{{ total_gastos|formato_es }} €</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-primary">📊 Beneficio</h6>
+                <h3>{{ beneficio|formato_es }} €</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-custom">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Nº Factura</th>
+                    <th>Tipo</th>
+                    <th>Entidad</th>
+                    <th>Fecha</th>
+                    <th>Total</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in facturas %}
+                <tr>
+                    <td><strong>{{ f.numero_factura }}</strong></td>
+                    <td>
+                        {% if f.tipo == 'INGRESO' %}
+                        <span class="badge bg-success">Ingreso</span>
+                        {% else %}
+                        <span class="badge bg-danger">Gasto</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ f.entidad.nombre }}</td>
+                    <td>{{ f.fecha|date:"d/m/Y" }}</td>
+                    <td><strong>{{ f.total|formato_es }} €</strong></td>
+                    <td>
+                        {% if f.estado_pago == 'PAGADO' %}
+                        <span class="badge bg-success">Pagado</span>
+                        {% elif f.estado_pago == 'PENDIENTE' %}
+                        <span class="badge bg-warning">Pendiente</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ f.get_estado_pago_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{% url 'registrar_cobro_pago_factura' f.id %}" class="btn btn-outline-success btn-sm" title="Registrar cobro/pago">
+                            <i class="bi bi-cash"></i>
+                        </a>
+                        <a href="{% url 'factura_pdf' f.id %}" class="btn btn-outline-success btn-sm" title="Descargar PDF" target="_blank">
+                            <i class="bi bi-file-pdf"></i>
+                        </a>
+                        <a href="{% url 'editar_factura' f.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'confirmar_eliminar_factura' f.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load l10n %}
+
+{% block title %}Editar Factura - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>✏️ Editar Factura {{ factura.numero_factura }}</h2>
+    <a href="{% url 'lista_facturas' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<form method="POST">
+    {% csrf_token %}
+    
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <h5 class="mb-3">💰 Datos de la factura</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Nº Factura</label>
+                    <input type="text" name="numero_factura" class="form-control" value="{{ factura.numero_factura }}" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" id="id_tipo" class="form-select">
+                        {% for key, value in tipos %}
+                        <option value="{{ key }}" {% if factura.tipo == key %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Categoría</label>
+                    <select name="categoria" class="form-select">
+                        {% for key, value in categorias %}
+                        <option value="{{ key }}" {% if factura.categoria == key %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" name="fecha" class="form-control" value="{{ factura.fecha|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Fecha vencimiento</label>
+                    <input type="date" name="fecha_vencimiento" class="form-control" 
+                           value="{{ factura.fecha_vencimiento|date:'Y-m-d'|default:'' }}">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3" id="bloque-cliente">
+                    <label class="form-label">Cliente</label>
+                    <select name="cliente" class="form-select">
+                        <option value="">-- Seleccionar cliente --</option>
+                        {% for c in clientes %}
+                        <option value="{{ c.id }}" {% if factura.cliente and factura.cliente.id == c.id %}selected{% endif %}>
+                            {{ c.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3 d-none" id="bloque-proveedor">
+                    <label class="form-label">Proveedor</label>
+                    <select name="proveedor" class="form-select">
+                        <option value="">-- Seleccionar proveedor --</option>
+                        {% for p in proveedores %}
+                        <option value="{{ p.id }}" {% if factura.proveedor and factura.proveedor.id == p.id %}selected{% endif %}>
+                            {{ p.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Pedido asociado</label>
+                    <select name="pedido" class="form-select">
+                        <option value="">-- Sin pedido --</option>
+                        {% for p in pedidos %}
+                        <option value="{{ p.id }}" {% if factura.pedido and factura.pedido.id == p.id %}selected{% endif %}>
+                            {{ p.numero_pedido }} - {{ p.cliente.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <h5 class="mb-3">💵 Importes</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Base (€)</label>
+                    <input type="number" step="0.01" name="base" class="form-control" value="{{ factura.base|unlocalize }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">IVA (%)</label>
+                    <input type="number" step="0.01" name="iva_porcentaje" class="form-control" value="{{ factura.iva_porcentaje|unlocalize }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Estado pago</label>
+                    <select name="estado_pago" class="form-select">
+                        {% for key, value in estados %}
+                        <option value="{{ key }}" {% if factura.estado_pago == key %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Notas</label>
+                <textarea name="notas" class="form-control" rows="3">{{ factura.notas }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-check-circle"></i> Guardar cambios
+        </button>
+        <a href="{% url 'lista_facturas' %}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-x-circle"></i> Cancelar
+        </a>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectTipo = document.getElementById('id_tipo');
+    const bloqueCliente = document.getElementById('bloque-cliente');
+    const bloqueProveedor = document.getElementById('bloque-proveedor');
+
+    function actualizarBloques() {
+        const tipo = selectTipo.value;
+        if (tipo === 'INGRESO') {
+            bloqueCliente.classList.remove('d-none');
+            bloqueProveedor.classList.add('d-none');
+        } else {
+            bloqueCliente.classList.add('d-none');
+            bloqueProveedor.classList.remove('d-none');
+        }
+    }
+
+    selectTipo.addEventListener('change', actualizarBloques);
+    actualizarBloques();
+});
+</script>
+{% endblock %}

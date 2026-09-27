@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Dashboard - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">📊 Dashboard</h2>
+
+<!-- KPIs -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">📋 Pedidos</h6>
+                <h2 class="mb-1">{{ total_pedidos }}</h2>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-success">🟢 Ventas: <strong>{{ pedidos_venta }}</strong></span>
+                    <span class="text-danger">🔴 Compras: <strong>{{ pedidos_compra }}</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">👥 Clientes</h6>
+                <h2>{{ total_clientes }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">💰 Ingresos del mes</h6>
+                <h2>{{ total_ingresos|formato_es }} €</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">📦 Stock total</h6>
+                <h2>{{ stock_total|formato_es }} tn</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Márgenes por material -->
+    <div class="col-md-8 mb-4">
+        <div class="card card-custom h-100">
+            <div class="card-body">
+                <h5>📈 Márgenes por material</h5>
+                {% if materiales %}
+                <div class="mt-3">
+                    {% for m in materiales %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><strong>{{ m.nombre }}</strong> <small class="text-muted">({{ m.codigo }})</small></span>
+                            <span class="badge bg-{{ m.color }}">{{ m.margen }}%</span>
+                        </div>
+                        <div class="progress mt-1">
+                            <div class="progress-bar bg-{{ m.color }}" 
+                                 style="width: {{ m.margen }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ m.stock|floatformat:2 }} tn en stock</small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center mt-4">
+                    No hay materiales todavía.<br>
+                    <a href="/inventario/nuevo/" class="btn btn-success btn-sm mt-2">+ Crear primer material</a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Demanda internacional -->
+    <div class="col-md-4 mb-4">
+        <div class="card card-custom h-100">
+            <div class="card-body">
+                <h5>🌍 Demanda internacional</h5>
+                {% if demanda %}
+                <div class="mt-3">
+                    {% for d in demanda %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ d.pais }}</span>
+                        <span class="badge bg-info">{{ d.pedidos }} pedidos</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center mt-4">
+                    No hay clientes todavía.<br>
+                    <a href="/clientes/nuevo/" class="btn btn-success btn-sm mt-2">+ Crear primer cliente</a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Acciones rápidas -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h5>⚡ Acciones rápidas</h5>
+                <div class="d-flex gap-2 flex-wrap mt-3">
+                    <a href="{% url 'nuevo_pedido' %}" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Nuevo pedido
+                    </a>
+                    <a href="{% url 'nuevo_cliente' %}" class="btn btn-primary">
+                        <i class="bi bi-person-plus"></i> Nuevo cliente
+                    </a>
+                    <a href="{% url 'nuevo_material' %}" class="btn btn-info">
+                        <i class="bi bi-box-seam"></i> Nuevo material
+                    </a>
+                    <a href="{% url 'nueva_factura' %}" class="btn btn-warning">
+                        <i class="bi bi-currency-euro"></i> Nueva factura
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-4 text-muted">
+    <small>ERP Reciclaje | {{ fecha|date:"d/m/Y H:i" }}</small>
+</div>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Dashboard Financiero - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">💼 Dashboard Financiero</h2>
+
+<!-- Balance -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card card-custom bg-success text-white">
+            <div class="card-body">
+                <h6>💰 Por cobrar</h6>
+                <h3>{{ total_cobrar|formato_es }} €</h3>
+                <small>{{ num_cobrar_pendientes }} pendientes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom bg-danger text-white">
+            <div class="card-body">
+                <h6>💸 Por pagar</h6>
+                <h3>{{ total_pagar|formato_es }} €</h3>
+                <small>{{ num_pagar_pendientes }} pendientes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom {% if balance >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+            <div class="card-body">
+                <h6>📊 Balance</h6>
+                <h3>{{ balance|formato_es }} €</h3>
+                <small>Diferencia</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas -->
+{% if num_vencidas_pagar > 0 or num_vencidas_cobrar > 0 %}
+<div class="alert alert-danger">
+    <h5>🚨 Alertas</h5>
+    {% if num_vencidas_pagar > 0 %}
+    <p><strong>{{ num_vencidas_pagar }} cuentas por pagar vencidas</strong> - Total: {{ total_vencido_pagar|formato_es }} €</p>
+    {% endif %}
+    {% if num_vencidas_cobrar > 0 %}
+    <p><strong>{{ num_vencidas_cobrar }} cuentas por cobrar vencidas</strong> - Total: {{ total_vencido_cobrar|formato_es }} €</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Accesos rápidos -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <a href="{% url 'cuentas_por_pagar' %}" class="btn btn-danger w-100 btn-lg">
+            💸 Ver deudas
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'cuentas_por_cobrar' %}" class="btn btn-success w-100 btn-lg">
+            💰 Ver cobros
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'nueva_cuenta_por_pagar' %}" class="btn btn-outline-danger w-100 btn-lg">
+            + Nueva deuda
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'nueva_cuenta_por_cobrar' %}" class="btn btn-outline-success w-100 btn-lg">
+            + Nuevo cobro
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Próximas deudas -->
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">💸 Próximas deudas</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Concepto</th>
+                            <th>Vence</th>
+                            <th>Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in proximas_pagar %}
+                        <tr {% if c.alerta %}class="table-warning"{% endif %}>
+                            <td>{{ c.concepto }}</td>
+                            <td>{{ c.fecha_vencimiento|date:"d/m/Y" }}</td>
+                            <td>{{ c.saldo_pendiente|floatformat:0 }} €</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted">Sin deudas</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Próximos cobros -->
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">💰 Próximos cobros</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Concepto</th>
+                            <th>Vence</th>
+                            <th>Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in proximas_cobrar %}
+                        <tr {% if c.alerta %}class="table-warning"{% endif %}>
+                            <td>{{ c.concepto }}</td>
+                            <td>{{ c.fecha_vencimiento|date:"d/m/Y" }}</td>
+                            <td>{{ c.saldo_pendiente|floatformat:0 }} €</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted">Sin cobros</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Desglose por categoría -->
+<div class="card card-custom">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">📊 Desglose de deudas por categoría</h5>
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Categoría</th>
+                    <th>Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat, importe in categorias_pagar.items %}
+                <tr>
+                    <td>{{ cat }}</td>
+                    <td><strong>{{ importe|formato_es }} €</strong></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2" class="text-center text-muted">Sin datos</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

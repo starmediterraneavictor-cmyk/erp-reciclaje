@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block title %}Nuevo Material - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>➕ Nuevo Material</h2>
+    <a href="{% url 'lista_inventario' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="card card-custom">
+    <div class="card-body">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Código <span class="text-danger">*</span></label>
+                    <input type="text" name="codigo" class="form-control" required placeholder="Ej: PEAD, PET, PP">
+                    <small class="text-muted">Código único del material</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" name="nombre" class="form-control" required placeholder="Ej: HDPE Alta Densidad">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                    <select name="tipo" id="id_tipo" class="form-select" required>
+                        <option value="">-- Seleccionar tipo --</option>
+                        {% for t in tipos %}
+                        <option value="{{ t.id }}">{{ t.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Subgrupo</label>
+                    <select name="subgrupo" id="id_subgrupo" class="form-select" disabled>
+                        <option value="">-- Primero selecciona un tipo --</option>
+                    </select>
+                    <small class="text-muted">Elige primero un tipo para ver los subgrupos</small>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Unidad</label>
+                    <select name="unidad" class="form-select">
+                        <option value="TN" selected>Toneladas (TN)</option>
+                        <option value="KG">Kilogramos (KG)</option>
+                        <option value="UD">Unidades (UD)</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Precio Compra (€/tn) - referencia</label>
+                    <input type="number" step="0.01" name="precio_compra" class="form-control" value="0" placeholder="Ej: 300">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Precio Venta (€/tn) - referencia</label>
+                    <input type="number" step="0.01" name="precio_venta" class="form-control" value="0" placeholder="Ej: 800">
+                </div>
+                <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Stock mínimo crítico (tn)</label>
+                    <input type="number" step="0.01" name="stock_minimo_critico" 
+                        class="form-control" value="100">
+                    <small class="text-muted">Por debajo de este valor, se mostrará como 🔴 Crítico</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Stock mínimo bajo (tn)</label>
+                    <input type="number" step="0.01" name="stock_minimo_bajo" 
+                        class="form-control" value="500">
+                    <small class="text-muted">Por debajo de este valor, se mostrará como 🟡 Bajo</small>
+                </div>
+            </div>
+            </div>
+
+            <div class="alert alert-info">
+                💡 <strong>Consejo:</strong> Los precios se expresan en <strong>€/tonelada</strong>. Ejemplo: PEAD a 300€/tn de compra y 800€/tn de venta.
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-check-circle"></i> Guardar material
+                </button>
+                <a href="{% url 'lista_inventario' %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectTipo = document.getElementById('id_tipo');
+    const selectSubgrupo = document.getElementById('id_subgrupo');
+
+    if (!selectTipo || !selectSubgrupo) {
+        console.error('No se encontraron los selects id_tipo / id_subgrupo');
+        return;
+    }
+
+    const URL_BASE = "{% url 'subgrupos_por_tipo' 0 %}";
+
+    function cargarSubgrupos(tipoId, subgrupoSeleccionado) {
+        selectSubgrupo.innerHTML = '<option value="">-- Cargando... --</option>';
+        selectSubgrupo.disabled = true;
+
+        if (!tipoId) {
+            selectSubgrupo.innerHTML = '<option value="">-- Primero selecciona un tipo --</option>';
+            return;
+        }
+
+        const url = URL_BASE.replace('/0/', '/' + tipoId + '/');
+
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                selectSubgrupo.innerHTML = '<option value="">-- Sin subgrupo --</option>';
+                if (data.subgrupos.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = '-- Este tipo no tiene subgrupos --';
+                    opt.disabled = true;
+                    selectSubgrupo.appendChild(opt);
+                } else {
+                    data.subgrupos.forEach(function(sg) {
+                        const option = document.createElement('option');
+                        option.value = sg.id;
+                        option.textContent = sg.nombre;
+                        if (String(sg.id) === String(subgrupoSeleccionado)) {
+                            option.selected = true;
+                        }
+                        selectSubgrupo.appendChild(option);
+                    });
+                }
+                selectSubgrupo.disabled = false;
+            })
+            .catch(err => {
+                console.error('Error cargando subgrupos:', err);
+                selectSubgrupo.innerHTML = '<option value="">-- Error al cargar --</option>';
+                selectSubgrupo.disabled = true;
+            });
+    }
+
+    selectTipo.addEventListener('change', function() {
+        cargarSubgrupos(this.value, null);
+    });
+
+    if (selectTipo.value) {
+        cargarSubgrupos(selectTipo.value, null);
+    } else {
+        selectSubgrupo.disabled = true;
+    }
+});
+</script>
+
+{% endblock %}

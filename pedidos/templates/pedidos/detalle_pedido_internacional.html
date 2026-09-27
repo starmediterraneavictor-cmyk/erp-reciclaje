@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Seguimiento Internacional - {{ pedido_int.pedido.numero_pedido }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>🌍 Seguimiento Internacional - {{ pedido_int.pedido.numero_pedido }}</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'editar_pedido_internacional' pedido_int.id %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+        <a href="{% url 'detalle_pedido' pedido_int.pedido.id %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Ver pedido
+        </a>
+        <a href="{% url 'seguimiento_internacional' %}" class="btn btn-secondary">
+            <i class="bi bi-list"></i> Lista
+        </a>
+    </div>
+</div>
+
+<!-- Estado y resumen -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">Estado</h6>
+                <span class="badge bg-{% if pedido_int.estado == 'CERRADO' %}success{% elif pedido_int.estado == 'ENTREGADO' %}info{% elif pedido_int.estado == 'EN_TRANSITO' %}primary{% else %}warning{% endif %} fs-6">
+                    {{ pedido_int.get_estado_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">Incoterm</h6>
+                <h4>{{ pedido_int.get_incoterm_display }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h6 class="text-muted">Valor total</h6>
+                <h4>{{ pedido_int.valor_total|formato_es }} €</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom {% if pedido_int.saldo_pendiente > 0 %}border-warning{% else %}border-success{% endif %}">
+            <div class="card-body">
+                <h6 class="text-muted">Saldo pendiente</h6>
+                <h4 class="{% if pedido_int.saldo_pendiente > 0 %}text-warning{% else %}text-success{% endif %}">
+                    {{ pedido_int.saldo_pendiente|formato_es }} €
+                </h4>
+                <small>{{ pedido_int.porcentaje_pagado|floatformat:1 }}% pagado</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if pedido_int.alerta_cobro %}
+<div class="alert alert-warning">
+    🚨 <strong>Alerta de cobro:</strong> Este pedido está próximo a su llegada y aún tiene saldo pendiente.
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Datos logísticos -->
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">📦 Datos logísticos</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr><td><strong>Nº Contenedor:</strong></td><td>{{ pedido_int.numero_contenedor|default:"—" }}</td></tr>
+                    <tr><td><strong>Nº Precinto:</strong></td><td>{{ pedido_int.numero_precinto|default:"—" }}</td></tr>
+                    <tr><td><strong>Naviera:</strong></td><td>{{ pedido_int.naviera|default:"—" }}</td></tr>
+                    <tr><td><strong>Nº BL:</strong></td><td>{{ pedido_int.numero_bl|default:"—" }}</td></tr>
+                    <tr><td><strong>Buque:</strong></td><td>{{ pedido_int.buque|default:"—" }}</td></tr>
+                    <tr><td><strong>Puerto origen:</strong></td><td>{{ pedido_int.puerto_origen|default:"—" }}</td></tr>
+                    <tr><td><strong>Puerto destino:</strong></td><td>{{ pedido_int.puerto_destino|default:"—" }}</td></tr>
+                    <tr><td><strong>Peso total:</strong></td><td>{{ pedido_int.peso_total_kg|floatformat:2 }} tn</td></tr>
+                    <tr><td><strong>Coste flete:</strong></td><td>{{ pedido_int.coste_flete|formato_es }} €</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fechas -->
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">📅 Fechas clave</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr><td><strong>Fecha carga:</strong></td><td>{{ pedido_int.fecha_carga|date:"d/m/Y"|default:"—" }}</td></tr>
+                    <tr><td><strong>Fecha salida:</strong></td><td>{{ pedido_int.fecha_salida|date:"d/m/Y"|default:"—" }}</td></tr>
+                    <tr><td><strong>ETA (llegada):</strong></td><td>{{ pedido_int.fecha_eta|date:"d/m/Y"|default:"—" }}</td></tr>
+                    <tr><td><strong>Entrega real:</strong></td><td>{{ pedido_int.fecha_entrega_real|date:"d/m/Y"|default:"—" }}</td></tr>
+                    {% if pedido_int.dias_para_llegada is not None %}
+                    <tr>
+                        <td><strong>Días para llegada:</strong></td>
+                        <td>
+                            {% if pedido_int.dias_para_llegada < 0 %}
+                                <span class="badge bg-success">Ya llegó</span>
+                            {% elif pedido_int.dias_para_llegada <= 7 %}
+                                <span class="badge bg-warning">{{ pedido_int.dias_para_llegada }} días</span>
+                            {% else %}
+                                <span class="badge bg-info">{{ pedido_int.dias_para_llegada }} días</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if pedido_int.condicion_pago %}
+                    <tr><td><strong>Condición pago:</strong></td><td>{{ pedido_int.condicion_pago.nombre }}</td></tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notas -->
+{% if pedido_int.notas %}
+<div class="card card-custom mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">📝 Notas</h5>
+    </div>
+    <div class="card-body">
+        {{ pedido_int.notas|linebreaks }}
+    </div>
+</div>
+{% endif %}
+
+<!-- Pagos -->
+<div class="card card-custom mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">💰 Pagos recibidos</h5>
+        <button class="btn btn-success btn-sm" data-bs-toggle="collapse" data-bs-target="#formPago">
+            <i class="bi bi-plus-circle"></i> Añadir pago
+        </button>
+    </div>
+    <div class="card-body">
+
+        <!-- Formulario para añadir pago (oculto por defecto) -->
+        <div class="collapse mb-3" id="formPago">
+            <div class="card card-body bg-light">
+                <h6>Añadir nuevo pago</h6>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label small">Tipo</label>
+                            <select name="tipo_pago" class="form-select form-select-sm">
+                                {% for key, value in tipos_pago %}
+                                <option value="{{ key }}">{{ value }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label small">Cantidad (€)</label>
+                            <input type="number" step="0.01" name="cantidad" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label small">Fecha</label>
+                            <input type="date" name="fecha" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label small">Método</label>
+                            <input type="text" name="metodo" class="form-control form-control-sm" placeholder="Transferencia, LC...">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label small">Referencia</label>
+                            <input type="text" name="referencia" class="form-control form-control-sm" placeholder="Nº referencia bancaria">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label small">Notas</label>
+                            <input type="text" name="notas_pago" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm mt-2">
+                        <i class="bi bi-check-circle"></i> Guardar pago
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de pagos -->
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Fecha</th>
+                    <th>Cantidad</th>
+                    <th>Método</th>
+                    <th>Referencia</th>
+                    <th>Notas</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pagos %}
+                <tr>
+                    <td><span class="badge bg-info">{{ p.get_tipo_display }}</span></td>
+                    <td>{{ p.fecha|date:"d/m/Y" }}</td>
+                    <td><strong>{{ p.cantidad|formato_es }} €</strong></td>
+                    <td>{{ p.metodo|default:"—" }}</td>
+                    <td>{{ p.referencia|default:"—" }}</td>
+                    <td>{{ p.notas|default:"—"|truncatechars:40 }}</td>
+                    <td class="text-center">
+                        <a href="{% url 'eliminar_pago_internacional' p.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-3">
+                        No hay pagos registrados
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-success">
+                    <td colspan="2"><strong>TOTAL PAGADO</strong></td>
+                    <td colspan="5"><strong>{{ pedido_int.total_pagado|formato_es }} €</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}
