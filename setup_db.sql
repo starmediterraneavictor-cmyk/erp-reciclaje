@@ -1,0 +1,3 @@
+CREATE USER erp_user WITH PASSWORD 'VicJack_2026';
+CREATE DATABASE erp_db OWNER erp_user;
+GRANT ALL PRIVILEGES ON DATABASE erp_db TO erp_user;
