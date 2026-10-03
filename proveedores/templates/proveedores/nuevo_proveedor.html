@@ -24,6 +24,14 @@
                     <label class="form-label">NIF / CIF</label>
                     <input type="text" name="nif" class="form-control" placeholder="Ej: B12345678">
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Código NIMA</label>
+                    <input type="text" name="codigo_nima" class="form-control" value="{{ cliente.codigo_nima }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nº Gestor de Residuos</label>
+                    <input type="text" name="numero_gestor" class="form-control" value="{{ cliente.numero_gestor }}">
+                </div>
             </div>
 
             <div class="row">
@@ -69,6 +77,23 @@
                 <label class="form-label">IBAN</label>
                 <input type="text" name="iban" class="form-control" placeholder="ES00 0000 0000 0000 0000 0000">
             </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Código NIMA</label>
+                    <input type="text" name="codigo_nima" class="form-control" 
+                        value="" 
+                        placeholder="Ej: 1234567890">
+                    <small class="text-muted">Número de Identificación Medioambiental</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nº Gestor de Residuos</label>
+                    <input type="text" name="numero_gestor" class="form-control" 
+                        value="" 
+                        placeholder="Ej: G-12345">
+                    <small class="text-muted">Número de gestor autorizado</small>
+                </div>
+            </div>
+
 
             <div class="mb-3">
                 <label class="form-label">Notas</label>

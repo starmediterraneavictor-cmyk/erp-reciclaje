@@ -21,6 +21,8 @@ class Proveedor(models.Model):
     email = models.EmailField(blank=True)
     telefono = models.CharField(max_length=50, blank=True)
     direccion = models.CharField(max_length=300, blank=True)
+    codigo_nima = models.CharField(max_length=50, blank=True,verbose_name="Código NIMA")
+    numero_gestor = models.CharField(max_length=50, blank=True,verbose_name="Nº Gestor de Residuos")
     
     tipo = models.CharField(max_length=20, choices=TIPO_PROVEEDOR, default='MATERIAL')
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='ACTIVO')

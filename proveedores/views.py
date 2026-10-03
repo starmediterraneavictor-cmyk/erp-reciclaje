@@ -52,6 +52,8 @@ def nuevo_proveedor(request):
                 email=request.POST.get('email', ''),
                 telefono=request.POST.get('telefono', ''),
                 direccion=request.POST.get('direccion', ''),
+                codigo_nima=request.POST.get('codigo_nima', ''),
+                numero_gestor=request.POST.get('numero_gestor', ''),
                 tipo=request.POST.get('tipo', 'MATERIAL'),
                 estado=request.POST.get('estado', 'ACTIVO'),
                 iban=request.POST.get('iban', ''),
@@ -80,6 +82,8 @@ def editar_proveedor(request, proveedor_id):
         proveedor.email = request.POST.get('email', '')
         proveedor.telefono = request.POST.get('telefono', '')
         proveedor.direccion = request.POST.get('direccion', '')
+        proveedor.codigo_nima = request.POST.get('codigo_nima', '')
+        proveedor.numero_gestor = request.POST.get('numero_gestor', '') 
         proveedor.tipo = request.POST.get('tipo', 'MATERIAL')
         proveedor.estado = request.POST.get('estado', 'ACTIVO')
         proveedor.iban = request.POST.get('iban', '')

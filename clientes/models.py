@@ -16,6 +16,7 @@ class Cliente(models.Model):
     ]
     
     nombre = models.CharField(max_length=200)
+    nif = models.CharField(max_length=20, blank=True)
     pais = models.CharField(max_length=100, default='España')
     email = models.EmailField(blank=True)
     telefono = models.CharField(max_length=50, blank=True)
@@ -23,6 +24,8 @@ class Cliente(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='ACTIVO')
     notas = models.TextField(blank=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
+    codigo_nima = models.CharField(max_length=50, blank=True,verbose_name="Código NIMA")
+    numero_gestor = models.CharField(max_length=50, blank=True,verbose_name="Nº Gestor de Residuos")
     
     def __str__(self):
         return self.nombre

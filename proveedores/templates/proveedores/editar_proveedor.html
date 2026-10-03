@@ -24,6 +24,14 @@
                     <label class="form-label">NIF / CIF</label>
                     <input type="text" name="nif" class="form-control" value="{{ proveedor.nif }}">
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Código NIMA</label>
+                    <input type="text" name="codigo_nima" class="form-control" value="{{ cliente.codigo_nima }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nº Gestor de Residuos</label>
+                    <input type="text" name="numero_gestor" class="form-control" value="{{ cliente.numero_gestor }}">
+                </div>
             </div>
 
             <div class="row">
@@ -70,6 +78,23 @@
                 <input type="text" name="iban" class="form-control" value="{{ proveedor.iban }}">
             </div>
 
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Código NIMA</label>
+                    <input type="text" name="codigo_nima" class="form-control" 
+                        value="{{ proveedor.codigo_nima }}" 
+                        placeholder="Ej: 1234567890">
+                    <small class="text-muted">Número de Identificación Medioambiental</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nº Gestor de Residuos</label>
+                    <input type="text" name="numero_gestor" class="form-control" 
+                        value="{{ proveedor.numero_gestor }}"
+                        placeholder="Ej: G-12345">
+                    <small class="text-muted">Número de gestor autorizado</small>
+                </div>
+            </div>
+            
             <div class="mb-3">
                 <label class="form-label">Notas</label>
                 <textarea name="notas" class="form-control" rows="3">{{ proveedor.notas }}</textarea>

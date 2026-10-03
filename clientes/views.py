@@ -81,6 +81,8 @@ def nuevo_cliente(request):
                 pais=request.POST.get('pais', 'España'),
                 email=request.POST.get('email', ''),
                 telefono=request.POST.get('telefono', ''),
+                codigo_nima=request.POST.get('codigo_nima', ''),       
+                numero_gestor=request.POST.get('numero_gestor', ''),
                 tipo=request.POST.get('tipo', 'RECICLAJE'),
                 estado=request.POST.get('estado', 'ACTIVO'),
                 notas=request.POST.get('notas', ''),
@@ -103,6 +105,8 @@ def editar_cliente(request, cliente_id):
         cliente.pais = request.POST.get('pais', 'España')
         cliente.email = request.POST.get('email', '')
         cliente.telefono = request.POST.get('telefono', '')
+        cliente.codigo_nima = request.POST.get('codigo_nima', '')      
+        cliente.numero_gestor = request.POST.get('numero_gestor', '')
         cliente.tipo = request.POST.get('tipo', 'RECICLAJE')
         cliente.estado = request.POST.get('estado', 'ACTIVO')
         cliente.notas = request.POST.get('notas', '')
