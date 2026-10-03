@@ -8,7 +8,7 @@
     <h2>📋 Pedido {{ pedido.numero_pedido }}</h2>
     <div class="d-flex gap-2">
         {# Factura: solo para pedidos de venta #}
-        {% if pedido.tipo in 'VENTA_MAT,TRADE,CONSULTA,PREVISION' %}
+        {% if pedido.tipo == 'VENTA_MAT' %}
             {% if not factura_existente %}
             <a href="{% url 'generar_factura_desde_pedido' pedido.id %}" class="btn btn-success">
                 <i class="bi bi-file-earmark-text"></i> 📄 Generar Factura
@@ -36,13 +36,22 @@
     </div>
 </div>
 
+<!-- 🚨 BANNER PREVISIÓN -->
+{% if pedido.estado == 'PREVISION' %}
+<div class="alert alert-warning">
+    <h5>⏸️ Pedido en PREVISIÓN</h5>
+    <p class="mb-0">Este pedido <strong>NO ha afectado al inventario</strong>. Sirve para anotar pedidos sin material disponible. 
+    Cuando tengas el material, edítalo y cambia el estado a <strong>Pendiente</strong> para aplicarlo al stock.</p>
+</div>
+{% endif %}
+
 <!-- Datos del pedido -->
 <div class="card card-custom mb-4">
     <div class="card-body">
         <div class="row">
             <div class="col-md-3">
                 <h6 class="text-muted">
-                    {% if pedido.tipo in 'VENTA_MAT,TRADE,CONSULTA,PREVISION' %}
+                    {% if pedido.tipo == 'VENTA_MAT' %}
                         Cliente
                     {% else %}
                         Proveedor
@@ -60,9 +69,19 @@
             </div>
             <div class="col-md-3">
                 <h6 class="text-muted">Estado</h6>
-                <span class="badge bg-{% if pedido.estado == 'COMPLETADO' %}success{% elif pedido.estado == 'PENDIENTE' %}warning{% else %}secondary{% endif %}">
-                    {{ pedido.get_estado_display }}
-                </span>
+                {% if pedido.estado == 'PREVISION' %}
+                <span class="badge bg-warning text-dark">⏸️ Previsión</span>
+                {% elif pedido.estado == 'COMPLETADO' %}
+                <span class="badge bg-success">✅ Completado</span>
+                {% elif pedido.estado == 'PENDIENTE' %}
+                <span class="badge bg-info">⏳ Pendiente</span>
+                {% elif pedido.estado == 'PROCESANDO' %}
+                <span class="badge bg-primary">🔄 Procesando</span>
+                {% elif pedido.estado == 'CANCELADO' %}
+                <span class="badge bg-danger">❌ Cancelado</span>
+                {% else %}
+                <span class="badge bg-secondary">{{ pedido.get_estado_display }}</span>
+                {% endif %}
             </div>
         </div>
 
@@ -180,14 +199,14 @@
         </div>
     </div>
 </div>
-{% elif pedido.tipo in 'VENTA_MAT,TRADE,CONSULTA,PREVISION' %}
+{% elif pedido.tipo == 'VENTA_MAT' %}
 <div class="alert alert-warning">
     ⚠️ <strong>Sin pedido de compra origen</strong>. Para ver el análisis de beneficio, edita este pedido y asígnale el pedido de compra del que proviene el material.
 </div>
 {% endif %}
 
 <!-- Si es compra, mostrar resumen -->
-{% if pedido.tipo in 'COMPRA_MAT,MAQUILA' %}
+{% if pedido.tipo == 'COMPRA_MAT' or pedido.tipo == 'MAQUILA' %}
 <div class="card card-custom mb-4">
     <div class="card-header bg-white">
         <h5 class="mb-0">📊 Resumen de la compra</h5>

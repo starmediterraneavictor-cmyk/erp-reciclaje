@@ -20,7 +20,6 @@ INSTALLED_APPS = [
     'clientes',
     'inventario',
     'finanzas',
-    'transporte',
     'analisis',
     'proveedores',
     
@@ -86,4 +85,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/admin/login/'
 LOGIN_REDIRECT_URL = '/'
+
+SESSION_COOKIE_AGE = 900  # 15 minutos
+SESSION_SAVE_EVERY_REQUEST = True
+LOGOUT_REDIRECT_URL = '/admin/login/'
+
 # MEDIA (archivos subidos como logos)

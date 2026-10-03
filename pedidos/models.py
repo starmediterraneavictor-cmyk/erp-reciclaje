@@ -11,13 +11,11 @@ class Pedido(models.Model):
     TIPO_OPERACION = [
         ('VENTA_MAT', 'Venta de Material'),
         ('COMPRA_MAT', 'Compra de Material'),
-        ('PREVISION', 'Previsión'),
-        ('CONSULTA', 'Consulta'),
-        ('TRADE', 'Trade'),
         ('MAQUILA', 'Maquila'),
     ]
     
     ESTADO_PEDIDO = [
+        ('PREVISION','Previsión (sin material)'),
         ('PENDIENTE', 'Pendiente'),
         ('PROCESANDO', 'Procesando'),
         ('COMPLETADO', 'Completado'),
@@ -36,7 +34,7 @@ class Pedido(models.Model):
     
     numero_pedido = models.CharField(max_length=50, unique=True, blank=True)
     tipo = models.CharField(max_length=20, choices=TIPO_OPERACION, default='VENTA_MAT')
-    estado = models.CharField(max_length=20, choices=ESTADO_PEDIDO, default='PENDIENTE')
+    estado = models.CharField(max_length=20, choices=ESTADO_PEDIDO, default='PREVISION')
     fecha = models.DateTimeField(default=timezone.now)
     
     cliente = models.ForeignKey(
@@ -82,7 +80,7 @@ class Pedido(models.Model):
     @property
     def entidad(self):
         """Devuelve el cliente o el proveedor según tipo"""
-        if self.tipo in ['VENTA_MAT', 'TRADE', 'CONSULTA', 'PREVISION']:
+        if self.tipo == 'VENTA_MAT':
             return self.cliente
         else:
             return self.proveedor
@@ -96,7 +94,7 @@ class Pedido(models.Model):
     def save(self, *args, **kwargs):
         if not self.numero_pedido:
             year = timezone.now().year
-            prefijo = 'E' if self.tipo in ['COMPRA_MAT', 'PREVISION'] else 'S'
+            prefijo = 'E' if self.tipo == 'COMPRA_MAT' else 'S'
             
             ultimo = Pedido.objects.filter(
                 numero_pedido__startswith=f"{year}{prefijo}"

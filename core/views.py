@@ -5,8 +5,9 @@ from pedidos.models import Pedido
 from finanzas.models import Factura
 from clientes.models import Cliente
 from inventario.models import Material, Inventario
+from django.contrib.auth.decorators import login_required
 
-
+@login_required
 def dashboard(request):
     hoy = datetime.now()
     
@@ -14,7 +15,7 @@ def dashboard(request):
     # CONTAR REGISTROS
     # ============================================
     total_pedidos = Pedido.objects.count()
-    pedidos_venta = Pedido.objects.filter(tipo__in=['VENTA_MAT', 'TRADE']).count()
+    pedidos_venta = Pedido.objects.filter(tipo__in=['VENTA_MAT']).count()
     pedidos_compra = Pedido.objects.filter(tipo__in=['COMPRA_MAT', 'MAQUILA']).count()
     total_clientes = Cliente.objects.count()
     total_materiales = Material.objects.count()

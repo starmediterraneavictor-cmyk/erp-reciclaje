@@ -8,9 +8,9 @@ from inventario.models import Material, Inventario
 from clientes.models import Cliente
 from datetime import date, timedelta
 from decimal import Decimal
+from django.contrib.auth.decorators import login_required
 
-
-
+@login_required
 def dashboard_analisis(request):
     hoy = timezone.now().date()
     mes_actual = hoy.month
@@ -261,7 +261,7 @@ def dashboard_analisis(request):
         # VENTAS del material en el rango
         detalles_venta = DetallePedido.objects.filter(
             material=material,
-            pedido__tipo__in=['VENTA_MAT', 'TRADE'],
+            pedido__tipo__in=['VENTA_MAT', 'MAQUILA'],
             pedido__fecha__date__gte=fecha_inicio,
             pedido__fecha__date__lte=fecha_fin,
         )

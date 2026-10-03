@@ -30,9 +30,9 @@
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Estado</label>
-                    <select name="estado" class="form-select">
+                    <select name="estado" id="id_estado" class="form-select">
                         {% for key, value in estados %}
-                        <option value="{{ key }}" {% if key == 'PENDIENTE' %}selected{% endif %}>{{ value }}</option>
+                        <option value="{{ key }}" {% if key == 'PREVISION' %}selected{% endif %}>{{ value }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -40,6 +40,12 @@
                     <label class="form-label">Fecha <span class="text-danger">*</span></label>
                     <input type="datetime-local" name="fecha" class="form-control" value="{{ fecha_actual }}" required>
                 </div>
+            </div>
+
+            <!-- Aviso dinámico según estado -->
+            <div id="aviso-estado" class="alert alert-warning mb-3">
+                <strong>⏸️ Estado PREVISIÓN:</strong> Este pedido <strong>NO afectará al inventario</strong>.
+                Sirve para anotar pedidos sin material disponible. Cuando tengas el material, cambia el estado a <strong>Pendiente</strong> para aplicarlo al stock.
             </div>
 
             <div class="row">
@@ -51,7 +57,7 @@
                         <option value="{{ c.id }}" data-pais="{{ c.pais }}">{{ c.nombre }} ({{ c.pais }})</option>
                         {% endfor %}
                     </select>
-                    <small class="text-muted">Para VENTA, TRADE, CONSULTA y PREVISIÓN</small>
+                    <small class="text-muted">Para VENTA</small>
                 </div>
                 <div class="col-md-6 mb-3 d-none" id="bloque-proveedor">
                     <label class="form-label">Proveedor <span class="text-danger">*</span></label>
@@ -156,13 +162,15 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const selectTipo = document.getElementById('id_tipo');
+    const selectEstado = document.getElementById('id_estado');
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
     const bloquePedidoOrigen = document.getElementById('bloque-pedido-origen');
+    const avisoEstado = document.getElementById('aviso-estado');
 
     function actualizarClienteProveedor() {
         const tipo = selectTipo.value;
-        const esVenta = ['VENTA_MAT', 'TRADE', 'CONSULTA', 'PREVISION'].includes(tipo);
+        const esVenta = tipo === 'VENTA_MAT';
         
         if (esVenta) {
             bloqueCliente.classList.remove('d-none');
@@ -175,8 +183,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function actualizarAvisoEstado() {
+        const estado = selectEstado.value;
+        
+        if (estado === 'PREVISION') {
+            avisoEstado.className = 'alert alert-warning mb-3';
+            avisoEstado.innerHTML = '<strong>⏸️ Estado PREVISIÓN:</strong> Este pedido <strong>NO afectará al inventario</strong>. Sirve para anotar pedidos sin material disponible. Cuando tengas el material, cambia el estado a <strong>Pendiente</strong> para aplicarlo al stock.';
+        } else {
+            avisoEstado.className = 'alert alert-success mb-3';
+            avisoEstado.innerHTML = '<strong>✅ Estado activo:</strong> Este pedido <strong>SÍ afectará al inventario</strong>. Al guardar, se validará el stock y se descontará automáticamente.';
+        }
+    }
+
     selectTipo.addEventListener('change', actualizarClienteProveedor);
+    selectEstado.addEventListener('change', actualizarAvisoEstado);
+    
     actualizarClienteProveedor();
+    actualizarAvisoEstado();
 });
 
 function añadirLinea() {

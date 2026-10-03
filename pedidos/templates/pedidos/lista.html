@@ -35,7 +35,7 @@
             </thead>
             <tbody>
                 {% for p in pedidos %}
-                <tr>
+                <tr {% if p.estado == 'PREVISION' %}class="table-light"{% endif %}>
                     <td>
                         <a href="{% url 'detalle_pedido' p.id %}">
                             <strong>{{ p.numero_pedido }}</strong>
@@ -52,16 +52,22 @@
                     </td>
                     <td>{{ p.fecha|date:"d/m/Y" }}</td>
                     <td>
-                        {% if p.estado == 'COMPLETADO' %}
-                        <span class="badge bg-success">Completado</span>
+                        {% if p.estado == 'PREVISION' %}
+                        <span class="badge bg-warning text-dark">⏸️ Previsión</span>
+                        {% elif p.estado == 'COMPLETADO' %}
+                        <span class="badge bg-success">✅ Completado</span>
                         {% elif p.estado == 'PENDIENTE' %}
-                        <span class="badge bg-warning">Pendiente</span>
+                        <span class="badge bg-info">⏳ Pendiente</span>
+                        {% elif p.estado == 'PROCESANDO' %}
+                        <span class="badge bg-primary">🔄 Procesando</span>
+                        {% elif p.estado == 'CANCELADO' %}
+                        <span class="badge bg-danger">❌ Cancelado</span>
                         {% else %}
                         <span class="badge bg-secondary">{{ p.get_estado_display }}</span>
                         {% endif %}
                     </td>
                     <td class="text-end">
-                        {% if p.tipo in 'VENTA_MAT,TRADE,CONSULTA,PREVISION' %}
+                        {% if p.tipo == 'VENTA_MAT' %}
                             <strong>{{ p.precio_venta_tn|formato_es }} €</strong>
                         {% else %}
                             <strong>{{ p.precio_compra_tn|formato_es }} €</strong>

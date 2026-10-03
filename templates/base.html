@@ -84,6 +84,16 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/admin/" target="_blank">🔐 Admin</a>
                     </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <form method="POST" action="{% url 'logout' %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="nav-link btn btn-link" style="color: white; text-decoration: none;">
+                                🚪 Salir ({{ user.username }})
+                            </button>
+                        </form>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>

@@ -59,7 +59,7 @@ def nuevo_pedido(request):
                 
                 cliente_id = None
                 proveedor_id = None
-                if tipo in ['VENTA_MAT', 'TRADE', 'CONSULTA', 'PREVISION']:
+                if tipo == 'VENTA_MAT':
                     cliente_id = request.POST.get('cliente') or None
                 else:
                     proveedor_id = request.POST.get('proveedor') or None
@@ -68,7 +68,7 @@ def nuevo_pedido(request):
                 
                 pedido = Pedido.objects.create(
                     tipo=tipo,
-                    estado=request.POST.get('estado', 'PENDIENTE'),
+                    estado=request.POST.get('estado', 'PREVISION'),
                     cliente_id=cliente_id,
                     proveedor_id=proveedor_id,
                     incoterm=request.POST.get('incoterm', ''),
@@ -99,11 +99,15 @@ def nuevo_pedido(request):
                             transporte=transporte,
                         )
 
+                        # Si el pedido está en PREVISIÓN, NO tocar inventario
+                        if pedido.estado == 'PREVISION':
+                            continue
+
                         inventario, created = Inventario.objects.get_or_create(
                             material=detalle.material
                         )
 
-                        if pedido.tipo in ['VENTA_MAT', 'TRADE']:
+                        if pedido.tipo == 'VENTA_MAT':
                             if inventario.cantidad < cantidad:
                                 raise ValueError(
                                     f"Stock insuficiente de {detalle.material.nombre}. "
@@ -135,7 +139,7 @@ def nuevo_pedido(request):
         'tipos': Pedido.TIPO_OPERACION,
         'estados': Pedido.ESTADO_PEDIDO,
         'incoterms': Pedido.INCOTERM_CHOICES,
-        'pedidos_compra': Pedido.objects.filter(tipo='COMPRA_MAT',pedidos_venta__isnull=True,).order_by('-fecha'),
+        'pedidos_compra': Pedido.objects.filter(tipo='COMPRA_MAT', pedidos_venta__isnull=True).order_by('-fecha'),
         'fecha_actual': datetime.now().strftime('%Y-%m-%dT%H:%M'),
     }
     return render(request, 'pedidos/nuevo_pedido.html', context)
@@ -150,21 +154,24 @@ def editar_pedido(request, pedido_id):
         try:
             with transaction.atomic():
                 tipo = request.POST.get('tipo')
-                
-                # 1. Revertir inventario de detalles antiguos
+                estado_nuevo = request.POST.get('estado')
+                estado_antiguo = pedido.estado
                 tipo_antiguo = pedido.tipo
-                for detalle_antiguo in pedido.detalles.all():
-                    inventario, _ = Inventario.objects.get_or_create(material=detalle_antiguo.material)
-                    if tipo_antiguo in ['VENTA_MAT', 'TRADE']:
-                        inventario.cantidad += detalle_antiguo.cantidad
-                    else:
-                        inventario.cantidad -= detalle_antiguo.cantidad
-                    inventario.save()
+                
+                # 1. Revertir inventario de detalles antiguos SOLO si el estado antiguo NO era PREVISIÓN
+                if estado_antiguo != 'PREVISION':
+                    for detalle_antiguo in pedido.detalles.all():
+                        inventario, _ = Inventario.objects.get_or_create(material=detalle_antiguo.material)
+                        if tipo_antiguo == 'VENTA_MAT':
+                            inventario.cantidad += detalle_antiguo.cantidad
+                        else:
+                            inventario.cantidad -= detalle_antiguo.cantidad
+                        inventario.save()
 
                 # 2. Actualizar cabecera
                 pedido.tipo = tipo
-                pedido.estado = request.POST.get('estado')
-                if tipo in ['VENTA_MAT', 'TRADE', 'CONSULTA', 'PREVISION']:
+                pedido.estado = estado_nuevo
+                if tipo == 'VENTA_MAT':
                     pedido.cliente_id = request.POST.get('cliente') or None
                     pedido.proveedor_id = None
                 else:
@@ -202,9 +209,13 @@ def editar_pedido(request, pedido_id):
                             transporte=transporte,
                         )
 
+                        # Si el nuevo estado es PREVISIÓN, NO tocar inventario
+                        if pedido.estado == 'PREVISION':
+                            continue
+
                         inventario, _ = Inventario.objects.get_or_create(material=detalle.material)
 
-                        if pedido.tipo in ['VENTA_MAT', 'TRADE']:
+                        if pedido.tipo == 'VENTA_MAT':
                             if inventario.cantidad < cantidad:
                                 raise ValueError(
                                     f"Stock insuficiente de {detalle.material.nombre}. "
@@ -235,16 +246,13 @@ def editar_pedido(request, pedido_id):
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
 
-    # Pedidos de compra disponibles para enlazar:
-    # - Los que no tienen venta asignada todavía
-    # - Más el pedido_origen actual (si lo tiene), para que aparezca seleccionado
+    # Pedidos de compra disponibles para enlazar
     pedidos_origen_actual_id = pedido.pedido_origen_id or -1
     pedidos_disponibles = Pedido.objects.filter(
         tipo='COMPRA_MAT'
     ).filter(
         Q(pedidos_venta__isnull=True) | Q(id=pedidos_origen_actual_id)
     ).exclude(id=pedido.id).order_by('-fecha')
-    
     
     context = {
         'pedido': pedido,
@@ -276,15 +284,17 @@ def eliminar_pedido(request, pedido_id):
 
         try:
             with transaction.atomic():
-                for detalle in pedido.detalles.all():
-                    inventario, created = Inventario.objects.get_or_create(
-                        material=detalle.material
-                    )
-                    if pedido.tipo in ['VENTA_MAT', 'TRADE']:
-                        inventario.cantidad += detalle.cantidad
-                    else:
-                        inventario.cantidad -= detalle.cantidad
-                    inventario.save()
+                # Solo revertir inventario si el pedido NO estaba en PREVISIÓN
+                if pedido.estado != 'PREVISION':
+                    for detalle in pedido.detalles.all():
+                        inventario, created = Inventario.objects.get_or_create(
+                            material=detalle.material
+                        )
+                        if pedido.tipo == 'VENTA_MAT':
+                            inventario.cantidad += detalle.cantidad
+                        else:
+                            inventario.cantidad -= detalle.cantidad
+                        inventario.save()
 
                 pedido.delete()
                 messages.success(request, f'✅ Pedido {numero} de {entidad} eliminado correctamente')
@@ -306,8 +316,8 @@ def generar_factura_desde_pedido(request, pedido_id):
         messages.warning(request, f'⚠️ Este pedido ya tiene la factura {factura_existente.numero_factura}')
         return redirect('detalle_pedido', pedido_id=pedido.id)
 
-    # Solo se pueden generar facturas de pedidos de venta
-    if pedido.tipo not in ['VENTA_MAT', 'TRADE', 'CONSULTA', 'PREVISION']:
+    # Solo se pueden generar facturas de pedidos de VENTA
+    if pedido.tipo != 'VENTA_MAT':
         messages.error(request, '❌ No se puede generar factura de un pedido de compra. El proveedor te emite la factura a ti.')
         return redirect('detalle_pedido', pedido_id=pedido.id)
 
@@ -327,15 +337,15 @@ def generar_factura_desde_pedido(request, pedido_id):
     if request.method == 'POST':
         try:
             numero_factura = request.POST.get('numero_factura')
-            tipo_factura = 'INGRESO' if pedido.tipo in ['VENTA_MAT', 'TRADE'] else 'GASTO'
-            es_ingreso = tipo_factura == 'INGRESO'
+            tipo_factura = 'INGRESO'
+            es_ingreso = True
 
             factura = Factura.objects.create(
                 numero_factura=numero_factura,
                 tipo=tipo_factura,
                 fecha=datetime.now().date(),
-                cliente=pedido.cliente if es_ingreso else None,
-                proveedor=pedido.proveedor if not es_ingreso else None,
+                cliente=pedido.cliente,
+                proveedor=None,
                 pedido=pedido,
                 categoria='COMERCIO_MATERIALES',
                 base=base,
@@ -526,4 +536,3 @@ def eliminar_pago_internacional(request, pago_id):
         return redirect('detalle_pedido_internacional', int_id=int_id)
 
     return redirect('detalle_pedido_internacional', int_id=int_id)
-
