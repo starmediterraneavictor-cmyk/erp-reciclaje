@@ -15,6 +15,7 @@
         <form method="POST">
             {% csrf_token %}
 
+            <!-- Fila 1: Nombre + NIF -->
             <div class="row">
                 <div class="col-md-8 mb-3">
                     <label class="form-label">Nombre <span class="text-danger">*</span></label>
@@ -24,16 +25,9 @@
                     <label class="form-label">NIF / CIF</label>
                     <input type="text" name="nif" class="form-control" value="{{ proveedor.nif }}">
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Código NIMA</label>
-                    <input type="text" name="codigo_nima" class="form-control" value="{{ cliente.codigo_nima }}">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Nº Gestor de Residuos</label>
-                    <input type="text" name="numero_gestor" class="form-control" value="{{ cliente.numero_gestor }}">
-                </div>
             </div>
 
+            <!-- Fila 2: Tipo + Estado + País -->
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Tipo <span class="text-danger">*</span></label>
@@ -57,6 +51,7 @@
                 </div>
             </div>
 
+            <!-- Fila 3: Email + Teléfono -->
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Email</label>
@@ -68,38 +63,47 @@
                 </div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Dirección</label>
-                <input type="text" name="direccion" class="form-control" value="{{ proveedor.direccion }}">
+            <!-- Fila 4: Dirección -->
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Dirección</label>
+                    <input type="text" name="direccion" class="form-control" value="{{ proveedor.direccion }}">
+                </div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">IBAN</label>
-                <input type="text" name="iban" class="form-control" value="{{ proveedor.iban }}">
+            <!-- Fila 5: IBAN -->
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">IBAN</label>
+                    <input type="text" name="iban" class="form-control" value="{{ proveedor.iban }}">
+                </div>
             </div>
 
+            <!-- Fila 6: NIMA + Gestor -->
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Código NIMA</label>
                     <input type="text" name="codigo_nima" class="form-control" 
-                        value="{{ proveedor.codigo_nima }}" 
-                        placeholder="Ej: 1234567890">
+                           value="{{ proveedor.codigo_nima|default:'' }}" 
+                           placeholder="Ej: 1234567890">
                     <small class="text-muted">Número de Identificación Medioambiental</small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Nº Gestor de Residuos</label>
                     <input type="text" name="numero_gestor" class="form-control" 
-                        value="{{ proveedor.numero_gestor }}"
-                        placeholder="Ej: G-12345">
+                           value="{{ proveedor.numero_gestor|default:'' }}"
+                           placeholder="Ej: G-12345">
                     <small class="text-muted">Número de gestor autorizado</small>
                 </div>
             </div>
-            
+
+            <!-- Fila 7: Notas -->
             <div class="mb-3">
                 <label class="form-label">Notas</label>
                 <textarea name="notas" class="form-control" rows="3">{{ proveedor.notas }}</textarea>
             </div>
 
+            <!-- Botones -->
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-lg">
                     <i class="bi bi-check-circle"></i> Guardar cambios

@@ -14,30 +14,28 @@
     <div class="card-body">
         <form method="POST">
             {% csrf_token %}
-            
+
+            <!-- Fila 1: Nombre + NIF -->
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Nombre <span class="text-danger">*</span></label>
                     <input type="text" name="nombre" class="form-control" required value="{{ cliente.nombre }}">
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-6 mb-3">
                     <label class="form-label">NIF / CIF</label>
-                    <input type="text" name="nif" class="form-control" placeholder="Ej: B12345678">
+                    <input type="text" name="nif" class="form-control" value="{{ cliente.nif }}" placeholder="Ej: B12345678">
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Código NIMA</label>
-                    <input type="text" name="codigo_nima" class="form-control" value="{{ cliente.codigo_nima }}">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Nº Gestor de Residuos</label>
-                    <input type="text" name="numero_gestor" class="form-control" value="{{ cliente.numero_gestor }}">
-                </div>
+            </div>
+
+            <!-- Fila 2: País -->
+            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">País</label>
                     <input type="text" name="pais" class="form-control" value="{{ cliente.pais }}">
                 </div>
             </div>
 
+            <!-- Fila 3: Email + Teléfono -->
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Email</label>
@@ -47,23 +45,27 @@
                     <label class="form-label">Teléfono</label>
                     <input type="text" name="telefono" class="form-control" value="{{ cliente.telefono }}">
                 </div>
+            </div>
+
+            <!-- Fila 4: NIMA + Gestor (NUEVOS) -->
+            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Código NIMA</label>
                     <input type="text" name="codigo_nima" class="form-control" 
-                        value="{{ cliente.codigo_nima|default:'' }}" 
-                        placeholder="Ej: 1234567890">
+                           value="{{ cliente.codigo_nima|default:'' }}" 
+                           placeholder="Ej: 1234567890">
                     <small class="text-muted">Número de Identificación Medioambiental</small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Nº Gestor de Residuos</label>
                     <input type="text" name="numero_gestor" class="form-control" 
-                        value="{{ cliente.numero_gestor|default:'' }}" 
-                        placeholder="Ej: G-12345">
+                           value="{{ cliente.numero_gestor|default:'' }}" 
+                           placeholder="Ej: G-12345">
                     <small class="text-muted">Número de gestor autorizado</small>
                 </div>
             </div>
-            </div>
 
+            <!-- Fila 5: Categoría + Estado -->
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Categoría</label>
@@ -84,11 +86,13 @@
                 </div>
             </div>
 
+            <!-- Fila 6: Notas -->
             <div class="mb-3">
                 <label class="form-label">Notas</label>
                 <textarea name="notas" class="form-control" rows="3">{{ cliente.notas }}</textarea>
             </div>
 
+            <!-- Botones -->
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-lg">
                     <i class="bi bi-check-circle"></i> Guardar cambios

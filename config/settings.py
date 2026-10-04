@@ -1,10 +1,13 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = 'django-insecure-tu-clave-secreta-aqui'
-DEBUG = True
-ALLOWED_HOSTS = []
+load_dotenv(BASE_DIR / '.env')
+
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-temp')
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -22,7 +25,6 @@ INSTALLED_APPS = [
     'finanzas',
     'analisis',
     'proveedores',
-    
 ]
 
 MIDDLEWARE = [
@@ -33,6 +35,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.LoginRequiredMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -40,7 +43,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # ← Añade esta línea
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -57,8 +60,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
@@ -86,8 +93,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/admin/login/'
 LOGIN_REDIRECT_URL = '/'
 
-SESSION_COOKIE_AGE = 900  # 15 minutos
+SESSION_COOKIE_AGE = 900
 SESSION_SAVE_EVERY_REQUEST = True
 LOGOUT_REDIRECT_URL = '/admin/login/'
 
-# MEDIA (archivos subidos como logos)
+# ============================================
+# CONFIGURACIÓN PARA CLOUDFLARE / PRODUCCIÓN
+# ============================================
+CSRF_TRUSTED_ORIGINS = [
+    'https://erp-star-recycling.com',
+    'https://www.erp-star-recycling.com',
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
