@@ -40,30 +40,22 @@ def dashboard(request):
     # MATERIALES CON MARGEN
     # ============================================
     materiales = []
-    for m in Material.objects.all()[:5]:
-        margen = 0
-        if m.precio_compra and float(m.precio_compra) > 0:
-            margen = ((float(m.precio_venta) - float(m.precio_compra)) / float(m.precio_compra)) * 100
-        
-        if margen > 30:
-            color = 'success'
-        elif margen > 15:
-            color = 'warning'
-        else:
-            color = 'danger'
-        
+    materiales = []
+    for m in Material.objects.all()[:10]:  # Hasta 10 materiales
         try:
             inv = Inventario.objects.get(material=m)
             stock = float(inv.cantidad)
         except Inventario.DoesNotExist:
             stock = 0
         
+        # Solo mostrar los que tengan stock > 0
+        if stock <= 0:
+            continue
+        
         materiales.append({
             'nombre': m.nombre,
             'codigo': m.codigo,
             'stock': stock,
-            'margen': round(margen, 1),
-            'color': color,
         })
     
     # ============================================
