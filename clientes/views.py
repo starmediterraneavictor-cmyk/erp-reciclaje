@@ -117,3 +117,47 @@ def editar_cliente(request, cliente_id):
     
     context = {'cliente': cliente}
     return render(request, 'clientes/editar_cliente.html', context)
+
+
+# ============================================
+# EXPORTAR A EXCEL
+# ============================================
+
+from core.utils import exportar_excel
+from datetime import date
+
+
+@login_required
+def exportar_clientes_excel(request):
+    """Exporta clientes a Excel."""
+    clientes = Cliente.objects.all().order_by('nombre')
+
+    # Filtro opcional
+    tipo = request.GET.get('tipo')
+    if tipo:
+        clientes = clientes.filter(tipo=tipo)
+
+    cabeceras = [
+        'Nombre', 'NIF', 'NIMA', 'Gestor Residuos', 'País',
+        'Email', 'Teléfono', 'Categoría', 'Estado', 'Notas'
+    ]
+
+    filas = []
+    for c in clientes:
+        filas.append([
+            c.nombre,
+            c.nif or '',
+            c.codigo_nima or '',
+            c.numero_gestor or '',
+            c.pais or '',
+            c.email or '',
+            c.telefono or '',
+            c.get_tipo_display(),
+            c.get_estado_display(),
+            c.notas or '',
+        ])
+
+    hoy = date.today().strftime('%Y%m%d')
+    nombre = f'Clientes_{hoy}.xlsx'
+
+    return exportar_excel(nombre, cabeceras, filas, titulo_hoja="Clientes")

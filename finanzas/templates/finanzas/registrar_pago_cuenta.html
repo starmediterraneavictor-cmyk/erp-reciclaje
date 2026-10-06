@@ -17,7 +17,7 @@
         <table class="table table-sm">
             <tr><td><strong>Concepto:</strong></td><td>{{ cuenta.concepto }}</td></tr>
             <tr><td><strong>Categoría:</strong></td><td>{{ cuenta.get_categoria_display }}</td></tr>
-            <tr><td><strong>Entidad:</strong></td><td>{{ cuenta.entidad.nombre|default:"-" }}</td></tr>
+            <tr><td><strong>Entidad:</strong></td><td>{{ cuenta.proveedor.nombre|default:"-" }}</td></tr>
             <tr><td><strong>Importe total:</strong></td><td>{{ cuenta.importe_total|floatformat:2 }} €</td></tr>
             <tr><td><strong>Ya pagado:</strong></td><td class="text-success">{{ cuenta.importe_pagado|floatformat:2 }} €</td></tr>
             <tr><td><strong>Pendiente:</strong></td><td class="text-danger"><strong>{{ cuenta.saldo_pendiente|floatformat:2 }} €</strong></td></tr>
@@ -30,7 +30,7 @@
 <div class="card card-custom">
     <div class="card-body">
         <h5>💳 Nuevo pago</h5>
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
             
             <div class="row">
@@ -65,6 +65,15 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Notas</label>
                     <input type="text" name="notas" class="form-control">
+                </div>
+            </div>
+
+            <!-- NUEVO: Justificante del pago -->
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">📎 Justificante del pago (PDF/imagen)</label>
+                    <input type="file" name="archivo_justificante" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                    <small class="text-muted">Sube el justificante de la transferencia, recibo o comprobante del pago.</small>
                 </div>
             </div>
 

@@ -10,7 +10,7 @@
     </a>
 </div>
 
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
     
     <div class="card card-custom mb-4">
@@ -81,6 +81,15 @@
                     </select>
                 </div>
             </div>
+
+            <!-- NUEVO: Archivo de factura del proveedor (solo para GASTOS) -->
+            <div class="row d-none" id="bloque-archivo-factura">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">📎 Factura del proveedor (PDF/imagen)</label>
+                    <input type="file" name="archivo_factura" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                    <small class="text-muted">Sube la factura que te ha enviado el proveedor. Se guardará adjunta para consultas futuras.</small>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -141,41 +150,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectTipo = document.getElementById('id_tipo');
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
+    const bloqueArchivo = document.getElementById('bloque-archivo-factura');
+    const tipoCuenta = document.getElementById('tipo-cuenta');
+    const textoCuenta = document.getElementById('texto-cuenta');
 
     function actualizarBloques() {
         const tipo = selectTipo.value;
         if (tipo === 'INGRESO') {
+            // Venta
             bloqueCliente.classList.remove('d-none');
             bloqueProveedor.classList.add('d-none');
-        } else {
-            bloqueCliente.classList.add('d-none');
-            bloqueProveedor.classList.remove('d-none');
-        }
-    }
-
-    selectTipo.addEventListener('change', actualizarBloques);
-    actualizarBloques(); // ejecutar al cargar
-});
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const selectTipo = document.getElementById('id_tipo');
-    const tipoCuenta = document.getElementById('tipo-cuenta');
-    const textoCuenta = document.getElementById('texto-cuenta');
-
-    function actualizarTexto() {
-        if (selectTipo.value === 'INGRESO') {
+            bloqueArchivo.classList.add('d-none');  // ← NUEVO
             tipoCuenta.textContent = 'cobrar';
             textoCuenta.textContent = 'Se creará una cuenta por cobrar con los datos de esta factura.';
         } else {
+            // Gasto
+            bloqueCliente.classList.add('d-none');
+            bloqueProveedor.classList.remove('d-none');
+            bloqueArchivo.classList.remove('d-none');  // ← NUEVO (mostrar)
             tipoCuenta.textContent = 'pagar';
             textoCuenta.textContent = 'Se creará una cuenta por pagar con los datos de esta factura.';
         }
     }
 
-    selectTipo.addEventListener('change', actualizarTexto);
-    actualizarTexto();
+    selectTipo.addEventListener('change', actualizarBloques);
+    actualizarBloques();
 });
 </script>
 

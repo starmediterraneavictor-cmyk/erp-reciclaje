@@ -1,80 +1,90 @@
 {% extends 'base.html' %}
 
-{% block title %}Registrar Cobro/Pago - {{ factura.numero_factura }}{% endblock %}
+{% block title %}Registrar Cobro - ERP Reciclaje{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>💰 Registrar Cobro/Pago</h2>
-    <a href="{% url 'lista_facturas' %}" class="btn btn-secondary">
+    <h2>💰 Registrar Cobro</h2>
+    <a href="{% url 'cuentas_por_cobrar' %}" class="btn btn-secondary">
         <i class="bi bi-arrow-left"></i> Volver
     </a>
 </div>
 
-<div class="row">
-    <div class="col-md-6 mb-4">
-        <div class="card card-custom h-100">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">💰 Factura {{ factura.numero_factura }}</h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-sm">
-                    <tr><td><strong>Tipo:</strong></td><td>{{ factura.get_tipo_display }}</td></tr>
-                    <tr><td><strong>Entidad:</strong></td><td>{{ factura.entidad.nombre }}</td></tr>
-                    <tr><td><strong>Fecha:</strong></td><td>{{ factura.fecha|date:"d/m/Y" }}</td></tr>
-                    <tr><td><strong>Base:</strong></td><td>{{ factura.base|floatformat:2 }} €</td></tr>
-                    <tr><td><strong>IVA:</strong></td><td>{{ factura.iva|floatformat:2 }} €</td></tr>
-                    <tr class="table-success"><td><strong>TOTAL:</strong></td><td><strong>{{ factura.total|floatformat:2 }} €</strong></td></tr>
-                </table>
-            </div>
-        </div>
+<!-- Info de la cuenta -->
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <h5>📋 Información del cobro</h5>
+        <table class="table table-sm">
+            <tr><td><strong>Concepto:</strong></td><td>{{ cuenta.concepto }}</td></tr>
+            <tr><td><strong>Cliente:</strong></td><td>{{ cuenta.cliente.nombre }}</td></tr>
+            <tr><td><strong>Importe total:</strong></td><td>{{ cuenta.importe_total|floatformat:2 }} €</td></tr>
+            <tr><td><strong>Ya cobrado:</strong></td><td class="text-success">{{ cuenta.importe_cobrado|floatformat:2 }} €</td></tr>
+            <tr><td><strong>Pendiente:</strong></td><td class="text-danger"><strong>{{ cuenta.saldo_pendiente|floatformat:2 }} €</strong></td></tr>
+            <tr><td><strong>Vencimiento:</strong></td><td>{{ cuenta.fecha_vencimiento|date:"d/m/Y" }}</td></tr>
+        </table>
     </div>
-    
-    <div class="col-md-6 mb-4">
-        <div class="card card-custom h-100">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">
-                    {% if factura.tipo == 'INGRESO' %}
-                    💰 Crear Cuenta por Cobrar
-                    {% else %}
-                    💸 Crear Cuenta por Pagar
-                    {% endif %}
-                </h5>
+</div>
+
+<!-- Formulario de cobro -->
+<div class="card card-custom">
+    <div class="card-body">
+        <h5>💰 Nuevo cobro</h5>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Importe (€) <span class="text-danger">*</span></label>
+                    <input type="number" step="0.01" name="importe" class="form-control" 
+                           value="{{ cuenta.saldo_pendiente }}" required>
+                    <small class="text-muted">Por defecto: total pendiente</small>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                    <input type="date" name="fecha" class="form-control" value="{{ fecha_actual }}" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Método</label>
+                    <select name="metodo" class="form-select">
+                        <option value="">-- Seleccionar --</option>
+                        <option value="Transferencia">Transferencia</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Domiciliación">Domiciliación</option>
+                        <option value="Tarjeta">Tarjeta</option>
+                    </select>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="POST">
-                    {% csrf_token %}
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Fecha de vencimiento <span class="text-danger">*</span></label>
-                        <input type="date" name="fecha_vencimiento" class="form-control" 
-                               value="{{ fecha_sugerida }}" required>
-                        <small class="text-muted">Sugerido: 30 días desde la emisión</small>
-                    </div>
-                    
-                    <div class="alert alert-info">
-                        {% if factura.tipo == 'INGRESO' %}
-                        💡 Se creará una <strong>Cuenta por Cobrar</strong> para hacer seguimiento de los pagos del cliente.
-                        {% else %}
-                        💡 Se creará una <strong>Cuenta por Pagar</strong> para hacer seguimiento de los pagos al proveedor.
-                        {% endif %}
-                    </div>
-                    
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="bi bi-check-circle"></i> 
-                            {% if factura.tipo == 'INGRESO' %}
-                            Crear Cuenta por Cobrar
-                            {% else %}
-                            Crear Cuenta por Pagar
-                            {% endif %}
-                        </button>
-                        <a href="{% url 'lista_facturas' %}" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Cancelar
-                        </a>
-                    </div>
-                </form>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Referencia</label>
+                    <input type="text" name="referencia" class="form-control" placeholder="Nº transferencia, etc.">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Notas</label>
+                    <input type="text" name="notas" class="form-control">
+                </div>
             </div>
-        </div>
+
+            <!-- NUEVO: Justificante del cobro -->
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">📎 Justificante del cobro (PDF/imagen)</label>
+                    <input type="file" name="archivo_justificante" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                    <small class="text-muted">Sube el justificante del cobro (transferencia recibida, recibo firmado...).</small>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-check-circle"></i> Registrar cobro
+                </button>
+                <a href="{% url 'cuentas_por_cobrar' %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}

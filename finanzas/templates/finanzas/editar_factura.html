@@ -11,7 +11,7 @@
     </a>
 </div>
 
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
     
     <div class="card card-custom mb-4">
@@ -87,6 +87,26 @@
                     </select>
                 </div>
             </div>
+
+            <!-- NUEVO: Archivo de factura del proveedor (solo para GASTOS) -->
+            <div class="row d-none" id="bloque-archivo-factura">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">📎 Factura del proveedor (PDF/imagen)</label>
+                    
+                    {% if factura.archivo_factura %}
+                    <div class="alert alert-info mb-2">
+                        <strong>Archivo actual:</strong>
+                        <a href="{{ factura.archivo_factura.url }}" target="_blank" class="ms-2">
+                            <i class="bi bi-file-earmark-pdf"></i> Ver archivo
+                        </a>
+                        <small class="text-muted d-block mt-1">{{ factura.archivo_factura.name }}</small>
+                    </div>
+                    {% endif %}
+                    
+                    <input type="file" name="archivo_factura" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                    <small class="text-muted">Sube un archivo nuevo para reemplazar el actual (opcional).</small>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -133,15 +153,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectTipo = document.getElementById('id_tipo');
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
+    const bloqueArchivo = document.getElementById('bloque-archivo-factura');
 
     function actualizarBloques() {
         const tipo = selectTipo.value;
         if (tipo === 'INGRESO') {
             bloqueCliente.classList.remove('d-none');
             bloqueProveedor.classList.add('d-none');
+            bloqueArchivo.classList.add('d-none');
         } else {
             bloqueCliente.classList.add('d-none');
             bloqueProveedor.classList.remove('d-none');
+            bloqueArchivo.classList.remove('d-none');
         }
     }
 

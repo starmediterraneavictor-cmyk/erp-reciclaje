@@ -5,9 +5,14 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>🏭 Proveedores <span class="badge bg-secondary">{{ total }}</span></h2>
-    <a href="{% url 'nuevo_proveedor' %}" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Nuevo Proveedor
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'exportar_proveedores_excel' %}" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+        </a>
+        <a href="{% url 'nuevo_proveedor' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nuevo Proveedor
+        </a>
+    </div>
 </div>
 
 <!-- Filtros -->

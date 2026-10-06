@@ -111,6 +111,7 @@ def nueva_factura(request):
                 iva_porcentaje=request.POST.get('iva_porcentaje', 21),
                 estado_pago=request.POST.get('estado_pago', 'PENDIENTE'),
                 notas=request.POST.get('notas', ''),
+                archivo_factura=request.FILES.get('archivo_factura') or None,
             )
             # Crear cuenta asociada si se ha marcado el checkbox
             if request.POST.get('crear_cuenta'):
@@ -155,6 +156,10 @@ def editar_factura(request, factura_id):
             factura.iva_porcentaje = request.POST.get('iva_porcentaje', 21)
             factura.estado_pago = request.POST.get('estado_pago')
             factura.notas = request.POST.get('notas', '')
+            # Actualizar archivo si se ha subido uno nuevo
+            if request.FILES.get('archivo_factura'):
+                factura.archivo_factura = request.FILES.get('archivo_factura')
+
             factura.save()
 
             messages.success(request, f'✅ Factura {factura.numero_factura} actualizada')
@@ -310,6 +315,7 @@ def registrar_pago_cuenta(request, cuenta_id):
                 metodo=request.POST.get('metodo', ''),
                 referencia=request.POST.get('referencia', ''),
                 notas=request.POST.get('notas', ''),
+                archivo_justificante=request.FILES.get('archivo_justificante') or None,
             )
             messages.success(request, f'✅ Pago registrado: {request.POST.get("importe")}€')
             return redirect('cuentas_por_pagar')
@@ -394,6 +400,7 @@ def registrar_cobro_cuenta(request, cuenta_id):
                 metodo=request.POST.get('metodo', ''),
                 referencia=request.POST.get('referencia', ''),
                 notas=request.POST.get('notas', ''),
+                archivo_justificante=request.FILES.get('archivo_justificante') or None,
             )
             messages.success(request, '✅ Cobro registrado')
             return redirect('cuentas_por_cobrar')
@@ -584,3 +591,57 @@ def eliminar_cuenta_por_cobrar(request, cuenta_id):
         return redirect('cuentas_por_cobrar')
 
     return redirect('confirmar_eliminar_cuenta_por_cobrar', cuenta_id=cuenta_id)
+
+# ============================================
+# EXPORTAR A EXCEL
+# ============================================
+
+from core.utils import exportar_excel
+from datetime import date
+
+
+@login_required
+def exportar_facturas_excel(request):
+    """Exporta facturas a Excel."""
+    facturas = Factura.objects.all().order_by('-fecha')
+
+    # Filtros opcionales
+    desde = request.GET.get('desde')
+    hasta = request.GET.get('hasta')
+    tipo = request.GET.get('tipo')
+
+    if desde:
+        facturas = facturas.filter(fecha__gte=desde)
+    if hasta:
+        facturas = facturas.filter(fecha__lte=hasta)
+    if tipo:
+        facturas = facturas.filter(tipo=tipo)
+
+    cabeceras = [
+        'Nº Factura', 'Tipo', 'Fecha', 'Vencimiento',
+        'Cliente/Proveedor', 'Categoría', 'Base (€)', 'IVA (%)', 'IVA (€)', 'Total (€)',
+        'Estado Pago', 'Notas'
+    ]
+
+    filas = []
+    for f in facturas:
+        entidad = f.cliente.nombre if f.cliente else (f.proveedor.nombre if f.proveedor else '—')
+        filas.append([
+            f.numero_factura,
+            f.get_tipo_display(),
+            f.fecha.strftime('%d/%m/%Y') if f.fecha else '',
+            f.fecha_vencimiento.strftime('%d/%m/%Y') if f.fecha_vencimiento else '',
+            entidad,
+            f.get_categoria_display(),
+            float(f.base),
+            float(f.iva_porcentaje),
+            float(f.iva),
+            float(f.total),
+            f.get_estado_pago_display(),
+            f.notas or '',
+        ])
+
+    hoy = date.today().strftime('%Y%m%d')
+    nombre = f'Facturas_{hoy}.xlsx'
+
+    return exportar_excel(nombre, cabeceras, filas, titulo_hoja="Facturas")

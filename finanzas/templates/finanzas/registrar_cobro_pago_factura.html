@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Cobro/Pago - {{ factura.numero_factura }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>💰 Registrar Cobro/Pago</h2>
+    <a href="{% url 'lista_facturas' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">💰 Factura {{ factura.numero_factura }}</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr><td><strong>Tipo:</strong></td><td>{{ factura.get_tipo_display }}</td></tr>
+                    <tr><td><strong>Entidad:</strong></td><td>{{ factura.entidad.nombre }}</td></tr>
+                    <tr><td><strong>Fecha:</strong></td><td>{{ factura.fecha|date:"d/m/Y" }}</td></tr>
+                    <tr><td><strong>Base:</strong></td><td>{{ factura.base|floatformat:2 }} €</td></tr>
+                    <tr><td><strong>IVA:</strong></td><td>{{ factura.iva|floatformat:2 }} €</td></tr>
+                    <tr class="table-success"><td><strong>TOTAL:</strong></td><td><strong>{{ factura.total|floatformat:2 }} €</strong></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    {% if factura.tipo == 'INGRESO' %}
+                    💰 Crear Cuenta por Cobrar
+                    {% else %}
+                    💸 Crear Cuenta por Pagar
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de vencimiento <span class="text-danger">*</span></label>
+                        <input type="date" name="fecha_vencimiento" class="form-control" 
+                               value="{{ fecha_sugerida }}" required>
+                        <small class="text-muted">Sugerido: 30 días desde la emisión</small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        {% if factura.tipo == 'INGRESO' %}
+                        💡 Se creará una <strong>Cuenta por Cobrar</strong> para hacer seguimiento de los pagos del cliente.
+                        {% else %}
+                        💡 Se creará una <strong>Cuenta por Pagar</strong> para hacer seguimiento de los pagos al proveedor.
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle"></i> 
+                            {% if factura.tipo == 'INGRESO' %}
+                            Crear Cuenta por Cobrar
+                            {% else %}
+                            Crear Cuenta por Pagar
+                            {% endif %}
+                        </button>
+                        <a href="{% url 'lista_facturas' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

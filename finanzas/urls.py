@@ -9,6 +9,9 @@ urlpatterns = [
     path('<int:factura_id>/eliminar/', views.confirmar_eliminar_factura, name='confirmar_eliminar_factura'),
     path('<int:factura_id>/eliminar/confirmar/', views.eliminar_factura, name='eliminar_factura'),
     path('<int:factura_id>/pdf/', views.factura_pdf, name='factura_pdf'),
+
+    # Exportar Excel
+    path('exportar/facturas/', views.exportar_facturas_excel, name='exportar_facturas_excel'),
     
     # Regristrar cobro/pago desde factura
     path('factura/<int:factura_id>/registrar-cobro-pago/', views.registrar_cobro_pago_factura, name='registrar_cobro_pago_factura'),

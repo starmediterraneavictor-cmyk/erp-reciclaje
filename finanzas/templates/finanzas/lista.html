@@ -6,9 +6,14 @@
 {% block content %}
 <div class="d-flex justify-content-between mb-4">
     <h2>💰 Facturas</h2>
-    <a href="{% url 'nueva_factura' %}" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Nueva factura
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'exportar_facturas_excel' %}" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+        </a>
+        <a href="{% url 'nueva_factura' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nueva factura
+        </a>
+    </div>
 </div>
 
 <div class="row mb-4">

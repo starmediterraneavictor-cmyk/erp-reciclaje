@@ -59,6 +59,13 @@ class Factura(models.Model):
     
     estado_pago = models.CharField(max_length=20, choices=ESTADO_PAGO, default='PENDIENTE')
     notas = models.TextField(blank=True)
+
+    archivo_factura = models.FileField(
+        upload_to='facturas_proveedor/%Y/%m/',
+        blank=True, null=True,
+        verbose_name="Factura del proveedor (PDF)"
+    )
+
     
     def __str__(self):
         entidad = self.cliente.nombre if self.cliente else (self.proveedor.nombre if self.proveedor else '—')
@@ -194,6 +201,12 @@ class PagoCuentaPorPagar(models.Model):
     metodo = models.CharField(max_length=50, blank=True)
     referencia = models.CharField(max_length=100, blank=True)
     notas = models.TextField(blank=True)
+
+    archivo_factura = models.FileField(
+            upload_to='facturas_proveedor/%Y/%m/',
+            blank=True, null=True,
+            verbose_name="Factura del proveedor (PDF)"
+        )
     
     def __str__(self):
         return f"{self.cuenta.concepto} - {self.importe}€ ({self.fecha})"
@@ -283,6 +296,12 @@ class CobroCuentaPorCobrar(models.Model):
     metodo = models.CharField(max_length=50, blank=True)
     referencia = models.CharField(max_length=100, blank=True)
     notas = models.TextField(blank=True)
+
+    archivo_factura = models.FileField(
+            upload_to='facturas_proveedor/%Y/%m/',
+            blank=True, null=True,
+            verbose_name="Factura del proveedor (PDF)"
+        )
     
     def __str__(self):
         return f"{self.cuenta.concepto} - {self.importe}€"

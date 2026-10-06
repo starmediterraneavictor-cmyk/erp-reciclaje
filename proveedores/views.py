@@ -124,3 +124,48 @@ def eliminar_proveedor(request, proveedor_id):
         return redirect('lista_proveedores')
 
     return redirect('confirmar_eliminar_proveedor', proveedor_id=proveedor_id)
+
+# ============================================
+# EXPORTAR A EXCEL
+# ============================================
+
+from core.utils import exportar_excel
+from datetime import date
+
+
+@login_required
+def exportar_proveedores_excel(request):
+    """Exporta proveedores a Excel."""
+    proveedores = Proveedor.objects.all().order_by('nombre')
+
+    # Filtro opcional
+    tipo = request.GET.get('tipo')
+    if tipo:
+        proveedores = proveedores.filter(tipo=tipo)
+
+    cabeceras = [
+        'Nombre', 'NIF', 'NIMA', 'Gestor Residuos', 'País',
+        'Email', 'Teléfono', 'Dirección', 'Tipo', 'Estado', 'IBAN', 'Notas'
+    ]
+
+    filas = []
+    for p in proveedores:
+        filas.append([
+            p.nombre,
+            p.nif or '',
+            p.codigo_nima or '',
+            p.numero_gestor or '',
+            p.pais or '',
+            p.email or '',
+            p.telefono or '',
+            p.direccion or '',
+            p.get_tipo_display(),
+            p.get_estado_display(),
+            p.iban or '',
+            p.notas or '',
+        ])
+
+    hoy = date.today().strftime('%Y%m%d')
+    nombre = f'Proveedores_{hoy}.xlsx'
+
+    return exportar_excel(nombre, cabeceras, filas, titulo_hoja="Proveedores")
