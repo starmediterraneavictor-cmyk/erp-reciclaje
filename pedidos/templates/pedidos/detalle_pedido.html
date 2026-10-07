@@ -244,6 +244,7 @@
                     <th>Precio (€/tn)</th>
                     <th>Subtotal</th>
                     <th>Transporte</th>
+                    <th>€/tn Transporte</th>
                 </tr>
             </thead>
             <tbody>
@@ -254,16 +255,17 @@
                     <td>{{ d.precio_unitario|formato_es }} €</td>
                     <td><strong>{{ d.subtotal|formato_es }} €</strong></td>
                     <td>{{ d.transporte|formato_es }} €</td>
+                    <td><strong>{{ d.transporte_tn|formato_es }} €</strong></td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="text-center text-muted">Sin detalles</td></tr>
+                <tr><td colspan="6" class="text-center text-muted">Sin detalles</td></tr>
                 {% endfor %}
             </tbody>
             <tfoot>
                 <tr class="table-success">
                     <td colspan="2"><strong>TOTAL</strong></td>
                     <td><strong>{{ total_kg|formato_es }} tn</strong></td>
-                    <td colspan="2"><strong>{{ total_importe|formato_es }} €</strong></td>
+                    <td colspan="3"><strong>{{ total_importe|formato_es }} €</strong></td>
                 </tr>
             </tfoot>
         </table>

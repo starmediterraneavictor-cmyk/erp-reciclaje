@@ -224,6 +224,13 @@ class DetallePedido(models.Model):
         precio = Decimal(str(self.precio_unitario))
         transporte = Decimal(str(self.transporte))
         return (cantidad * precio) + transporte
+
+    @property
+    def transporte_tn(self):
+        """€/TN de transporte para esta línea"""
+        if self.cantidad and self.cantidad > 0:
+            return self.transporte / self.cantidad
+        return 0
     
     class Meta:
         verbose_name = "Detalle de pedido"
