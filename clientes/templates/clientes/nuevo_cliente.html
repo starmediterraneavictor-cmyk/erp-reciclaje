@@ -27,13 +27,23 @@
                 </div>
             </div>
 
-            <!-- Fila 2: País -->
+            <!-- Fila 2: País + Categoría -->
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">País</label>
                     <input type="text" name="pais" class="form-control" value="España">
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Categoría <span class="text-danger">*</span></label>
+                    <select name="tipo" id="id_tipo" class="form-select" required>
+                        <option value="RECICLAJE" selected>Reciclaje</option>
+                        <option value="SERVICIOS">Servicios (parking, alquiler...)</option>
+                    </select>
+                    <small class="text-muted">Solo los de "Reciclaje" aparecen en el análisis internacional</small>
+                </div>
             </div>
+            
+            
 
             <!-- Fila 3: Email + Teléfono -->
             <div class="row">
@@ -48,33 +58,25 @@
             </div>
 
             <!-- Fila 4: NIMA + Gestor (NUEVOS) -->
-            <div class="row">
+            <div class="row" id="bloque-nima-gestor">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Código NIMA</label>
-                    <input type="text" name="codigo_nima" class="form-control" 
-                           value="" 
-                           placeholder="Ej: 1234567890">
+                    <input type="text" name="codigo_nima" id="id_codigo_nima" class="form-control" 
+                        value="" 
+                        placeholder="Ej: 1234567890">
                     <small class="text-muted">Número de Identificación Medioambiental</small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Nº Gestor de Residuos</label>
-                    <input type="text" name="numero_gestor" class="form-control" 
-                           value="" 
-                           placeholder="Ej: G-12345">
+                    <input type="text" name="numero_gestor" id="id_numero_gestor" class="form-control" 
+                        value="" 
+                        placeholder="Ej: G-12345">
                     <small class="text-muted">Número de gestor autorizado</small>
                 </div>
             </div>
 
-            <!-- Fila 5: Categoría + Estado -->
+            <!-- Fila 5: Estado -->
             <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Categoría</label>
-                    <select name="tipo" class="form-select">
-                        <option value="RECICLAJE" selected>Reciclaje</option>
-                        <option value="SERVICIOS">Servicios (parking, alquiler...)</option>
-                    </select>
-                    <small class="text-muted">Solo los de "Reciclaje" aparecen en el análisis internacional</small>
-                </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Estado</label>
                     <select name="estado" class="form-select">
@@ -104,4 +106,35 @@
         </form>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectTipo = document.getElementById('id_tipo');
+    const bloqueNimaGestor = document.getElementById('bloque-nima-gestor');
+    const inputNima = document.getElementById('id_codigo_nima');
+    const inputGestor = document.getElementById('id_numero_gestor');
+
+    function actualizarBloqueNima() {
+        const tipo = selectTipo.value;
+        
+        if (tipo === 'RECICLAJE') {
+            // Mostrar y habilitar
+            bloqueNimaGestor.classList.remove('d-none');
+            inputNima.disabled = false;
+            inputGestor.disabled = false;
+        } else {
+            // Ocultar y deshabilitar (para que no se envíen al backend)
+            bloqueNimaGestor.classList.add('d-none');
+            inputNima.disabled = true;
+            inputGestor.disabled = true;
+            // Opcional: limpiar los valores
+            inputNima.value = '';
+            inputGestor.value = '';
+        }
+    }
+
+    selectTipo.addEventListener('change', actualizarBloqueNima);
+    actualizarBloqueNima();  // Ejecutar al cargar
+});
+</script>
+
 {% endblock %}
