@@ -31,7 +31,7 @@
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Tipo <span class="text-danger">*</span></label>
-                    <select name="tipo" class="form-select" required>
+                    <select name="tipo" id="id_tipo" class="form-select" required>
                         {% for codigo, nombre in tipos %}
                         <option value="{{ codigo }}">{{ nombre }}</option>
                         {% endfor %}
@@ -79,20 +79,20 @@
                 </div>
             </div>
 
-            <!-- Fila 6: NIMA + Gestor -->
-            <div class="row">
+            <!-- Fila 6: NIMA + Gestor (solo para Material) -->
+            <div class="row" id="bloque-nima-gestor">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Código NIMA</label>
-                    <input type="text" name="codigo_nima" class="form-control" 
-                           value="" 
-                           placeholder="Ej: 1234567890">
+                    <input type="text" name="codigo_nima" id="id_codigo_nima" class="form-control" 
+                        value="" 
+                        placeholder="Ej: 1234567890">
                     <small class="text-muted">Número de Identificación Medioambiental</small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Nº Gestor de Residuos</label>
-                    <input type="text" name="numero_gestor" class="form-control" 
-                           value="" 
-                           placeholder="Ej: G-12345">
+                    <input type="text" name="numero_gestor" id="id_numero_gestor" class="form-control" 
+                        value="" 
+                        placeholder="Ej: G-12345">
                     <small class="text-muted">Número de gestor autorizado</small>
                 </div>
             </div>
@@ -115,4 +115,33 @@
         </form>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectTipo = document.getElementById('id_tipo');
+    const bloqueNimaGestor = document.getElementById('bloque-nima-gestor');
+    const inputNima = document.getElementById('id_codigo_nima');
+    const inputGestor = document.getElementById('id_numero_gestor');
+
+    function actualizarBloqueNima() {
+        const tipo = selectTipo.value;
+        
+        // Mostrar NIMA/Gestor solo si es MATERIAL
+        if (tipo === 'MATERIAL') {
+            bloqueNimaGestor.classList.remove('d-none');
+            inputNima.disabled = false;
+            inputGestor.disabled = false;
+        } else {
+            bloqueNimaGestor.classList.add('d-none');
+            inputNima.disabled = true;
+            inputGestor.disabled = true;
+            inputNima.value = '';
+            inputGestor.value = '';
+        }
+    }
+
+    selectTipo.addEventListener('change', actualizarBloqueNima);
+    actualizarBloqueNima();
+});
+</script>
+
 {% endblock %}

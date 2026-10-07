@@ -79,6 +79,7 @@ def nuevo_cliente(request):
             cliente = Cliente.objects.create(
                 nombre=request.POST.get('nombre'),
                 pais=request.POST.get('pais', 'España'),
+                direccion=request.POST.get('direccion', ''),
                 email=request.POST.get('email', ''),
                 telefono=request.POST.get('telefono', ''),
                 codigo_nima=request.POST.get('codigo_nima', ''),       
@@ -103,6 +104,7 @@ def editar_cliente(request, cliente_id):
     if request.method == 'POST':
         cliente.nombre = request.POST.get('nombre')
         cliente.pais = request.POST.get('pais', 'España')
+        cliente.direccion = request.POST.get('direccion', '')
         cliente.email = request.POST.get('email', '')
         cliente.telefono = request.POST.get('telefono', '')
         cliente.codigo_nima = request.POST.get('codigo_nima', '')      

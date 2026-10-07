@@ -18,6 +18,7 @@ class Cliente(models.Model):
     nombre = models.CharField(max_length=200)
     nif = models.CharField(max_length=20, blank=True)
     pais = models.CharField(max_length=100, default='España')
+    direccion = models.CharField(max_length=300, blank=True)
     email = models.EmailField(blank=True)
     telefono = models.CharField(max_length=50, blank=True)
     tipo = models.CharField(max_length=20, choices=TIPO_CLIENTE, default='RECICLAJE')
