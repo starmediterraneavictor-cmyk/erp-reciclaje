@@ -37,12 +37,22 @@ def lista_pedidos(request):
 @login_required
 def detalle_pedido(request, pedido_id):
     """Ver detalle completo de un pedido"""
+    from finanzas.models import CuentaPorPagar
+
     pedido = get_object_or_404(Pedido, id=pedido_id)
     factura_existente = pedido.facturas.first()
+
+    # Comprobar si ya existe cuenta por pagar para este pedido
+    cuenta_pagar_existente = None
+    if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
+        cuenta_pagar_existente = CuentaPorPagar.objects.filter(
+            concepto=f"Pedido {pedido.numero_pedido}"
+        ).first()
 
     context = {
         'pedido': pedido,
         'factura_existente': factura_existente,
+        'cuenta_pagar_existente': cuenta_pagar_existente,
         'total_kg': pedido.total_kg,
         'total_importe': pedido.total_importe,
     }
@@ -536,3 +546,47 @@ def eliminar_pago_internacional(request, pago_id):
         return redirect('detalle_pedido_internacional', int_id=int_id)
 
     return redirect('detalle_pedido_internacional', int_id=int_id)
+
+@login_required
+def generar_cuenta_pagar_desde_pedido(request, pedido_id):
+    """Genera una CuentaPorPagar desde un pedido de compra o maquila"""
+    from finanzas.models import CuentaPorPagar
+
+    pedido = get_object_or_404(Pedido, id=pedido_id)
+
+    # Solo para pedidos de compra o maquila
+    if pedido.tipo not in ['COMPRA_MAT', 'MAQUILA']:
+        messages.error(request, '❌ Solo se pueden generar cuentas por pagar de pedidos de compra o maquila.')
+        return redirect('detalle_pedido', pedido_id=pedido.id)
+
+    # Comprobar si ya existe una cuenta con ese número de pedido
+    concepto = f"Pedido {pedido.numero_pedido}"
+    if CuentaPorPagar.objects.filter(concepto=concepto).exists():
+        messages.warning(request, f'⚠️ Ya existe una cuenta por pagar para el pedido {pedido.numero_pedido}')
+        return redirect('detalle_pedido', pedido_id=pedido.id)
+
+    if request.method == 'POST':
+        try:
+            cuenta = CuentaPorPagar.objects.create(
+                concepto=concepto,
+                categoria='PROVEEDOR',
+                proveedor=pedido.proveedor,
+                importe_total=pedido.total_importe,
+                fecha_emision=request.POST.get('fecha_emision') or datetime.now().date(),
+                fecha_vencimiento=request.POST.get('fecha_vencimiento'),
+                periodicidad='UNICO',
+                numero_factura=request.POST.get('numero_factura', ''),
+                notas=request.POST.get('notas', '') or f'Generada desde pedido {pedido.numero_pedido}',
+                archivo_factura=request.FILES.get('archivo_factura') or None,
+            )
+            messages.success(request, f'✅ Cuenta por pagar creada para el pedido {pedido.numero_pedido}')
+            return redirect('cuentas_por_pagar')
+        except Exception as e:
+            messages.error(request, f'❌ Error: {str(e)}')
+
+    context = {
+        'pedido': pedido,
+        'fecha_actual': datetime.now().strftime('%Y-%m-%d'),
+        'fecha_vencimiento_sugerida': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d'),
+    }
+    return render(request, 'pedidos/generar_cuenta_pagar.html', context)

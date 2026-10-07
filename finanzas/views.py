@@ -111,7 +111,7 @@ def nueva_factura(request):
                 iva_porcentaje=request.POST.get('iva_porcentaje', 21),
                 estado_pago=request.POST.get('estado_pago', 'PENDIENTE'),
                 notas=request.POST.get('notas', ''),
-                archivo_factura=request.FILES.get('archivo_factura') or None,
+                archivo_justificante=request.FILES.get('archivo_factura') or None,
             )
             # Crear cuenta asociada si se ha marcado el checkbox
             if request.POST.get('crear_cuenta'):
@@ -286,6 +286,7 @@ def nueva_cuenta_por_pagar(request):
                 periodicidad=request.POST.get('periodicidad', 'UNICO'),
                 numero_factura=request.POST.get('numero_factura', ''),
                 notas=request.POST.get('notas', ''),
+                archivo_factura=request.FILES.get('archivo_factura') or None,
             )
             messages.success(request, '✅ Cuenta por pagar creada')
             return redirect('cuentas_por_pagar')

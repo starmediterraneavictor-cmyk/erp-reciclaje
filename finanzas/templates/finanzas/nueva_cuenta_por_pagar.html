@@ -12,7 +12,7 @@
 
 <div class="card card-custom">
     <div class="card-body">
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
             
             <div class="row">
@@ -72,6 +72,11 @@
                     <label class="form-label">Nº Factura / Referencia</label>
                     <input type="text" name="numero_factura" class="form-control">
                 </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">📎 Factura del proveedor (PDF)</label>
+                <input type="file" name="archivo_factura" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
             </div>
 
             <div class="mb-3">

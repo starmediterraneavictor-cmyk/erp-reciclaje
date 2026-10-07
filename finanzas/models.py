@@ -60,10 +60,10 @@ class Factura(models.Model):
     estado_pago = models.CharField(max_length=20, choices=ESTADO_PAGO, default='PENDIENTE')
     notas = models.TextField(blank=True)
 
-    archivo_factura = models.FileField(
-        upload_to='facturas_proveedor/%Y/%m/',
+    archivo_justificante = models.FileField(
+        upload_to='justificantes_pago/%Y/%m/',
         blank=True, null=True,
-        verbose_name="Factura del proveedor (PDF)"
+        verbose_name="Justificante del pago (PDF/imagen)"
     )
 
     
@@ -87,10 +87,16 @@ class Factura(models.Model):
         if self.base:
             # Forzar todo a Decimal (por si llega int, float o str)
             base = Decimal(str(self.base))
-            iva_pct = Decimal(str(self.iva_porcentaje))
             
-            self.iva = base * (iva_pct / Decimal('100'))
-            self.total = base + self.iva
+            # Si es COMERCIO_MATERIALES (reciclaje), IVA = 0
+            if self.categoria == 'COMERCIO_MATERIALES':
+                self.iva_porcentaje = Decimal('0')
+                self.iva = Decimal('0')
+                self.total = base
+            else:
+                iva_pct = Decimal(str(self.iva_porcentaje))
+                self.iva = base * (iva_pct / Decimal('100'))
+                self.total = base + self.iva
         super().save(*args, **kwargs)
     
     class Meta:
@@ -155,6 +161,14 @@ class CuentaPorPagar(models.Model):
     numero_factura = models.CharField(max_length=50, blank=True)
     notas = models.TextField(blank=True)
     
+    # Factura del proveedor
+    archivo_factura = models.FileField(
+        upload_to='facturas_proveedor/%Y/%m/',
+        blank=True, null=True,
+        verbose_name="Factura del proveedor (PDF)"
+    )
+
+    
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -202,10 +216,10 @@ class PagoCuentaPorPagar(models.Model):
     referencia = models.CharField(max_length=100, blank=True)
     notas = models.TextField(blank=True)
 
-    archivo_factura = models.FileField(
-            upload_to='facturas_proveedor/%Y/%m/',
+    archivo_justificante = models.FileField(
+            upload_to='justificantes_pago/%Y/%m/',
             blank=True, null=True,
-            verbose_name="Factura del proveedor (PDF)"
+            verbose_name="Justificante del pago (PDF/imagen)"
         )
     
     def __str__(self):
@@ -297,11 +311,11 @@ class CobroCuentaPorCobrar(models.Model):
     referencia = models.CharField(max_length=100, blank=True)
     notas = models.TextField(blank=True)
 
-    archivo_factura = models.FileField(
-            upload_to='facturas_proveedor/%Y/%m/',
-            blank=True, null=True,
-            verbose_name="Factura del proveedor (PDF)"
-        )
+    archivo_justificante = models.FileField(
+        upload_to='justificantes_cobro/%Y/%m/',
+        blank=True, null=True,
+        verbose_name="Justificante del cobro (PDF/imagen)"
+    )
     
     def __str__(self):
         return f"{self.cuenta.concepto} - {self.importe}€"

@@ -20,6 +20,19 @@
             {% endif %}
         {% endif %}
 
+        {# Cuenta por pagar: solo para pedidos de compra o maquila #}
+        {% if pedido.tipo == 'COMPRA_MAT' or pedido.tipo == 'MAQUILA' %}
+            {% if not cuenta_pagar_existente %}
+            <a href="{% url 'generar_cuenta_pagar_desde_pedido' pedido.id %}" class="btn btn-danger">
+                <i class="bi bi-cash-stack"></i> 💸 Generar Cuenta por Pagar
+            </a>
+            {% else %}
+            <a href="{% url 'cuentas_por_pagar' %}" class="btn btn-info">
+                <i class="bi bi-receipt"></i> Ver Cuenta por Pagar
+            </a>
+            {% endif %}
+        {% endif %}
+
         {# Seguimiento internacional #}
         {% if pedido.es_internacional and pedido.internacional %}
             <a href="{% url 'detalle_pedido_internacional' pedido.internacional.id %}" class="btn btn-primary">

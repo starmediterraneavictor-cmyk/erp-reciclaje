@@ -4,8 +4,23 @@
 {% block title %}Análisis - ERP Reciclaje{% endblock %}
 
 {% block content %}
-<h2 class="mb-2">📈 Análisis y Reportes</h2>
-<p class="text-muted">Mes actual: {{ mes_actual }}/{{ year_actual }} | Actualizado: {{ fecha|date:"d/m/Y H:i" }}</p>
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="mb-0">📈 Análisis y Reportes</h2>
+    <form method="GET" class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 small text-muted">Rango:</label>
+        <select name="rango" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+            <option value="mes" {% if rango_filtro == 'mes' %}selected{% endif %}>📅 Mes actual</option>
+            <option value="3meses" {% if rango_filtro == '3meses' %}selected{% endif %}>📅 Últimos 3 meses</option>
+            <option value="6meses" {% if rango_filtro == '6meses' %}selected{% endif %}>📅 Últimos 6 meses</option>
+            <option value="año" {% if rango_filtro == 'año' %}selected{% endif %}>📅 Año actual</option>
+            <option value="todo" {% if rango_filtro == 'todo' %}selected{% endif %}>📅 Todo el histórico</option>
+        </select>
+        <small class="text-muted">
+            {{ fecha_inicio|date:"d/m/Y" }} → {{ fecha_fin|date:"d/m/Y" }}
+        </small>
+    </form>
+</div>
+<p class="text-muted small mb-4">Actualizado: {{ fecha|date:"d/m/Y H:i" }}</p>
 
 <!-- BLOQUE 1: ANÁLISIS FINANCIERO -->
 <div class="bloque-titulo">
@@ -146,7 +161,7 @@
 
 <!-- BLOQUE 4: ANÁLISIS INTERNACIONAL -->
 <div class="bloque-titulo">
-    <h4 class="mb-0">🌍 4. Análisis Internacional (Demanda por país)</h4>
+    <h4 class="mb-0">🌍 4. Análisis Nacional e Internacional (Demanda por país)</h4>
 </div>
 
 <div class="card card-custom mb-4">
@@ -156,6 +171,7 @@
             <thead>
                 <tr>
                     <th>País</th>
+                    <th>Ámbito</th>
                     <th>Clientes</th>
                     <th>Pedidos</th>
                     <th>TN</th>
@@ -166,47 +182,32 @@
                 {% for d in demanda_internacional %}
                 <tr>
                     <td><strong>{{ d.pais }}</strong></td>
+                    <td>
+                        {% if d.pais == 'España' %}
+                            <span class="badge bg-secondary">🇪🇸 Nacional</span>
+                        {% else %}
+                            <span class="badge bg-primary">🌍 Internacional</span>
+                        {% endif %}
+                    </td>
                     <td>{{ d.clientes }}</td>
                     <td>{{ d.pedidos }}</td>
                     <td>{{ d.kg|floatformat:2 }}</td>
                     <td><span class="badge bg-{{ d.color }}">{{ d.interes }}</span></td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="text-center text-muted py-4">Sin datos. Añade clientes internacionales.</td></tr>
+                <tr><td colspan="6" class="text-center text-muted py-4">Sin datos. Añade clientes nacionales o internacionales.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+
 <!-- ============================================ -->
 <!-- BLOQUE 5: ANÁLISIS POR MATERIAL -->
 <!-- ============================================ -->
 <div class="bloque-titulo">
     <h4 class="mb-0">💎 5. Análisis por Material </h4>
-</div>
-
-<!-- Selector de rango -->
-<div class="card card-custom mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label small mb-1">Rango de fechas</label>
-                <select name="rango" class="form-select" onchange="this.form.submit()">
-                    <option value="mes" {% if rango_filtro == 'mes' %}selected{% endif %}>📅 Mes actual</option>
-                    <option value="3meses" {% if rango_filtro == '3meses' %}selected{% endif %}>📅 Últimos 3 meses</option>
-                    <option value="6meses" {% if rango_filtro == '6meses' %}selected{% endif %}>📅 Últimos 6 meses</option>
-                    <option value="año" {% if rango_filtro == 'año' %}selected{% endif %}>📅 Año actual</option>
-                    <option value="todo" {% if rango_filtro == 'todo' %}selected{% endif %}>📅 Todo el histórico</option>
-                </select>
-            </div>
-            <div class="col-md-8 text-muted">
-                <small>
-                    Mostrando datos del <strong>{{ fecha_inicio|date:"d/m/Y" }}</strong>
-                    al <strong>{{ fecha_fin|date:"d/m/Y" }}</strong>
-                </small>
-            </div>
-        </form>
-    </div>
 </div>
 
 <!-- Gráfico -->

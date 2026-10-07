@@ -13,6 +13,9 @@ urlpatterns = [
     # Generar factura desde pedido
     path('<int:pedido_id>/generar-factura/', views.generar_factura_desde_pedido, name='generar_factura_desde_pedido'),
 
+    # Generar cuenta por pagar desde pedido (compras)
+    path('<int:pedido_id>/generar-cuenta-pagar/', views.generar_cuenta_pagar_desde_pedido, name='generar_cuenta_pagar_desde_pedido'),
+
     
     # Pedidos internacionales y nacionales
     path('internacional/', views.seguimiento_internacional, name='seguimiento_internacional'),

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load formato_es %} 
 {% block title %}Registrar Cobro - ERP Reciclaje{% endblock %}
 
 {% block content %}
@@ -17,9 +17,9 @@
         <table class="table table-sm">
             <tr><td><strong>Concepto:</strong></td><td>{{ cuenta.concepto }}</td></tr>
             <tr><td><strong>Cliente:</strong></td><td>{{ cuenta.cliente.nombre }}</td></tr>
-            <tr><td><strong>Importe total:</strong></td><td>{{ cuenta.importe_total|floatformat:2 }} €</td></tr>
-            <tr><td><strong>Ya cobrado:</strong></td><td class="text-success">{{ cuenta.importe_cobrado|floatformat:2 }} €</td></tr>
-            <tr><td><strong>Pendiente:</strong></td><td class="text-danger"><strong>{{ cuenta.saldo_pendiente|floatformat:2 }} €</strong></td></tr>
+            <tr><td><strong>Importe total:</strong></td><td>{{ cuenta.importe_total|formato_es }} €</td></tr>
+            <tr><td><strong>Ya cobrado:</strong></td><td class="text-success">{{ cuenta.importe_cobrado|formato_es }} €</td></tr>
+            <tr><td><strong>Pendiente:</strong></td><td class="text-danger"><strong>{{ cuenta.saldo_pendiente|formato_es }} €</strong></td></tr>
             <tr><td><strong>Vencimiento:</strong></td><td>{{ cuenta.fecha_vencimiento|date:"d/m/Y" }}</td></tr>
         </table>
     </div>

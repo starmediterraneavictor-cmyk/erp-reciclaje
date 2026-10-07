@@ -19,7 +19,7 @@ def dashboard_analisis(request):
     # ============================================
     # FILTRO DE FECHAS
     # ============================================
-    rango = request.GET.get('rango', 'mes')
+    rango = request.GET.get('rango', 'todo')
     hoy = timezone.now().date()
     
     if rango == 'mes':
@@ -44,19 +44,13 @@ def dashboard_analisis(request):
     # ============================================
     # BLOQUE 1: ANÁLISIS FINANCIERO
     # ============================================
-    facturas_mes = Factura.objects.filter(
-        fecha__month=mes_actual,
-        fecha__year=year_actual
+    facturas_rango = Factura.objects.filter(
+    fecha__gte=fecha_inicio,
+    fecha__lte=fecha_fin
     )
-    
-    total_ingresos = facturas_mes.filter(tipo='INGRESO').aggregate(
-        total=Sum('total')
-    )['total'] or 0
-    
-    total_gastos = facturas_mes.filter(tipo='GASTO').aggregate(
-        total=Sum('total')
-    )['total'] or 0
-    
+    total_ingresos = facturas_rango.filter(tipo='INGRESO').aggregate(total=Sum('total'))['total'] or 0
+    total_gastos = facturas_rango.filter(tipo='GASTO').aggregate(total=Sum('total'))['total'] or 0
+
     beneficio = total_ingresos - total_gastos
     margen_beneficio = (beneficio / total_ingresos * 100) if total_ingresos > 0 else 0
     
@@ -93,8 +87,8 @@ def dashboard_analisis(request):
     for cliente in Cliente.objects.all():
         pedidos_cliente = Pedido.objects.filter(
             cliente=cliente,
-            fecha__month=mes_actual,
-            fecha__year=year_actual
+            fecha__date__gte=fecha_inicio,
+            fecha__date__lte=fecha_fin
         )
         
         if pedidos_cliente.count() > 0:
@@ -181,8 +175,8 @@ def dashboard_analisis(request):
             pedidos_pais = Pedido.objects.filter(
                 cliente__pais=pais,
                 cliente__tipo='RECICLAJE',
-                fecha__month=mes_actual,
-                fecha__year=year_actual
+                fecha__date__gte=fecha_inicio,
+                fecha__date__lte=fecha_fin
                 
             )
             
@@ -214,8 +208,8 @@ def dashboard_analisis(request):
     # BLOQUE 5: PEDIDOS
     # ============================================
     pedidos_mes = Pedido.objects.filter(
-        fecha__month=mes_actual,
-        fecha__year=year_actual
+        fecha__date__gte=fecha_inicio,
+        fecha__date__lte=fecha_fin
     )
     
     total_pedidos = pedidos_mes.count()
