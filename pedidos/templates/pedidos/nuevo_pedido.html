@@ -38,7 +38,7 @@
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Fecha <span class="text-danger">*</span></label>
-                    <input type="datetime-local" name="fecha" class="form-control" value="{{ fecha_actual }}" required>
+                    <input type="date" name="fecha" class="form-control" value="{{ fecha_actual }}" required>
                 </div>
             </div>
 
@@ -78,17 +78,17 @@
                     </select>
                     <small class="text-muted">Obligatorio si es internacional</small>
                 </div>
-                <div class="col-md-6 mb-3 d-none" id="bloque-pedido-origen">
-                    <label class="form-label">Pedido de compra origen</label>
-                    <select name="pedido_origen" class="form-select">
-                        <option value="">-- Sin pedido origen --</option>
-                        {% for pc in pedidos_compra %}
-                        <option value="{{ pc.id }}">
-                            {{ pc.numero_pedido }} - {{ pc.entidad_nombre }} - {{ pc.total_kg|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <small class="text-muted">Solo para ventas: de qué compra proviene</small>
+                <div class="col-md-12 mb-3 d-none" id="bloque-origenes">
+                    <label class="form-label">Orígenes de compra</label>
+                    <div id="origenesContainer">
+                        <!-- Aquí se añaden las líneas de origen dinámicamente -->
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="añadirOrigen()">
+                        <i class="bi bi-plus-circle"></i> Añadir origen
+                    </button>
+                    <small class="text-muted d-block mt-1">
+                        Indica de qué pedidos de compra viene el material de esta venta.
+                    </small>
                 </div>
             </div>
         </div>
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectEstado = document.getElementById('id_estado');
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
-    const bloquePedidoOrigen = document.getElementById('bloque-pedido-origen');
+    const bloqueOrigenes = document.getElementById('bloque-origenes');
     const avisoEstado = document.getElementById('aviso-estado');
 
     function actualizarClienteProveedor() {
@@ -175,11 +175,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (esVenta) {
             bloqueCliente.classList.remove('d-none');
             bloqueProveedor.classList.add('d-none');
-            bloquePedidoOrigen.classList.remove('d-none');
+            bloqueOrigenes.classList.remove('d-none');
         } else {
             bloqueCliente.classList.add('d-none');
             bloqueProveedor.classList.remove('d-none');
-            bloquePedidoOrigen.classList.add('d-none');
+            bloqueOrigenes.classList.add('d-none');
         }
     }
 
@@ -229,5 +229,46 @@ document.addEventListener('change', function(e) {
         }
     }
 });
+
+// ============================================
+// ORÍGENES DE COMPRA (MÚLTIPLES)
+// ============================================
+const pedidosCompraDisponibles = [
+    {% for pc in pedidos_compra %}
+    { id: {{ pc.id }}, label: "{{ pc.numero_pedido }} - {{ pc.entidad_nombre|escapejs }} - {{ pc.total_kg|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn" },
+    {% endfor %}
+];
+
+function añadirOrigen(datos = null) {
+    const container = document.getElementById('origenesContainer');
+    const html = `
+        <div class="origen-item border rounded p-2 mb-2">
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    <label class="form-label small">Pedido de compra</label>
+                    <select name="origen_pedido[]" class="form-select form-select-sm">
+                        <option value="">-- Seleccionar --</option>
+                        ${pedidosCompraDisponibles.map(pc => 
+                            `<option value="${pc.id}" ${datos && datos.pedido_id == pc.id ? 'selected' : ''}>${pc.label}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <label class="form-label small">Cantidad (tn)</label>
+                    <input type="number" step="0.01" name="origen_cantidad[]" 
+                           class="form-control form-control-sm"
+                           value="${datos ? datos.cantidad : ''}">
+                </div>
+                <div class="col-md-2 mb-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="this.closest('.origen-item').remove()">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+}
+
 </script>
 {% endblock %}

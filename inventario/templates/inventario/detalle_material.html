@@ -113,18 +113,23 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card border-0 {% if beneficio_medio >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white text-center h-100">
-            <div class="card-body">
-                <h6 class="mb-1">Beneficio medio €/tn</h6>
-                <h3 class="mb-0">
-                    {% if beneficio_medio %}
-                        {% if beneficio_medio >= 0 %}+{% endif %}{{ beneficio_medio|formato_es }} €
-                    {% else %}
-                        —
-                    {% endif %}
-                </h3>
-                <small>Beneficio total: {% if beneficio_total %}{{ beneficio_total|formato_es }} €{% else %}—{% endif %}</small>
-            </div>
+    <div class="card border-0 {% if beneficio_medio and beneficio_medio >= 0 %}bg-success{% elif beneficio_medio %}bg-danger{% else %}bg-secondary{% endif %} text-white text-center h-100">
+        <div class="card-body">
+            <h6 class="mb-1">Beneficio medio €/tn</h6>
+            <h3 class="mb-0">
+                {% if beneficio_medio %}
+                    {% if beneficio_medio >= 0 %}+{% endif %}{{ beneficio_medio|formato_es }} €
+                {% else %}
+                    —
+                {% endif %}
+            </h3>
+            <small>
+                {% if beneficio_total %}
+                    Beneficio total: {% if beneficio_total >= 0 %}+{% endif %}{{ beneficio_total|formato_es }} €
+                {% else %}
+                    Sin ventas con pedido origen
+                {% endif %}
+            </small>
         </div>
     </div>
 </div>

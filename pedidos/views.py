@@ -23,13 +23,35 @@ from inventario.models import Material, Inventario
 @login_required
 def lista_pedidos(request):
     pedidos = Pedido.objects.all().order_by('-fecha')
+
+     # Filtros
+    tipo = request.GET.get('tipo', '')
+    estado = request.GET.get('estado', '')
+    desde = request.GET.get('desde', '')
+    hasta = request.GET.get('hasta', '')
+    
+    if tipo:
+        pedidos = pedidos.filter(tipo=tipo)
+    if estado:
+        pedidos = pedidos.filter(estado=estado)
+    if desde:
+        pedidos = pedidos.filter(fecha__date__gte=desde)
+    if hasta:
+        pedidos = pedidos.filter(fecha__date__lte=hasta)
+    
     total_pedidos = pedidos.count()
     total_importe = sum((p.total_importe for p in pedidos), Decimal('0'))
-
+    
     context = {
         'pedidos': pedidos,
         'total_pedidos': total_pedidos,
         'total_importe': total_importe,
+        'tipos': Pedido.TIPO_OPERACION,
+        'estados': Pedido.ESTADO_PEDIDO,
+        'tipo_filtro': tipo,
+        'estado_filtro': estado,
+        'desde_filtro': desde,
+        'hasta_filtro': hasta,
     }
     return render(request, 'pedidos/lista.html', context)
 
@@ -83,7 +105,7 @@ def nuevo_pedido(request):
                     proveedor_id=proveedor_id,
                     incoterm=request.POST.get('incoterm', ''),
                     pedido_origen_id=pedido_origen_id,
-                    fecha=request.POST.get('fecha') or datetime.now(),
+                    fecha=(request.POST.get('fecha') + 'T00:00') if request.POST.get('fecha') else datetime.now(),
                     notas=request.POST.get('notas', ''),
                 )
 
@@ -150,7 +172,7 @@ def nuevo_pedido(request):
         'estados': Pedido.ESTADO_PEDIDO,
         'incoterms': Pedido.INCOTERM_CHOICES,
         'pedidos_compra': Pedido.objects.filter(tipo='COMPRA_MAT', pedidos_venta__isnull=True).order_by('-fecha'),
-        'fecha_actual': datetime.now().strftime('%Y-%m-%dT%H:%M'),
+        'fecha_actual': datetime.now().strftime('%Y-%m-%d'),
     }
     return render(request, 'pedidos/nuevo_pedido.html', context)
 
@@ -189,7 +211,8 @@ def editar_pedido(request, pedido_id):
                     pedido.cliente_id = None
                 pedido.incoterm = request.POST.get('incoterm', '')
                 pedido.pedido_origen_id = request.POST.get('pedido_origen') or None
-                pedido.fecha = request.POST.get('fecha')
+                fecha_str = request.POST.get('fecha')
+                pedido.fecha = (fecha_str + 'T00:00') if fecha_str else datetime.now()
                 pedido.notas = request.POST.get('notas', '')
                 pedido.save()
 

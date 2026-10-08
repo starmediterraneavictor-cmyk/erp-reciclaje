@@ -143,19 +143,19 @@ def detalle_material(request, material_id):
     except Inventario.DoesNotExist:
         stock_actual = Decimal('0')
     
-    # Compras del material (detalles de pedidos de compra)
+    # Compras del material
     compras = DetallePedido.objects.filter(
         material=material,
         pedido__tipo__in=['COMPRA_MAT', 'MAQUILA'],
     ).select_related('pedido', 'pedido__proveedor').order_by('-pedido__fecha')
     
-    # Ventas del material (detalles de pedidos de venta)
+    # Ventas del material
     ventas = DetallePedido.objects.filter(
         material=material,
         pedido__tipo__in=['VENTA_MAT', 'TRADE'],
     ).select_related('pedido', 'pedido__cliente').order_by('-pedido__fecha')
     
-    # Cálculo de medias ponderadas
+    # ---- Cálculo de medias ponderadas (compras) ----
     tn_compradas = Decimal('0')
     importe_comprado = Decimal('0')
     transporte_compra = Decimal('0')
@@ -165,6 +165,7 @@ def detalle_material(request, material_id):
         importe_comprado += tn * Decimal(str(c.precio_unitario))
         transporte_compra += Decimal(str(c.transporte))
     
+    # ---- Cálculo de medias ponderadas (ventas) ----
     tn_vendidas = Decimal('0')
     importe_vendido = Decimal('0')
     transporte_venta = Decimal('0')
@@ -177,22 +178,37 @@ def detalle_material(request, material_id):
     precio_medio_compra = (importe_comprado / tn_compradas) if tn_compradas > 0 else None
     precio_medio_venta = (importe_vendido / tn_vendidas) if tn_vendidas > 0 else None
     
-    # Transporte total y €/tn
-    tn_total = tn_vendidas
-    transporte_total = transporte_compra + transporte_venta
-    transporte_tn = (transporte_total / tn_total) if tn_total > 0 else None
+    # ---- Cálculo del beneficio REAL (solo ventas con pedido_origen) ----
+    tn_con_beneficio = Decimal('0')
+    beneficio_total = Decimal('0')
+    transporte_ventas_con_origen = Decimal('0')
     
-    # Beneficio medio €/tn (venta - compra - transporte)
+    for v in ventas:
+        if v.pedido.pedido_origen:
+            # Precio de compra del pedido origen
+            compra_origen = v.pedido.pedido_origen
+            if compra_origen.total_kg > 0:
+                precio_compra_origen = compra_origen.total_importe / compra_origen.total_kg
+                tn = Decimal(str(v.cantidad))
+                precio_venta = Decimal(str(v.precio_unitario))
+                
+                # Beneficio de esta línea
+                beneficio_linea = (precio_venta - precio_compra_origen) * tn
+                # Restar transporte de la venta
+                beneficio_linea -= Decimal(str(v.transporte))
+                
+                beneficio_total += beneficio_linea
+                tn_con_beneficio += tn
+                transporte_ventas_con_origen += Decimal(str(v.transporte))
+    
+    # Beneficio medio €/tn (solo ventas con origen)
     beneficio_medio = None
-    if precio_medio_compra and precio_medio_venta:
-        beneficio_medio = precio_medio_venta - precio_medio_compra
-        if transporte_tn:
-            beneficio_medio -= transporte_tn
+    if tn_con_beneficio > 0:
+        beneficio_medio = beneficio_total / tn_con_beneficio
     
-    # Beneficio total
-    beneficio_total = None
-    if precio_medio_venta and tn_vendidas > 0:
-        beneficio_total = (precio_medio_venta * tn_vendidas) - importe_comprado - transporte_total
+    # Transporte total (para el KPI de €/tn transporte)
+    transporte_total = transporte_compra + transporte_venta
+    transporte_tn = (transporte_total / tn_vendidas) if tn_vendidas > 0 else None
     
     # Último precio de compra y venta
     ultimo_compra = compras.first() if compras.exists() else None
@@ -212,9 +228,10 @@ def detalle_material(request, material_id):
         'precio_medio_compra': precio_medio_compra,
         'precio_medio_venta': precio_medio_venta,
         'beneficio_medio': beneficio_medio,
-        'transporte_tn': transporte_tn,              
-        'transporte_total': transporte_total,        
-        'beneficio_total': beneficio_total,
+        'beneficio_total': beneficio_total if tn_con_beneficio > 0 else None,
+        'tn_con_beneficio': tn_con_beneficio,
+        'transporte_tn': transporte_tn,
+        'transporte_total': transporte_total,
         'ultimo_compra': ultimo_compra,
         'ultimo_venta': ultimo_venta,
     }

@@ -141,10 +141,18 @@ class Pedido(models.Model):
     
     @property
     def coste_compra_tn(self):
-        """Solo para ventas: €/TN del pedido de compra origen"""
-        if not self.pedido_origen:
+        """€/TN de compra calculado con los orígenes (solo ventas)"""
+        if not self.origenes_venta.exists():
             return None
-        return self.pedido_origen.precio_compra_tn
+        tn_total = Decimal('0')
+        coste_total = Decimal('0')
+        for origen in self.origenes_venta.all():
+            tn = Decimal(str(origen.cantidad_tn))
+            tn_total += tn
+            coste_total += tn * Decimal(str(origen.precio_compra_tn))
+        if tn_total == 0:
+            return None
+        return coste_total / tn_total
     
     @property
     def transporte_total(self):
@@ -156,42 +164,46 @@ class Pedido(models.Model):
     
     @property
     def coste_transporte_tn(self):
-        """€/TN de transporte (propio + del pedido origen si es venta)"""
+        """€/TN de transporte (propio + el de los orígenes, ponderado por cantidad)"""
         total_tn = self.total_kg
         if total_tn == 0:
             return Decimal('0')
         
         total_transporte = self.transporte_total
-        # Sumar transporte del pedido origen si es venta
-        if self.pedido_origen:
-            total_transporte += self.pedido_origen.transporte_total
+        for origen in self.origenes_venta.all():
+            if origen.pedido_compra.total_kg > 0:
+                proporcion = Decimal(str(origen.cantidad_tn)) / origen.pedido_compra.total_kg
+                total_transporte += origen.pedido_compra.transporte_total * proporcion
         
         return total_transporte / total_tn
     
     @property
     def beneficio_tn(self):
-        """
-        €/TN de beneficio (solo para ventas con pedido origen).
-        Beneficio = precio venta - coste compra - coste transporte
-        """
-        if not self.pedido_origen:
+        """€/TN de beneficio (solo ventas con orígenes)"""
+        if not self.origenes_venta.exists():
             return None
         coste_compra = self.coste_compra_tn
         coste_trans = self.coste_transporte_tn
         venta = self.precio_venta_tn
+        if coste_compra is None:
+            return None
         return venta - coste_compra - coste_trans
     
     @property
     def beneficio_total(self):
-        """Beneficio total del pedido (solo ventas con origen)"""
-        if not self.pedido_origen:
+        """Beneficio total del pedido (solo ventas con orígenes)"""
+        if not self.origenes_venta.exists():
+            return None
+        if self.beneficio_tn is None:
             return None
         return self.beneficio_tn * self.total_kg
     
     @property
     def margen_pct(self):
-        """Margen % (solo ventas con origen)"""
-        if not self.pedido_origen or self.precio_venta_tn == 0:
+        """Margen % (solo ventas con orígenes)"""
+        if not self.origenes_venta.exists() or self.precio_venta_tn == 0:
+            return None
+        if self.beneficio_tn is None:
             return None
         return (self.beneficio_tn / self.precio_venta_tn) * 100
     
@@ -374,8 +386,48 @@ class PagoInternacional(models.Model):
     
     def __str__(self):
         return f"{self.pedido_internacional.pedido.numero_pedido} - {self.tipo}: {self.cantidad}€"
-    
+
+        
     class Meta:
         verbose_name = "Pago internacional"
         verbose_name_plural = "Pagos internacionales"
         ordering = ['-fecha']
+
+class OrigenVenta(models.Model):
+    """Relaciona un pedido de venta con los pedidos de compra de los que proviene el material"""
+    pedido_venta = models.ForeignKey(
+        Pedido, on_delete=models.CASCADE,
+        related_name='origenes_venta',
+        limit_choices_to={'tipo': 'VENTA_MAT'}
+    )
+    pedido_compra = models.ForeignKey(
+        Pedido, on_delete=models.PROTECT,
+        related_name='ventas_asociadas',
+        limit_choices_to={'tipo__in': ['COMPRA_MAT', 'MAQUILA']}
+    )
+    cantidad_tn = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        verbose_name="Cantidad (tn) de este origen"
+    )
+    fecha_asignacion = models.DateTimeField(auto_now_add=True)
+    notas = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.pedido_venta.numero_pedido} ← {self.pedido_compra.numero_pedido} ({self.cantidad_tn} tn)"
+
+    @property
+    def precio_compra_tn(self):
+        """Precio €/tn del pedido de compra origen"""
+        if self.pedido_compra.total_kg > 0:
+            return self.pedido_compra.total_importe / self.pedido_compra.total_kg
+        return Decimal('0')
+
+    @property
+    def coste_total(self):
+        """Coste total de este origen (cantidad × precio_compra_tn)"""
+        return self.cantidad_tn * self.precio_compra_tn
+
+    class Meta:
+        verbose_name = "Origen de venta"
+        verbose_name_plural = "Orígenes de venta"
+        ordering = ['-fecha_asignacion']   
