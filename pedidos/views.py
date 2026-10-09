@@ -570,7 +570,7 @@ def eliminar_pago_internacional(request, pago_id):
 
     return redirect('detalle_pedido_internacional', int_id=int_id)
 
-@login_required
+
 @login_required
 def generar_cuenta_pagar_desde_pedido(request, pedido_id):
     from finanzas.models import CuentaPorPagar, Factura
@@ -603,7 +603,7 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
                     iva_porcentaje=0,  # Reciclaje → IVA 0%
                     estado_pago='PENDIENTE',
                     notas=request.POST.get('notas', '') or f'Generada desde pedido {pedido.numero_pedido}',
-                    archivo_factura=request.FILES.get('archivo_factura') or None,
+                    archivo_justificante=request.FILES.get('archivo_factura') or None,
                 )
 
                 # 2. Crear la CuentaPorPagar asociada
@@ -623,6 +623,8 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
                 messages.success(request, f'✅ Factura de gasto y cuenta por pagar creadas para el pedido {pedido.numero_pedido}')
                 return redirect('cuentas_por_pagar')
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             messages.error(request, f'❌ Error: {str(e)}')
 
     context = {
