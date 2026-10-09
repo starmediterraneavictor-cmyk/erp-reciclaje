@@ -16,6 +16,7 @@ from proveedores.models import Proveedor
 from pedidos.models import Pedido
 from core.models import DatosEmpresa
 from django.db import transaction
+from decimal import Decimal
 
 # ============================================
 # FUNCIÓN AUXILIAR: Crear cuenta para factura
@@ -646,3 +647,150 @@ def exportar_facturas_excel(request):
     nombre = f'Facturas_{hoy}.xlsx'
 
     return exportar_excel(nombre, cabeceras, filas, titulo_hoja="Facturas")
+
+# ============================================
+# LIBRO DE GASTOS E INGRESOS
+# ============================================
+
+@login_required
+def libro_gastos_ingresos(request):
+    """Libro mayor con todas las facturas de gasto e ingreso, con filtros."""
+    facturas = Factura.objects.all().order_by('-fecha')
+
+    # Filtros
+    tipo = request.GET.get('tipo', '')
+    categoria = request.GET.get('categoria', '')
+    desde = request.GET.get('desde', '')
+    hasta = request.GET.get('hasta', '')
+
+    if tipo:
+        facturas = facturas.filter(tipo=tipo)
+    if categoria:
+        facturas = facturas.filter(categoria=categoria)
+    if desde:
+        facturas = facturas.filter(fecha__gte=desde)
+    if hasta:
+        facturas = facturas.filter(fecha__lte=hasta)
+
+    # Totales
+    totales = facturas.aggregate(
+        base=Sum('base'),
+        iva=Sum('iva'),
+        total=Sum('total'),
+    )
+    total_base = totales['base'] or Decimal('0')
+    total_iva = totales['iva'] or Decimal('0')
+    total_total = totales['total'] or Decimal('0')
+
+    context = {
+        'facturas': facturas,
+        'total_base': total_base,
+        'total_iva': total_iva,
+        'total_total': total_total,
+        'tipos': Factura.TIPO_FACTURA,
+        'categorias': Factura.CATEGORIAS,
+        'tipo_filtro': tipo,
+        'categoria_filtro': categoria,
+        'desde_filtro': desde,
+        'hasta_filtro': hasta,
+        'num_facturas': facturas.count(),
+    }
+    return render(request, 'finanzas/libro_gastos_ingresos.html', context)
+
+@login_required
+def exportar_libro_excel(request):
+    """Exporta el libro de gastos e ingresos a Excel con hoja por trimestre."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from datetime import date
+
+    # Filtros (igual que la vista anterior)
+    tipo = request.GET.get('tipo', '')
+    categoria = request.GET.get('categoria', '')
+    desde = request.GET.get('desde', '')
+    hasta = request.GET.get('hasta', '')
+    year = request.GET.get('year', date.today().year)
+
+    facturas = Factura.objects.filter(fecha__year=year).order_by('fecha')
+
+    if tipo:
+        facturas = facturas.filter(tipo=tipo)
+    if categoria:
+        facturas = facturas.filter(categoria=categoria)
+    if desde:
+        facturas = facturas.filter(fecha__gte=desde)
+    if hasta:
+        facturas = facturas.filter(fecha__lte=hasta)
+
+    # Crear Excel
+    wb = Workbook()
+    wb.remove(wb.active)  # Quitar hoja por defecto
+
+    # Cabeceras comunes
+    cabeceras = [
+        'Fecha', 'Nº Factura', 'Tipo', 'Entidad', 'Categoría',
+        'Base (€)', 'IVA (%)', 'IVA (€)', 'Total (€)', 'Estado', 'Notas'
+    ]
+
+    # Estilos
+    estilo_cabecera = Font(bold=True, color='FFFFFF')
+    fondo_cabecera = PatternFill('solid', fgColor='2D6A4F')
+
+    # Procesar cada trimestre
+    for trimestre in range(1, 5):
+        mes_inicio = (trimestre - 1) * 3 + 1
+        mes_fin = mes_inicio + 2
+
+        facturas_trim = facturas.filter(
+            fecha__month__gte=mes_inicio,
+            fecha__month__lte=mes_fin
+        )
+
+        ws = wb.create_sheet(title=f"T{trimestre} {year}")
+
+        # Cabecera
+        for col, cab in enumerate(cabeceras, 1):
+            celda = ws.cell(row=1, column=col, value=cab)
+            celda.font = estilo_cabecera
+            celda.fill = fondo_cabecera
+            celda.alignment = Alignment(horizontal='center')
+
+        # Filas
+        fila = 2
+        total_base_trim = Decimal('0')
+        total_iva_trim = Decimal('0')
+        total_total_trim = Decimal('0')
+
+        for f in facturas_trim:
+            entidad = f.cliente.nombre if f.cliente else (f.proveedor.nombre if f.proveedor else '—')
+            ws.cell(row=fila, column=1, value=f.fecha.strftime('%d/%m/%Y'))
+            ws.cell(row=fila, column=2, value=f.numero_factura)
+            ws.cell(row=fila, column=3, value=f.get_tipo_display())
+            ws.cell(row=fila, column=4, value=entidad)
+            ws.cell(row=fila, column=5, value=f.get_categoria_display())
+            ws.cell(row=fila, column=6, value=float(f.base))
+            ws.cell(row=fila, column=7, value=float(f.iva_porcentaje))
+            ws.cell(row=fila, column=8, value=float(f.iva))
+            ws.cell(row=fila, column=9, value=float(f.total))
+            ws.cell(row=fila, column=10, value=f.get_estado_pago_display())
+            ws.cell(row=fila, column=11, value=f.notas or '')
+
+            total_base_trim += f.base
+            total_iva_trim += f.iva
+            total_total_trim += f.total
+            fila += 1
+
+        # Fila de totales
+        fila += 1
+        ws.cell(row=fila, column=1, value='TOTAL TRIMESTRE').font = Font(bold=True)
+        ws.cell(row=fila, column=6, value=float(total_base_trim)).font = Font(bold=True)
+        ws.cell(row=fila, column=8, value=float(total_iva_trim)).font = Font(bold=True)
+        ws.cell(row=fila, column=9, value=float(total_total_trim)).font = Font(bold=True)
+
+    # Guardar
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="Libro_{year}.xlsx"'
+    wb.save(response)
+    return response

@@ -40,6 +40,10 @@ urlpatterns = [
     # Dashboard financiero
     path('dashboard/', views.dashboard_financiero, name='dashboard_financiero'),
 
+    # Libros de gastos ingresos
+    path('libro/', views.libro_gastos_ingresos, name='libro_gastos_ingresos'),
+    path('libro/exportar/', views.exportar_libro_excel, name='exportar_libro_excel'),
+
     
 
 ]
