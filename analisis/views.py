@@ -3,12 +3,14 @@ from django.db.models import Sum, Count, Avg
 from django.utils import timezone
 from datetime import timedelta
 from pedidos.models import Pedido, DetallePedido
-from finanzas.models import Factura
+from finanzas.models import Factura, CuentaPorPagar, CuentaPorCobrar
 from inventario.models import Material, Inventario
 from clientes.models import Cliente
 from datetime import date, timedelta
 from decimal import Decimal
+from collections import defaultdict
 from django.contrib.auth.decorators import login_required
+
 
 @login_required
 def dashboard_analisis(request):
@@ -21,7 +23,7 @@ def dashboard_analisis(request):
     # ============================================
     rango = request.GET.get('rango', 'todo')
     hoy = timezone.now().date()
-    
+
     if rango == 'mes':
         fecha_inicio = hoy.replace(day=1)
         fecha_fin = hoy
@@ -40,21 +42,57 @@ def dashboard_analisis(request):
     else:
         fecha_inicio = hoy.replace(day=1)
         fecha_fin = hoy
-    
-    # ============================================
-    # BLOQUE 1: ANÁLISIS FINANCIERO
-    # ============================================
-    facturas_rango = Factura.objects.filter(
-    fecha__gte=fecha_inicio,
-    fecha__lte=fecha_fin
-    )
-    total_ingresos = facturas_rango.filter(tipo='INGRESO').aggregate(total=Sum('total'))['total'] or 0
-    total_gastos = facturas_rango.filter(tipo='GASTO').aggregate(total=Sum('total'))['total'] or 0
 
+    # ============================================
+    # BLOQUE 1: ANÁLISIS FINANCIERO (UNIFICADO)
+    # ============================================
+    # --- Facturas del rango ---
+    facturas_rango = Factura.objects.filter(
+        fecha__gte=fecha_inicio,
+        fecha__lte=fecha_fin
+    )
+    ingresos_facturas = facturas_rango.filter(tipo='INGRESO').aggregate(
+        total=Sum('total')
+    )['total'] or Decimal('0')
+    gastos_facturas = facturas_rango.filter(tipo='GASTO').aggregate(
+        total=Sum('total')
+    )['total'] or Decimal('0')
+
+    # --- Cuentas por cobrar (cobrado) del rango ---
+    cobros_rango = CuentaPorCobrar.objects.filter(
+        fecha_emision__gte=fecha_inicio,
+        fecha_emision__lte=fecha_fin,
+        estado='COBRADO'
+    )
+    ingresos_cuentas = sum((c.importe_cobrado for c in cobros_rango), Decimal('0'))
+
+    # --- Cuentas por pagar (pagado) del rango ---
+    pagos_rango = CuentaPorPagar.objects.filter(
+        fecha_emision__gte=fecha_inicio,
+        fecha_emision__lte=fecha_fin,
+        estado='PAGADO'
+    )
+    gastos_cuentas = sum((c.importe_pagado for c in pagos_rango), Decimal('0'))
+
+    # --- Totales ---
+    total_ingresos = ingresos_facturas + ingresos_cuentas
+    total_gastos = gastos_facturas + gastos_cuentas
     beneficio = total_ingresos - total_gastos
     margen_beneficio = (beneficio / total_ingresos * 100) if total_ingresos > 0 else 0
-    
-    # Evolución mensual (últimos 6 meses)
+
+    # --- Desglose de gastos por categoría ---
+    categorias_gastos = defaultdict(Decimal)
+    for f in facturas_rango.filter(tipo='GASTO'):
+        categorias_gastos[f.get_categoria_display()] += f.total
+    for c in pagos_rango:
+        categorias_gastos[c.get_categoria_display()] += c.importe_pagado
+
+    desglose_categorias = [
+        {'categoria': cat, 'importe': imp}
+        for cat, imp in sorted(categorias_gastos.items(), key=lambda x: x[1], reverse=True)
+    ]
+
+    # --- Evolución mensual (últimos 6 meses) - facturas + cuentas ---
     evolucion = []
     for i in range(6):
         mes = mes_actual - i
@@ -62,24 +100,38 @@ def dashboard_analisis(request):
         if mes <= 0:
             mes += 12
             year -= 1
-        
-        ingresos_mes = Factura.objects.filter(
+
+        ing_fact = Factura.objects.filter(
             tipo='INGRESO', fecha__month=mes, fecha__year=year
-        ).aggregate(total=Sum('total'))['total'] or 0
-        
-        gastos_mes = Factura.objects.filter(
+        ).aggregate(total=Sum('total'))['total'] or Decimal('0')
+
+        ing_cuentas = sum(
+            (c.importe_cobrado for c in CuentaPorCobrar.objects.filter(
+                fecha_emision__month=mes, fecha_emision__year=year, estado='COBRADO'
+            )), Decimal('0')
+        )
+
+        gas_fact = Factura.objects.filter(
             tipo='GASTO', fecha__month=mes, fecha__year=year
-        ).aggregate(total=Sum('total'))['total'] or 0
-        
+        ).aggregate(total=Sum('total'))['total'] or Decimal('0')
+
+        gas_cuentas = sum(
+            (c.importe_pagado for c in CuentaPorPagar.objects.filter(
+                fecha_emision__month=mes, fecha_emision__year=year, estado='PAGADO'
+            )), Decimal('0')
+        )
+
+        ing_mes = ing_fact + ing_cuentas
+        gas_mes = gas_fact + gas_cuentas
+
         evolucion.append({
             'etiqueta': f"{mes}/{year}",
-            'ingresos': float(ingresos_mes),
-            'gastos': float(gastos_mes),
-            'beneficio': float(ingresos_mes - gastos_mes),
+            'ingresos': float(ing_mes),
+            'gastos': float(gas_mes),
+            'beneficio': float(ing_mes - gas_mes),
         })
     evolucion.reverse()
-    
-     
+
     # ============================================
     # BLOQUE 2: ANÁLISIS POR CLIENTE
     # ============================================
@@ -90,11 +142,11 @@ def dashboard_analisis(request):
             fecha__date__gte=fecha_inicio,
             fecha__date__lte=fecha_fin
         )
-        
+
         if pedidos_cliente.count() > 0:
             total_cliente = sum(float(p.total_importe) for p in pedidos_cliente)
             ticket_medio = total_cliente / pedidos_cliente.count()
-            
+
             clientes_analisis.append({
                 'nombre': cliente.nombre,
                 'pais': cliente.pais,
@@ -102,32 +154,30 @@ def dashboard_analisis(request):
                 'total': total_cliente,
                 'ticket_medio': ticket_medio,
             })
-    
+
     clientes_analisis.sort(key=lambda x: x['total'], reverse=True)
     top_clientes = clientes_analisis[:5]
-    
+
     # ============================================
     # BLOQUE 3: ANÁLISIS DE INVENTARIO
     # ============================================
     inventario_analisis = []
     valor_total_inventario = 0
     alertas_stock = []
-    
+
     for material in Material.objects.all():
         try:
             inv = Inventario.objects.get(material=material)
             cantidad = float(inv.cantidad)
         except Inventario.DoesNotExist:
             cantidad = 0
-        
+
         valor = cantidad * float(material.precio_compra)
         valor_total_inventario += valor
-        
-        # Estado del stock
-        # Usar los umbrales del material (o defaults)
+
         umbral_critico = float(material.stock_minimo_critico) if material.stock_minimo_critico else 100
         umbral_bajo = float(material.stock_minimo_bajo) if material.stock_minimo_bajo else 500
-        
+
         if cantidad == 0:
             estado = 'Sin stock'
             color_estado = 'danger'
@@ -145,7 +195,7 @@ def dashboard_analisis(request):
         else:
             estado = 'OK'
             color_estado = 'success'
-        
+
         inventario_analisis.append({
             'nombre': material.nombre,
             'codigo': material.codigo,
@@ -154,37 +204,32 @@ def dashboard_analisis(request):
             'estado': estado,
             'color': color_estado,
         })
-    
+
     inventario_analisis.sort(key=lambda x: x['cantidad'], reverse=True)
-    
+
     # ============================================
     # BLOQUE 4: ANÁLISIS INTERNACIONAL
     # ============================================
-    # Demanda por país (datos de ejemplo - se pueden reemplazar por modelo)
     demanda_internacional = []
-    
-    # Agrupar clientes por país
+
     paises = Cliente.objects.filter(tipo='RECICLAJE').values('pais').annotate(
         total_clientes=Count('id')
     ).order_by('-total_clientes')
-    
+
     for p in paises[:6]:
         pais = p['pais']
         if pais:
-            # Obtener pedidos de clientes de ese país
             pedidos_pais = Pedido.objects.filter(
                 cliente__pais=pais,
                 cliente__tipo='RECICLAJE',
                 fecha__date__gte=fecha_inicio,
                 fecha__date__lte=fecha_fin
-                
             )
-            
+
             total_kg = 0
             for pedido in pedidos_pais:
                 total_kg += pedido.total_kg
-            
-            # Determinar interés según actividad
+
             if pedidos_pais.count() > 3:
                 interes = '🔥 Alto'
                 color_interes = 'danger'
@@ -194,7 +239,7 @@ def dashboard_analisis(request):
             else:
                 interes = '💤 Bajo'
                 color_interes = 'secondary'
-            
+
             demanda_internacional.append({
                 'pais': pais,
                 'clientes': p['total_clientes'],
@@ -203,7 +248,7 @@ def dashboard_analisis(request):
                 'interes': interes,
                 'color': color_interes,
             })
-    
+
     # ============================================
     # BLOQUE 5: PEDIDOS
     # ============================================
@@ -211,7 +256,7 @@ def dashboard_analisis(request):
         fecha__date__gte=fecha_inicio,
         fecha__date__lte=fecha_fin
     )
-    
+
     total_pedidos = pedidos_mes.count()
     pedidos_completados = pedidos_mes.filter(estado='COMPLETADO').count()
     pedidos_pendientes = pedidos_mes.filter(estado='PENDIENTE').count()
@@ -219,20 +264,19 @@ def dashboard_analisis(request):
     # ============================================
     # BLOQUE 6: ANÁLISIS €/TN POR MATERIAL
     # ============================================
-    # Coger todos los materiales únicos que aparezcan en pedidos del rango
     materiales_ids = DetallePedido.objects.filter(
         pedido__fecha__date__gte=fecha_inicio,
         pedido__fecha__date__lte=fecha_fin,
     ).values_list('material_id', flat=True).distinct()
-    
+
     analisis_por_material = []
-    
+
     for mat_id in materiales_ids:
         try:
             material = Material.objects.get(id=mat_id)
         except Material.DoesNotExist:
             continue
-        
+
         # COMPRAS del material en el rango
         detalles_compra = DetallePedido.objects.filter(
             material=material,
@@ -240,7 +284,7 @@ def dashboard_analisis(request):
             pedido__fecha__date__gte=fecha_inicio,
             pedido__fecha__date__lte=fecha_fin,
         )
-        
+
         tn_compradas = Decimal('0')
         importe_compra = Decimal('0')
         transporte_compra = Decimal('0')
@@ -249,9 +293,9 @@ def dashboard_analisis(request):
             tn_compradas += tn
             importe_compra += tn * Decimal(str(d.precio_unitario))
             transporte_compra += Decimal(str(d.transporte))
-        
+
         precio_compra_tn = (importe_compra / tn_compradas) if tn_compradas > 0 else None
-        
+
         # VENTAS del material en el rango
         detalles_venta = DetallePedido.objects.filter(
             material=material,
@@ -259,46 +303,44 @@ def dashboard_analisis(request):
             pedido__fecha__date__gte=fecha_inicio,
             pedido__fecha__date__lte=fecha_fin,
         )
-        
+
         tn_vendidas = Decimal('0')
         importe_venta = Decimal('0')
         transporte_venta = Decimal('0')
         beneficio_total = Decimal('0')
         tn_con_beneficio = Decimal('0')
-        
+
         for d in detalles_venta:
             tn = Decimal(str(d.cantidad))
             precio_venta = Decimal(str(d.precio_unitario))
             tn_vendidas += tn
             importe_venta += tn * precio_venta
             transporte_venta += Decimal(str(d.transporte))
-            
-            # Si la venta tiene pedido_origen → calcular beneficio real
-            if d.pedido.pedido_origen:
-                compra_origen = d.pedido.pedido_origen
-                # Precio medio de compra del pedido origen
-                if compra_origen.total_kg > 0:
-                    precio_compra_origen = compra_origen.total_importe / compra_origen.total_kg
-                    beneficio_linea = (precio_venta - precio_compra_origen) * tn - Decimal(str(d.transporte))
-                    beneficio_total += beneficio_linea
-                    tn_con_beneficio += tn
-        
+
+            # Si la venta tiene orígenes → calcular beneficio real
+            if d.pedido.origenes_venta.exists():
+                for origen in d.pedido.origenes_venta.all():
+                    if origen.pedido_compra.total_kg > 0:
+                        precio_compra_origen = origen.pedido_compra.total_importe / origen.pedido_compra.total_kg
+                        proporcion = Decimal(str(origen.cantidad_tn)) / d.pedido.total_kg
+                        tn_origen = tn * proporcion
+                        beneficio_linea = (precio_venta - precio_compra_origen) * tn_origen
+                        beneficio_total += beneficio_linea
+                        tn_con_beneficio += tn_origen
+
         precio_venta_tn = (importe_venta / tn_vendidas) if tn_vendidas > 0 else None
-        
-        # Transporte total €/tn 
+
         tn_total = tn_vendidas
         transporte_total = transporte_compra + transporte_venta
         transporte_tn = (transporte_total / tn_total) if tn_total > 0 else None
-        
-        # Beneficio €/tn (solo si tenemos datos de operaciones con origen)
+
         beneficio_tn = None
         margen_pct = None
         if tn_con_beneficio > 0:
             beneficio_tn = beneficio_total / tn_con_beneficio
             if precio_venta_tn and precio_venta_tn > 0:
                 margen_pct = (beneficio_tn / precio_venta_tn) * 100
-        
-        # Solo añadir si hay movimientos
+
         if tn_compradas > 0 or tn_vendidas > 0:
             analisis_por_material.append({
                 'nombre': material.nombre,
@@ -311,54 +353,40 @@ def dashboard_analisis(request):
                 'beneficio_tn': beneficio_tn,
                 'margen_pct': margen_pct,
             })
-    
-    # Ordenar por volumen (tn compradas + tn vendidas), descendente
+
     analisis_por_material.sort(
         key=lambda x: x['tn_compradas'] + x['tn_vendidas'],
         reverse=True
     )
 
-    
     # ============================================
     # CONTEXTO FINAL
     # ============================================
     context = {
-        # Financiero
         'total_ingresos': float(total_ingresos),
         'total_gastos': float(total_gastos),
         'beneficio': float(beneficio),
         'margen_beneficio': round(margen_beneficio, 1),
         'evolucion': evolucion,
-        
-        # Materiales
-        
-        
-        # Clientes
+        'desglose_categorias': desglose_categorias,
+
         'top_clientes': top_clientes,
-        
-        # Inventario
         'inventario': inventario_analisis,
         'valor_total_inventario': valor_total_inventario,
         'alertas_stock': alertas_stock,
-        
-        # Internacional
         'demanda_internacional': demanda_internacional,
-        
-        # Pedidos
         'total_pedidos': total_pedidos,
         'pedidos_completados': pedidos_completados,
         'pedidos_pendientes': pedidos_pendientes,
-        
-        # Fecha
+
         'mes_actual': mes_actual,
         'year_actual': year_actual,
         'fecha': timezone.now(),
 
-        # Análisis €/TN por material
         'analisis_por_material': analisis_por_material,
         'rango_filtro': rango,
         'fecha_inicio': fecha_inicio,
         'fecha_fin': fecha_fin,
     }
-    
+
     return render(request, 'analisis/dashboard_analisis.html', context)

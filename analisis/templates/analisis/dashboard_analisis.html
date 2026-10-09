@@ -55,6 +55,43 @@
     </div>
 </div>
 
+<!-- BLOQUE 1.5: GASTOS POR CATEGORÍA -->
+<div class="bloque-titulo">
+    <h4 class="mb-0">📊 1.5. Gastos por categoría</h4>
+</div>
+
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        {% if desglose_categorias %}
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Categoría</th>
+                    <th class="text-end">Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in desglose_categorias %}
+                <tr>
+                    <td><strong>{{ d.categoria }}</strong></td>
+                    <td class="text-end">{{ d.importe|formato_es }} €</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-danger">
+                    <td><strong>TOTAL GASTOS</strong></td>
+                    <td class="text-end"><strong>{{ total_gastos|formato_es }} €</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+        {% else %}
+        <p class="text-muted text-center py-4">No hay gastos en el rango seleccionado.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- GRÁFICO EVOLUCIÓN -->
 <div class="card card-custom mb-4">
     <div class="card-body">
         <h5>📈 Evolución mensual (últimos 6 meses)</h5>
@@ -202,10 +239,7 @@
     </div>
 </div>
 
-
-<!-- ============================================ -->
 <!-- BLOQUE 5: ANÁLISIS POR MATERIAL -->
-<!-- ============================================ -->
 <div class="bloque-titulo">
     <h4 class="mb-0">💎 5. Análisis por Material </h4>
 </div>
@@ -295,7 +329,7 @@
             </table>
         </div>
         <div class="alert alert-info small mt-3 mb-0">
-            💡 <strong>Nota:</strong> el €/TN de beneficio solo se calcula para pedidos de venta que tienen un <strong>pedido de compra origen</strong> asignado. Si un material no tiene operaciones con origen, se muestra "—".
+            💡 <strong>Nota:</strong> el €/TN de beneficio solo se calcula para pedidos de venta que tienen un <strong>origen de compra</strong> asignado. Si un material no tiene operaciones con origen, se muestra "—".
         </div>
         {% else %}
         <p class="text-muted text-center py-4">
@@ -335,18 +369,16 @@
         }
     });
 
-    
-    
-        // ============================================
+    // ============================================
     // GRÁFICO: €/TN POR MATERIAL
     // ============================================
     const materialesTnData = [
         {% for m in analisis_por_material %}
         {
             nombre: "{{ m.nombre|escapejs }}",
-            precio_compra: {{ m.precio_compra_tn|default:0|unlocalize }},
-            precio_venta: {{ m.precio_venta_tn|default:0|unlocalize }},
-            beneficio: {{ m.beneficio_tn|default:0|unlocalize }},
+            precio_compra: {{ m.precio_compra_tn|default_if_none:0|unlocalize }},
+            precio_venta: {{ m.precio_venta_tn|default_if_none:0|unlocalize }},
+            beneficio: {{ m.beneficio_tn|default_if_none:0|unlocalize }},
         },
         {% endfor %}
     ];
