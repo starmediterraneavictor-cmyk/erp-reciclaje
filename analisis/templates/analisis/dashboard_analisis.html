@@ -55,9 +55,9 @@
     </div>
 </div>
 
-<!-- BLOQUE 1.5: GASTOS POR CATEGORÍA -->
+<!-- BLOQUE 1.1: GASTOS POR CATEGORÍA -->
 <div class="bloque-titulo">
-    <h4 class="mb-0">📊 1.5. Gastos por categoría</h4>
+    <h4 class="mb-0">📊 Desglose de gastos por categoría</h4>
 </div>
 
 <div class="card card-custom mb-4">
@@ -345,7 +345,7 @@
 <script>
     const evolucionData = [
         {% for e in evolucion %}
-        { etiqueta: "{{ e.etiqueta }}", ingresos: {{ e.ingresos }}, gastos: {{ e.gastos }}, beneficio: {{ e.beneficio }} },
+        { etiqueta: "{{ e.etiqueta }}", ingresos: {{ e.ingresos|unlocalize }}, gastos: {{ e.gastos|unlocalize }}, beneficio: {{ e.beneficio|unlocalize }} },
         {% endfor %}
     ];
 
