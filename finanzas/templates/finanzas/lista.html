@@ -59,7 +59,7 @@
             </thead>
             <tbody>
                 {% for f in facturas %}
-                <tr>
+                <tr {% if f.estado_pago == 'ANULADO' %}class="table-secondary text-muted"{% endif %}>
                     <td><strong>{{ f.numero_factura }}</strong></td>
                     <td>
                         {% if f.tipo == 'INGRESO' %}
@@ -72,7 +72,9 @@
                     <td>{{ f.fecha|date:"d/m/Y" }}</td>
                     <td><strong>{{ f.total|formato_es }} €</strong></td>
                     <td>
-                        {% if f.estado_pago == 'PAGADO' %}
+                        {% if f.estado_pago == 'ANULADO' %}
+                        <span class="badge bg-secondary">❌ Anulada</span>
+                        {% elif f.estado_pago == 'PAGADO' %}
                         <span class="badge bg-success">Pagado</span>
                         {% elif f.estado_pago == 'PENDIENTE' %}
                         <span class="badge bg-warning">Pendiente</span>
@@ -84,15 +86,32 @@
                         <a href="{% url 'registrar_cobro_pago_factura' f.id %}" class="btn btn-outline-success btn-sm" title="Registrar cobro/pago">
                             <i class="bi bi-cash"></i>
                         </a>
-                        <a href="{% url 'factura_pdf' f.id %}" class="btn btn-outline-success btn-sm" title="Descargar PDF" target="_blank">
-                            <i class="bi bi-file-pdf"></i>
-                        </a>
+                        {% if f.tipo == 'INGRESO' %}
+                            <a href="{% url 'factura_pdf' f.id %}" class="btn btn-outline-success btn-sm" title="Ver PDF" target="_blank">
+                                <i class="bi bi-file-pdf"></i>
+                            </a>
+                        {% else %}
+                            {% if f.archivo_justificante %}
+                                <a href="{{ f.archivo_justificante.url }}" class="btn btn-outline-primary btn-sm" title="Ver factura del proveedor" target="_blank">
+                                    <i class="bi bi-file-earmark-pdf"></i>
+                                </a>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        {% endif %}
+
                         <a href="{% url 'editar_factura' f.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
                             <i class="bi bi-pencil"></i>
                         </a>
-                        <a href="{% url 'confirmar_eliminar_factura' f.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
-                            <i class="bi bi-trash"></i>
-                        </a>
+                        {% if f.estado_pago != 'ANULADO' %}
+                        <form method="POST" action="{% url 'anular_factura' f.id %}" style="display:inline;"
+                            onsubmit="return confirm('¿Seguro que quieres anular esta factura? No se puede deshacer.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-warning btn-sm" title="Anular">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

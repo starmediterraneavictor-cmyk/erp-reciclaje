@@ -50,7 +50,8 @@ def dashboard_analisis(request):
     facturas_rango = Factura.objects.filter(
         fecha__gte=fecha_inicio,
         fecha__lte=fecha_fin
-    )
+    ).exclude(estado_pago='ANULADO')
+
     ingresos_facturas = facturas_rango.filter(tipo='INGRESO').aggregate(
         total=Sum('total')
     )['total'] or Decimal('0')
@@ -58,21 +59,27 @@ def dashboard_analisis(request):
         total=Sum('total')
     )['total'] or Decimal('0')
 
-    # --- Cuentas por cobrar (cobrado) del rango ---
+    # --- Cuentas por cobrar SIN factura (para no duplicar) ---
     cobros_rango = CuentaPorCobrar.objects.filter(
         fecha_emision__gte=fecha_inicio,
         fecha_emision__lte=fecha_fin,
         estado='COBRADO'
     )
-    ingresos_cuentas = sum((c.importe_cobrado for c in cobros_rango), Decimal('0'))
+    ingresos_cuentas = sum(
+        (c.importe_cobrado for c in cobros_rango if not c.tiene_factura),
+        Decimal('0')
+    )
 
-    # --- Cuentas por pagar (pagado) del rango ---
+    # --- Cuentas por pagar SIN factura (para no duplicar) ---
     pagos_rango = CuentaPorPagar.objects.filter(
         fecha_emision__gte=fecha_inicio,
         fecha_emision__lte=fecha_fin,
         estado='PAGADO'
     )
-    gastos_cuentas = sum((c.importe_pagado for c in pagos_rango), Decimal('0'))
+    gastos_cuentas = sum(
+        (c.importe_pagado for c in pagos_rango if not c.tiene_factura),
+        Decimal('0')
+    )
 
     # --- Totales ---
     total_ingresos = ingresos_facturas + ingresos_cuentas
@@ -85,14 +92,15 @@ def dashboard_analisis(request):
     for f in facturas_rango.filter(tipo='GASTO'):
         categorias_gastos[f.get_categoria_display()] += f.total
     for c in pagos_rango:
-        categorias_gastos[c.get_categoria_display()] += c.importe_pagado
+        if not c.tiene_factura:
+            categorias_gastos[c.get_categoria_display()] += c.importe_pagado
 
     desglose_categorias = [
         {'categoria': cat, 'importe': imp}
         for cat, imp in sorted(categorias_gastos.items(), key=lambda x: x[1], reverse=True)
     ]
 
-    # --- Evolución mensual (últimos 6 meses) - facturas + cuentas ---
+    # --- Evolución mensual (últimos 6 meses) ---
     evolucion = []
     for i in range(6):
         mes = mes_actual - i
@@ -103,22 +111,22 @@ def dashboard_analisis(request):
 
         ing_fact = Factura.objects.filter(
             tipo='INGRESO', fecha__month=mes, fecha__year=year
-        ).aggregate(total=Sum('total'))['total'] or Decimal('0')
+        ).exclude(estado_pago='ANULADO').aggregate(total=Sum('total'))['total'] or Decimal('0')
 
         ing_cuentas = sum(
             (c.importe_cobrado for c in CuentaPorCobrar.objects.filter(
                 fecha_emision__month=mes, fecha_emision__year=year, estado='COBRADO'
-            )), Decimal('0')
+            ) if not c.tiene_factura), Decimal('0')
         )
 
         gas_fact = Factura.objects.filter(
             tipo='GASTO', fecha__month=mes, fecha__year=year
-        ).aggregate(total=Sum('total'))['total'] or Decimal('0')
+        ).exclude(estado_pago='ANULADO').aggregate(total=Sum('total'))['total'] or Decimal('0')
 
         gas_cuentas = sum(
             (c.importe_pagado for c in CuentaPorPagar.objects.filter(
                 fecha_emision__month=mes, fecha_emision__year=year, estado='PAGADO'
-            )), Decimal('0')
+            ) if not c.tiene_factura), Decimal('0')
         )
 
         ing_mes = ing_fact + ing_cuentas

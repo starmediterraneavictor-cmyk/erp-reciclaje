@@ -28,6 +28,7 @@ class Factura(models.Model):
         ('PAGADO', 'Pagado'),
         ('PARCIAL', 'Pago parcial'),
         ('VENCIDO', 'Vencido'),
+        ('ANULADO', 'Anulada'),
     ]
     
     numero_factura = models.CharField(max_length=50, unique=True)
@@ -127,6 +128,7 @@ class CuentaPorPagar(models.Model):
         ('PAGADO', 'Pagado'),
         ('PARCIAL', 'Pago parcial'),
         ('VENCIDO', 'Vencido'),
+        ('ANULADO', 'Anulada'),
     ]
     
     PERIODICIDAD = [
@@ -199,6 +201,19 @@ class CuentaPorPagar(models.Model):
         """Comprueba si hay una factura con este número"""
         from .models import Factura
         return Factura.objects.filter(numero_factura=self.numero_factura).exists() if self.numero_factura else False
+
+    @property
+    def factura_asociada(self):
+        """Devuelve la Factura asociada a esta cuenta (si existe)"""
+        from .models import Factura
+        return Factura.objects.filter(numero_factura=self.numero_factura).first() if self.numero_factura else None
+
+
+    @property
+    def factura_asociada(self):
+        """Devuelve la Factura asociada a esta cuenta (si existe)"""
+        from .models import Factura
+        return Factura.objects.filter(numero_factura=self.numero_factura).first() if self.numero_factura else None
     
     class Meta:
         verbose_name = "Cuenta por pagar"
@@ -238,6 +253,21 @@ class PagoCuentaPorPagar(models.Model):
             self.cuenta.estado = 'PARCIAL'
         
         self.cuenta.save()
+        
+        # Sincronizar el estado con la Factura asociada
+        from .models import Factura
+        if self.cuenta.numero_factura:
+            factura = Factura.objects.filter(numero_factura=self.cuenta.numero_factura).first()
+            if factura:
+                if self.cuenta.estado == 'PAGADO':
+                    factura.estado_pago = 'PAGADO'
+                elif self.cuenta.estado == 'PARCIAL':
+                    factura.estado_pago = 'PARCIAL'
+                else:
+                    factura.estado_pago = 'PENDIENTE'
+                factura.save()
+            
+            self.cuenta.save()
     
     class Meta:
         verbose_name = "Pago de cuenta por pagar"
@@ -253,6 +283,7 @@ class CuentaPorCobrar(models.Model):
         ('COBRADO', 'Cobrado'),
         ('PARCIAL', 'Cobro parcial'),
         ('VENCIDO', 'Vencido'),
+        ('ANULADO', 'Anulada'),
     ]
     
     concepto = models.CharField(max_length=200)

@@ -71,7 +71,7 @@ def _crear_cuenta_para_factura(factura):
 
 @login_required
 def lista_facturas(request):
-    facturas = Factura.objects.all().order_by('-fecha')
+    facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
 
     totales = facturas.aggregate(
         ingresos=Sum('total', filter=Q(tipo='INGRESO')),
@@ -605,7 +605,7 @@ from datetime import date
 @login_required
 def exportar_facturas_excel(request):
     """Exporta facturas a Excel."""
-    facturas = Factura.objects.all().order_by('-fecha')
+    facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
 
     # Filtros opcionales
     desde = request.GET.get('desde')
@@ -655,7 +655,7 @@ def exportar_facturas_excel(request):
 @login_required
 def libro_gastos_ingresos(request):
     """Libro mayor con todas las facturas de gasto e ingreso, con filtros."""
-    facturas = Factura.objects.all().order_by('-fecha')
+    facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
 
     # Filtros
     tipo = request.GET.get('tipo', '')
@@ -711,7 +711,7 @@ def exportar_libro_excel(request):
     hasta = request.GET.get('hasta', '')
     year = request.GET.get('year', date.today().year)
 
-    facturas = Factura.objects.filter(fecha__year=year).order_by('fecha')
+    facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
 
     if tipo:
         facturas = facturas.filter(tipo=tipo)
@@ -794,3 +794,20 @@ def exportar_libro_excel(request):
     response['Content-Disposition'] = f'attachment; filename="Libro_{year}.xlsx"'
     wb.save(response)
     return response
+
+@login_required
+def anular_factura(request, factura_id):
+    """Anula una factura (no la elimina, la marca como ANULADA)"""
+    factura = get_object_or_404(Factura, id=factura_id)
+
+    if request.method == 'POST':
+        numero = factura.numero_factura
+        factura.estado_pago = 'ANULADO'
+        factura.save()
+        # Anular también su cuenta asociada
+        CuentaPorCobrar.objects.filter(numero_factura=numero).update(estado='ANULADO')
+        CuentaPorPagar.objects.filter(numero_factura=numero).update(estado='ANULADO')
+        messages.success(request, f'✅ Factura {numero} anulada')
+        return redirect('lista_facturas')
+
+    return redirect('lista_facturas')

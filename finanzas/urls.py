@@ -8,6 +8,7 @@ urlpatterns = [
     path('<int:factura_id>/editar/', views.editar_factura, name='editar_factura'),
     path('<int:factura_id>/eliminar/', views.confirmar_eliminar_factura, name='confirmar_eliminar_factura'),
     path('<int:factura_id>/eliminar/confirmar/', views.eliminar_factura, name='eliminar_factura'),
+    path('<int:factura_id>/anular/', views.anular_factura, name='anular_factura'),
     path('<int:factura_id>/pdf/', views.factura_pdf, name='factura_pdf'),
 
     # Exportar Excel

@@ -119,20 +119,30 @@
                         {% endif %}
                     </td>
                     <td class="text-center">
+                        {# Botón de pagar (solo si no está pagado) #}
                         {% if c.estado != 'PAGADO' %}
                         <a href="{% url 'registrar_pago_cuenta' c.id %}" class="btn btn-success btn-sm" title="Registrar pago">
                             <i class="bi bi-cash"></i> Pagar
                         </a>
                         {% endif %}
+
+                        {# Botón de ver factura (si tiene factura asociada) #}
+                        {% if c.factura_asociada %}
+                        <a href="{% url 'editar_factura' c.factura_asociada.id %}" class="btn btn-outline-primary btn-sm" title="Ver factura">
+                            <i class="bi bi-receipt"></i> Factura
+                        </a>
+                        {% endif %}
+
+                        {# Botón de eliminar (solo si no tiene factura) #}
                         {% if not c.tiene_factura %}
                         <a href="{% url 'confirmar_eliminar_cuenta_por_pagar' c.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
                             <i class="bi bi-trash"></i>
                         </a>
                         {% else %}
                         <span class="badge bg-secondary" title="Vinculada a factura {{ c.numero_factura }}">
-                            🔒 Factura
+                            🔒
                         </span>
-                        {% endif %}
+                        {% endif %}   
                     </td>
                 </tr>
                 {% empty %}
