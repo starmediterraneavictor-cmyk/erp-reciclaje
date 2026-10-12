@@ -316,8 +316,8 @@ def editar_pedido(request, pedido_id):
                     from .models import OrigenVenta
                     pedido.origenes_venta.all().delete()
                     
-                    origenes_pedidos = request.POST.getlist('origen_pedido[]')
-                    origenes_cantidades = request.POST.getlist('origen_cantidad[]')
+                    origenes_pedidos = request.POST.getlist('origen_pedido')
+                    origenes_cantidades = request.POST.getlist('origen_cantidad')
                     
                     for i, pedido_compra_id in enumerate(origenes_pedidos):
                         if pedido_compra_id and i < len(origenes_cantidades) and origenes_cantidades[i]:
