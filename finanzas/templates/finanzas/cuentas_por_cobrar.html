@@ -58,14 +58,14 @@
             </thead>
             <tbody>
                 {% for c in cuentas %}
-                <tr {% if c.alerta %}class="table-warning"{% endif %}>
+                <tr {% if c.estado != 'COBRADO' and c.alerta %}class="table-warning"{% endif %}>
                     <td><strong>{{ c.concepto }}</strong></td>
                     <td>{{ c.cliente.nombre }}</td>
                     <td>{{ c.importe_total|formato_es }} €</td>
                     <td><strong>{{ c.saldo_pendiente|formato_es }} €</strong></td>
                     <td>
                         {{ c.fecha_vencimiento|date:"d/m/Y" }}
-                        {% if c.dias_para_vencer < 0 %}
+                        {% if c.estado != 'COBRADO' and c.dias_para_vencer < 0 %}
                         <br><small class="text-danger">{{ c.dias_para_vencer }} días</small>
                         {% endif %}
                     </td>

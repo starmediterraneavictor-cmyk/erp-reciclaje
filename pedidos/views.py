@@ -344,7 +344,15 @@ def editar_pedido(request, pedido_id):
                         factura_asociada.total = pedido.total_importe + factura_asociada.iva
                     factura_asociada.save()
                     print(f"DEBUG: Después - base={factura_asociada.base}, total={factura_asociada.total}")
-                    
+
+                    # Sincronizar el seguimiento internacional
+                    if pedido.es_internacional and hasattr(pedido, 'internacional'):
+                        pedido.internacional.valor_total = pedido.total_importe
+                        pedido.internacional.peso_total_kg = pedido.total_kg
+                        pedido.internacional.save()
+
+
+                
                     # Sincronizar también la cuenta asociada
                     from finanzas.models import CuentaPorCobrar, CuentaPorPagar
                     CuentaPorCobrar.objects.filter(numero_factura=factura_asociada.numero_factura).update(
