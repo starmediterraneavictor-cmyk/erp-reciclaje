@@ -255,17 +255,29 @@ class PagoCuentaPorPagar(models.Model):
         self.cuenta.save()
         
         # NUEVO: Sincronizar el estado con la Factura asociada
+        # Buscar por numero_factura Y por pedido (concepto)
         from .models import Factura
+        factura = None
+        
+        # 1. Intentar por numero_factura
         if self.cuenta.numero_factura:
             factura = Factura.objects.filter(numero_factura=self.cuenta.numero_factura).first()
-            if factura:
-                if self.cuenta.estado == 'PAGADO':
-                    factura.estado_pago = 'PAGADO'
-                elif self.cuenta.estado == 'PARCIAL':
-                    factura.estado_pago = 'PARCIAL'
-                else:
-                    factura.estado_pago = 'PENDIENTE'
-                factura.save()
+        
+        # 2. Si no, intentar por el pedido del concepto
+        if not factura and self.cuenta.concepto.startswith('Pedido '):
+            from pedidos.models import Pedido
+            num_pedido = self.cuenta.concepto.replace('Pedido ', '').strip()
+            pedido = Pedido.objects.filter(numero_pedido=num_pedido).first()
+            if pedido:
+                factura = Factura.objects.filter(pedido=pedido).first()
+        
+        # 3. Actualizar el estado de la factura
+        if factura:
+            if self.cuenta.estado == 'PAGADO':
+                factura.estado_pago = 'PAGADO'
+            elif self.cuenta.estado == 'PARCIAL':
+                factura.estado_pago = 'PARCIAL'
+            factura.save()
     
     class Meta:
         verbose_name = "Pago de cuenta por pagar"
