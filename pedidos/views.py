@@ -513,9 +513,9 @@ def seguimiento_internacional(request):
     abiertos = pedidos.exclude(estado__in=['CERRADO', 'ENTREGADO'])
     cerrados = pedidos.filter(estado__in=['CERRADO', 'ENTREGADO'])
 
-    total_valor_abierto = sum((p.valor_total for p in abiertos), Decimal('0'))
-    total_pagado_abierto = sum((p.total_pagado for p in abiertos), Decimal('0'))
-    total_pendiente = sum((p.saldo_pendiente for p in abiertos), Decimal('0'))
+    total_valor_abierto = sum((p.pedido.total_importe for p in abiertos), Decimal('0'))
+    total_pagado_abierto = sum((p.pedido.total_cobrado for p in abiertos), Decimal('0'))
+    total_pendiente = total_valor_abierto - total_pagado_abierto
 
     alertas = [p for p in abiertos if p.alerta_cobro]
 

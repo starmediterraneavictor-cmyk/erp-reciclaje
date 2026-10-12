@@ -206,6 +206,21 @@ class Pedido(models.Model):
         if self.beneficio_tn is None:
             return None
         return (self.beneficio_tn / self.precio_venta_tn) * 100
+
+    @property
+    def total_cobrado(self):
+        """Suma de los cobros de la cuenta por cobrar asociada al pedido"""
+        from finanzas.models import CuentaPorCobrar
+        # Buscar la cuenta por cobrar del pedido
+        cuenta = CuentaPorCobrar.objects.filter(
+            concepto__icontains=self.numero_pedido
+        ).first()
+        if cuenta:
+            return sum((c.importe for c in cuenta.cobros.all()), Decimal('0'))
+        return Decimal('0')
+
+
+
     
     
     class Meta:
