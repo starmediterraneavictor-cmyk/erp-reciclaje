@@ -343,6 +343,7 @@ def editar_pedido(request, pedido_id):
                         factura_asociada.iva = pedido.total_importe * (iva_pct / Decimal('100'))
                         factura_asociada.total = pedido.total_importe + factura_asociada.iva
                     factura_asociada.save()
+                    print(f"DEBUG: Después - base={factura_asociada.base}, total={factura_asociada.total}")
                     
                     # Sincronizar también la cuenta asociada
                     from finanzas.models import CuentaPorCobrar, CuentaPorPagar
