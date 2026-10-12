@@ -127,10 +127,10 @@
                     </td>
                     <td class="text-end">
                         <strong>{{ p.total_importe|formato_es }} €</strong>
-                        {% if p.tiene_cuenta_pagada %}
-                            <span class="badge bg-success" title="Cuenta pagada">💸</span>
-                        {% elif p.tiene_cuenta_pendiente %}
-                            <span class="badge bg-warning" title="Cuenta pendiente">⏳</span>
+                        {% if p.tiene_factura_activa %}
+                            <br><span class="badge bg-success" title="Factura emitida">💰 Facturado</span>
+                        {% else %}
+                            <br><span class="badge bg-secondary" title="Sin factura activa">⏳ Sin factura</span>
                         {% endif %}
                     </td>
                     <td class="text-center">

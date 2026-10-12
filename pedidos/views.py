@@ -435,7 +435,8 @@ def generar_factura_desde_pedido(request, pedido_id):
     
     pedido = get_object_or_404(Pedido, id=pedido_id)
 
-    factura_existente = pedido.facturas.first()
+    factura_existente = pedido.facturas.exclude(estado_pago='ANULADO').first()
+    
     if factura_existente:
         messages.warning(request, f'⚠️ Este pedido ya tiene la factura {factura_existente.numero_factura}')
         return redirect('detalle_pedido', pedido_id=pedido.id)

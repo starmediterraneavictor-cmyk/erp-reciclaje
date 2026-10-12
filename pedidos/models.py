@@ -234,6 +234,11 @@ class Pedido(models.Model):
         if cuenta:
             return sum((c.importe for c in cuenta.cobros.all()), Decimal('0'))
         return Decimal('0')
+
+    @property
+    def tiene_factura_activa(self):
+        """Comprueba si el pedido tiene una factura NO anulada"""
+        return self.facturas.exclude(estado_pago='ANULADO').exists()
     
     
     class Meta:
