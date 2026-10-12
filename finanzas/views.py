@@ -145,6 +145,7 @@ def editar_factura(request, factura_id):
         try:
             tipo_factura = request.POST.get('tipo')
 
+            numero_antiguo = factura.numero_factura
             factura.numero_factura = request.POST.get('numero_factura')
             factura.tipo = tipo_factura
             factura.fecha = request.POST.get('fecha')
@@ -162,6 +163,11 @@ def editar_factura(request, factura_id):
                 factura.archivo_factura = request.FILES.get('archivo_factura')
 
             factura.save()
+            # Sincronizar el nuevo número de factura en las cuentas asociadas
+            if numero_antiguo != factura.numero_factura:
+                CuentaPorPagar.objects.filter(numero_factura=numero_antiguo).update(numero_factura=factura.numero_factura)
+                CuentaPorCobrar.objects.filter(numero_factura=numero_antiguo).update(numero_factura=factura.numero_factura)
+
 
             messages.success(request, f'✅ Factura {factura.numero_factura} actualizada')
             return redirect('lista_facturas')
@@ -654,17 +660,17 @@ def exportar_facturas_excel(request):
 
 @login_required
 def libro_gastos_ingresos(request):
-    """Libro mayor con todas las facturas de gasto e ingreso, con filtros."""
+    """Libro mayor con ingresos y gastos separados, con filtros."""
+    from django.db.models import Sum
+    from decimal import Decimal
+
     facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
 
     # Filtros
-    tipo = request.GET.get('tipo', '')
     categoria = request.GET.get('categoria', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
 
-    if tipo:
-        facturas = facturas.filter(tipo=tipo)
     if categoria:
         facturas = facturas.filter(categoria=categoria)
     if desde:
@@ -672,49 +678,44 @@ def libro_gastos_ingresos(request):
     if hasta:
         facturas = facturas.filter(fecha__lte=hasta)
 
+    # Separar en dos listas
+    facturas_ingresos = facturas.filter(tipo='INGRESO')
+    facturas_gastos = facturas.filter(tipo='GASTO')
+
     # Totales
-    totales = facturas.aggregate(
-        base=Sum('base'),
-        iva=Sum('iva'),
-        total=Sum('total'),
-    )
-    total_base = totales['base'] or Decimal('0')
-    total_iva = totales['iva'] or Decimal('0')
-    total_total = totales['total'] or Decimal('0')
+    total_ingresos = facturas_ingresos.aggregate(t=Sum('total'))['t'] or Decimal('0')
+    total_gastos = facturas_gastos.aggregate(t=Sum('total'))['t'] or Decimal('0')
+    beneficio = total_ingresos - total_gastos
+    num_facturas = facturas.count()
 
     context = {
-        'facturas': facturas,
-        'total_base': total_base,
-        'total_iva': total_iva,
-        'total_total': total_total,
-        'tipos': Factura.TIPO_FACTURA,
+        'facturas_ingresos': facturas_ingresos,
+        'facturas_gastos': facturas_gastos,
+        'total_ingresos': total_ingresos,
+        'total_gastos': total_gastos,
+        'beneficio': beneficio,
+        'num_facturas': num_facturas,
         'categorias': Factura.CATEGORIAS,
-        'tipo_filtro': tipo,
         'categoria_filtro': categoria,
         'desde_filtro': desde,
         'hasta_filtro': hasta,
-        'num_facturas': facturas.count(),
     }
     return render(request, 'finanzas/libro_gastos_ingresos.html', context)
 
 @login_required
 def exportar_libro_excel(request):
-    """Exporta el libro de gastos e ingresos a Excel con hoja por trimestre."""
+    """Exporta el libro con hojas por trimestre + hoja Resumen."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
     from datetime import date
 
-    # Filtros (igual que la vista anterior)
-    tipo = request.GET.get('tipo', '')
+    # Filtros
     categoria = request.GET.get('categoria', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
     year = request.GET.get('year', date.today().year)
 
-    facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
-
-    if tipo:
-        facturas = facturas.filter(tipo=tipo)
+    facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('fecha')
     if categoria:
         facturas = facturas.filter(categoria=categoria)
     if desde:
@@ -722,75 +723,81 @@ def exportar_libro_excel(request):
     if hasta:
         facturas = facturas.filter(fecha__lte=hasta)
 
-    # Crear Excel
     wb = Workbook()
-    wb.remove(wb.active)  # Quitar hoja por defecto
+    wb.remove(wb.active)
 
-    # Cabeceras comunes
-    cabeceras = [
-        'Fecha', 'Nº Factura', 'Tipo', 'Entidad', 'Categoría',
-        'Base (€)', 'IVA (%)', 'IVA (€)', 'Total (€)', 'Estado', 'Notas'
-    ]
+    cabeceras = ['Fecha', 'Nº Factura', 'Entidad', 'Categoría', 'Base (€)', 'IVA (%)', 'IVA (€)', 'Total (€)', 'Estado']
 
-    # Estilos
     estilo_cabecera = Font(bold=True, color='FFFFFF')
-    fondo_cabecera = PatternFill('solid', fgColor='2D6A4F')
+    fondo_ingresos = PatternFill('solid', fgColor='2D6A4F')
+    fondo_gastos = PatternFill('solid', fgColor='DC3545')
 
-    # Procesar cada trimestre
+    # --- Hoja RESUMEN ---
+    ws_resumen = wb.create_sheet(title="Resumen")
+    ws_resumen['A1'] = f'RESUMEN ANUAL {year}'
+    ws_resumen['A1'].font = Font(bold=True, size=14)
+    ws_resumen.append([])
+    ws_resumen.append(['Tipo', 'Total (€)'])
+    for cell in ws_resumen[3]:
+        cell.font = estilo_cabecera
+        cell.fill = fondo_ingresos
+
+    total_ing_año = Decimal('0')
+    total_gas_año = Decimal('0')
+
+    # --- Hojas por trimestre ---
     for trimestre in range(1, 5):
         mes_inicio = (trimestre - 1) * 3 + 1
         mes_fin = mes_inicio + 2
 
-        facturas_trim = facturas.filter(
-            fecha__month__gte=mes_inicio,
-            fecha__month__lte=mes_fin
-        )
+        facturas_trim = facturas.filter(fecha__month__gte=mes_inicio, fecha__month__lte=mes_fin)
+        facturas_ing = facturas_trim.filter(tipo='INGRESO')
+        facturas_gas = facturas_trim.filter(tipo='GASTO')
+
+        total_ing = facturas_ing.aggregate(t=Sum('total'))['t'] or Decimal('0')
+        total_gas = facturas_gas.aggregate(t=Sum('total'))['t'] or Decimal('0')
+        total_ing_año += total_ing
+        total_gas_año += total_gas
 
         ws = wb.create_sheet(title=f"T{trimestre} {year}")
 
-        # Cabecera
-        for col, cab in enumerate(cabeceras, 1):
-            celda = ws.cell(row=1, column=col, value=cab)
-            celda.font = estilo_cabecera
-            celda.fill = fondo_cabecera
-            celda.alignment = Alignment(horizontal='center')
+        # Sección INGRESOS
+        ws.append([f'INGRESOS T{trimestre}'])
+        ws['A1'].font = Font(bold=True, size=12)
+        ws.append(cabeceras)
+        for cell in ws[2]:
+            cell.font = estilo_cabecera
+            cell.fill = fondo_ingresos
+        for f in facturas_ing:
+            entidad = f.entidad_nombre
+            ws.append([f.fecha.strftime('%d/%m/%Y'), f.numero_factura, entidad, f.get_categoria_display(),
+                       float(f.base), float(f.iva_porcentaje), float(f.iva), float(f.total), f.get_estado_pago_display()])
+        ws.append(['TOTAL INGRESOS', '', '', '', '', '', '', float(total_ing), ''])
+        ws.append([])
 
-        # Filas
-        fila = 2
-        total_base_trim = Decimal('0')
-        total_iva_trim = Decimal('0')
-        total_total_trim = Decimal('0')
+        # Sección GASTOS
+        fila_gastos_titulo = ws.max_row + 1
+        ws.append([f'GASTOS T{trimestre}'])
+        ws.cell(row=fila_gastos_titulo, column=1).font = Font(bold=True, size=12)
+        fila_gastos_cab = ws.max_row + 1
+        ws.append(cabeceras)
+        for cell in ws[fila_gastos_cab]:
+            cell.font = estilo_cabecera
+            cell.fill = fondo_gastos
+        for f in facturas_gas:
+            entidad = f.entidad_nombre
+            ws.append([f.fecha.strftime('%d/%m/%Y'), f.numero_factura, entidad, f.get_categoria_display(),
+                       float(f.base), float(f.iva_porcentaje), float(f.iva), float(f.total), f.get_estado_pago_display()])
+        ws.append(['TOTAL GASTOS', '', '', '', '', '', '', float(total_gas), ''])
+        ws.append([])
+        ws.append([f'BENEFICIO T{trimestre}', '', '', '', '', '', '', float(total_ing - total_gas), ''])
 
-        for f in facturas_trim:
-            entidad = f.cliente.nombre if f.cliente else (f.proveedor.nombre if f.proveedor else '—')
-            ws.cell(row=fila, column=1, value=f.fecha.strftime('%d/%m/%Y'))
-            ws.cell(row=fila, column=2, value=f.numero_factura)
-            ws.cell(row=fila, column=3, value=f.get_tipo_display())
-            ws.cell(row=fila, column=4, value=entidad)
-            ws.cell(row=fila, column=5, value=f.get_categoria_display())
-            ws.cell(row=fila, column=6, value=float(f.base))
-            ws.cell(row=fila, column=7, value=float(f.iva_porcentaje))
-            ws.cell(row=fila, column=8, value=float(f.iva))
-            ws.cell(row=fila, column=9, value=float(f.total))
-            ws.cell(row=fila, column=10, value=f.get_estado_pago_display())
-            ws.cell(row=fila, column=11, value=f.notas or '')
+    # Rellenar resumen
+    ws_resumen.append(['Ingresos', float(total_ing_año)])
+    ws_resumen.append(['Gastos', float(total_gas_año)])
+    ws_resumen.append(['Beneficio', float(total_ing_año - total_gas_año)])
 
-            total_base_trim += f.base
-            total_iva_trim += f.iva
-            total_total_trim += f.total
-            fila += 1
-
-        # Fila de totales
-        fila += 1
-        ws.cell(row=fila, column=1, value='TOTAL TRIMESTRE').font = Font(bold=True)
-        ws.cell(row=fila, column=6, value=float(total_base_trim)).font = Font(bold=True)
-        ws.cell(row=fila, column=8, value=float(total_iva_trim)).font = Font(bold=True)
-        ws.cell(row=fila, column=9, value=float(total_total_trim)).font = Font(bold=True)
-
-    # Guardar
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="Libro_{year}.xlsx"'
     wb.save(response)
     return response

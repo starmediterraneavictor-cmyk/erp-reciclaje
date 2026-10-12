@@ -125,7 +125,14 @@
                             <span class="text-muted">—</span>
                         {% endif %}
                     </td>
-                    <td class="text-end"><strong>{{ p.total_importe|formato_es }} €</strong></td>
+                    <td class="text-end">
+                        <strong>{{ p.total_importe|formato_es }} €</strong>
+                        {% if p.tiene_cuenta_pagada %}
+                            <span class="badge bg-success" title="Cuenta pagada">💸</span>
+                        {% elif p.tiene_cuenta_pendiente %}
+                            <span class="badge bg-warning" title="Cuenta pendiente">⏳</span>
+                        {% endif %}
+                    </td>
                     <td class="text-center">
                         <a href="{% url 'detalle_pedido' p.id %}" class="btn btn-outline-secondary btn-sm" title="Ver detalle">
                             <i class="bi bi-eye"></i>

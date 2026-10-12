@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from proveedores.models import Proveedor
 from django.db.models import Q
+from finanzas.models import CuentaPorPagar, Factura
 
 
 from .models import (
@@ -22,14 +23,16 @@ from inventario.models import Material, Inventario
 
 @login_required
 def lista_pedidos(request):
+    
+
     pedidos = Pedido.objects.all().order_by('-fecha')
 
-     # Filtros
+    # Filtros
     tipo = request.GET.get('tipo', '')
     estado = request.GET.get('estado', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
-    
+
     if tipo:
         pedidos = pedidos.filter(tipo=tipo)
     if estado:
@@ -38,10 +41,24 @@ def lista_pedidos(request):
         pedidos = pedidos.filter(fecha__date__gte=desde)
     if hasta:
         pedidos = pedidos.filter(fecha__date__lte=hasta)
-    
+
+    # Conceptos de cuentas pagadas y pendientes
+    conceptos_pagados = set(
+        CuentaPorPagar.objects.filter(estado='PAGADO').values_list('concepto', flat=True)
+    )
+    conceptos_pendientes = set(
+        CuentaPorPagar.objects.filter(estado__in=['PENDIENTE', 'PARCIAL']).values_list('concepto', flat=True)
+    )
+
+    # Marcar cada pedido
+    for p in pedidos:
+        concepto = f"Pedido {p.numero_pedido}"
+        p.tiene_cuenta_pagada = concepto in conceptos_pagados
+        p.tiene_cuenta_pendiente = concepto in conceptos_pendientes
+
     total_pedidos = pedidos.count()
     total_importe = sum((p.total_importe for p in pedidos), Decimal('0'))
-    
+
     context = {
         'pedidos': pedidos,
         'total_pedidos': total_pedidos,
@@ -59,8 +76,7 @@ def lista_pedidos(request):
 @login_required
 def detalle_pedido(request, pedido_id):
     """Ver detalle completo de un pedido"""
-    from finanzas.models import CuentaPorPagar
-
+    
     pedido = get_object_or_404(Pedido, id=pedido_id)
     factura_existente = pedido.facturas.first()
 
@@ -341,7 +357,7 @@ def eliminar_pedido(request, pedido_id):
 
 @login_required
 def generar_factura_desde_pedido(request, pedido_id):
-    from finanzas.models import Factura
+    
     pedido = get_object_or_404(Pedido, id=pedido_id)
 
     factura_existente = pedido.facturas.first()
@@ -573,7 +589,7 @@ def eliminar_pago_internacional(request, pago_id):
 
 @login_required
 def generar_cuenta_pagar_desde_pedido(request, pedido_id):
-    from finanzas.models import CuentaPorPagar, Factura
+    
     pedido = get_object_or_404(Pedido, id=pedido_id)
 
     if pedido.tipo not in ['COMPRA_MAT', 'MAQUILA']:

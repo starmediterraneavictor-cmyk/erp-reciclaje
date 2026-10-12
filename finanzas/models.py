@@ -254,7 +254,7 @@ class PagoCuentaPorPagar(models.Model):
         
         self.cuenta.save()
         
-        # Sincronizar el estado con la Factura asociada
+        # NUEVO: Sincronizar el estado con la Factura asociada
         from .models import Factura
         if self.cuenta.numero_factura:
             factura = Factura.objects.filter(numero_factura=self.cuenta.numero_factura).first()
@@ -266,8 +266,6 @@ class PagoCuentaPorPagar(models.Model):
                 else:
                     factura.estado_pago = 'PENDIENTE'
                 factura.save()
-            
-            self.cuenta.save()
     
     class Meta:
         verbose_name = "Pago de cuenta por pagar"
