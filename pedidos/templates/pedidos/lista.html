@@ -117,7 +117,7 @@
                         {% endif %}
                     </td>
                     <td class="text-end">
-                        {% if p.pedido_origen %}
+                        {% if p.origenes_venta.exists %}
                             <span class="badge {% if p.beneficio_tn >= 0 %}bg-success{% else %}bg-danger{% endif %}">
                                 {% if p.beneficio_tn >= 0 %}+{% endif %}{{ p.beneficio_tn|formato_es }} €
                             </span>
