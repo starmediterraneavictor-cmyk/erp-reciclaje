@@ -27,7 +27,7 @@ def dashboard(request):
         tipo='INGRESO',
         fecha__month=hoy.month,
         fecha__year=hoy.year
-    ).aggregate(total=Sum('total'))['total'] or 0
+    ).exclude(estado_pago='ANULADO').aggregate(total=Sum('total'))['total'] or 0
     
     # ============================================
     # STOCK TOTAL
