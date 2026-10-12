@@ -173,6 +173,28 @@ def nuevo_pedido(request):
                         incoterm=pedido.incoterm or 'CIF',
                         estado='ABIERTO',
                     )
+
+                # 6. Guardar los orígenes de venta
+                if pedido.tipo == 'VENTA_MAT':
+                    from .models import OrigenVenta
+                    pedido.origenes_venta.all().delete()
+                    
+                    origenes_pedidos = request.POST.getlist('origen_pedido')
+                    origenes_cantidades = request.POST.getlist('origen_cantidad')
+                    
+                    for i, pedido_compra_id in enumerate(origenes_pedidos):
+                        if pedido_compra_id and i < len(origenes_cantidades) and origenes_cantidades[i]:
+                            try:
+                                cantidad = Decimal(origenes_cantidades[i])
+                                OrigenVenta.objects.create(
+                                    pedido_venta=pedido,
+                                    pedido_compra_id=pedido_compra_id,
+                                    cantidad_tn=cantidad,
+                                )
+                            except (InvalidOperation, ValueError, TypeError):
+                                pass
+
+
                 
                 messages.success(request, f'✅ Pedido {pedido.numero_pedido} creado correctamente')
                 return redirect('lista_pedidos')
@@ -288,6 +310,27 @@ def editar_pedido(request, pedido_id):
                         pedido.internacional.delete()
                     except PedidoInternacional.DoesNotExist:
                         pass
+
+                # 6. Guardar los orígenes de venta
+                if pedido.tipo == 'VENTA_MAT':
+                    from .models import OrigenVenta
+                    pedido.origenes_venta.all().delete()
+                    
+                    origenes_pedidos = request.POST.getlist('origen_pedido[]')
+                    origenes_cantidades = request.POST.getlist('origen_cantidad[]')
+                    
+                    for i, pedido_compra_id in enumerate(origenes_pedidos):
+                        if pedido_compra_id and i < len(origenes_cantidades) and origenes_cantidades[i]:
+                            try:
+                                cantidad = Decimal(origenes_cantidades[i])
+                                OrigenVenta.objects.create(
+                                    pedido_venta=pedido,
+                                    pedido_compra_id=pedido_compra_id,
+                                    cantidad_tn=cantidad,
+                                )
+                            except (InvalidOperation, ValueError, TypeError):
+                                pass        
+
 
                 messages.success(request, f'✅ Pedido {pedido.numero_pedido} actualizado')
                 return redirect('lista_pedidos')
