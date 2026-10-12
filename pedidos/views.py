@@ -78,7 +78,7 @@ def detalle_pedido(request, pedido_id):
     """Ver detalle completo de un pedido"""
     
     pedido = get_object_or_404(Pedido, id=pedido_id)
-    factura_existente = pedido.facturas.first()
+    factura_existente = pedido.facturas.exclude(estado_pago='ANULADO').first()
 
     # Comprobar si ya existe cuenta por pagar para este pedido
     cuenta_pagar_existente = None
