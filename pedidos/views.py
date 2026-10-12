@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from proveedores.models import Proveedor
 from django.db.models import Q
-from finanzas.models import CuentaPorPagar, Factura
+from finanzas.models import CuentaPorPagar, CuentaPorCobrar, Factura
 
 
 from .models import (
@@ -330,6 +330,29 @@ def editar_pedido(request, pedido_id):
                                 )
                             except (InvalidOperation, ValueError, TypeError):
                                 pass        
+
+                # 7. Sincronizar la factura asociada (si existe)
+                factura_asociada = pedido.facturas.first()
+                if factura_asociada:
+                    factura_asociada.base = pedido.total_importe
+                    if factura_asociada.categoria == 'COMERCIO_MATERIALES':
+                        factura_asociada.iva = Decimal('0')
+                        factura_asociada.total = pedido.total_importe
+                    else:
+                        iva_pct = factura_asociada.iva_porcentaje or Decimal('0')
+                        factura_asociada.iva = pedido.total_importe * (iva_pct / Decimal('100'))
+                        factura_asociada.total = pedido.total_importe + factura_asociada.iva
+                    factura_asociada.save()
+                    
+                    # Sincronizar también la cuenta asociada
+                    from finanzas.models import CuentaPorCobrar, CuentaPorPagar
+                    CuentaPorCobrar.objects.filter(numero_factura=factura_asociada.numero_factura).update(
+                        importe_total=factura_asociada.total
+                    )
+                    CuentaPorPagar.objects.filter(numero_factura=factura_asociada.numero_factura).update(
+                        importe_total=factura_asociada.total
+                    )                    
+
 
 
                 messages.success(request, f'✅ Pedido {pedido.numero_pedido} actualizado')
