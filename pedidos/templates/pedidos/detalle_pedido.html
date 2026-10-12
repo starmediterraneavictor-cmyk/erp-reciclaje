@@ -112,14 +112,16 @@
         </div>
         {% endif %}
 
-        {% if pedido.pedido_origen %}
+        {% if pedido.origenes_venta.exists %}
         <div class="row mt-3">
             <div class="col-md-12">
-                <span class="badge bg-info">🔗 Viene del pedido de compra</span>
-                <a href="{% url 'detalle_pedido' pedido.pedido_origen.id %}">
-                    <strong>{{ pedido.pedido_origen.numero_pedido }}</strong>
-                </a>
-                - {{ pedido.pedido_origen.entidad_nombre }}
+                <span class="badge bg-info">🔗 Orígenes de compra</span>
+                {% for origen in pedido.origenes_venta.all %}
+                    <a href="{% url 'detalle_pedido' origen.pedido_compra.id %}" class="ms-2">
+                        <strong>{{ origen.pedido_compra.numero_pedido }}</strong>
+                    </a>
+                    ({{ origen.cantidad_tn|formato_es }} tn)
+                {% endfor %}
             </div>
         </div>
         {% endif %}
@@ -141,7 +143,7 @@
 </div>
 
 <!-- 📊 ANÁLISIS ECONÓMICO -->
-{% if pedido.pedido_origen %}
+{% if pedido.origenes_venta.exists %}
 <div class="card card-custom mb-4 border-success">
     <div class="card-header bg-success text-white">
         <h5 class="mb-0">📊 Análisis económico de la operación</h5>
