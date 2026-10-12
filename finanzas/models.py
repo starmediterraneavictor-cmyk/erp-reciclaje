@@ -335,6 +335,14 @@ class CuentaPorCobrar(models.Model):
         """Comprueba si hay una factura con este número"""
         from .models import Factura
         return Factura.objects.filter(numero_factura=self.numero_factura).exists() if self.numero_factura else False
+
+    @property
+    def alerta_vencimiento(self):
+        if self.estado == 'COBRADO':
+            return False
+        return self.dias_para_vencer < 0
+
+
     
     class Meta:
         verbose_name = "Cuenta por cobrar"

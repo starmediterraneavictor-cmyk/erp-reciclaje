@@ -351,7 +351,7 @@ def cuentas_por_cobrar(request):
         cuentas = cuentas.filter(estado=estado)
 
     pendientes = cuentas.filter(estado__in=['PENDIENTE', 'PARCIAL'])
-    vencidas = [c for c in pendientes if c.dias_para_vencer < 0]
+    vencidas = [c for c in pendientes if c.estado != 'COBRADO' and c.dias_para_vencer < 0]
 
     total_pendiente = sum(c.saldo_pendiente for c in pendientes)
     total_vencido = sum(c.saldo_pendiente for c in vencidas)
