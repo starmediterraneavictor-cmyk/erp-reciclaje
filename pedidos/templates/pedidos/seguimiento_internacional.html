@@ -78,37 +78,20 @@
         </thead>
         <tbody>
             {% for p in pedidos_abiertos %}
-            <tr {% if p.pedido.total_importe > 0 and p.total_pagado == 0 %}class="table-warning"{% endif %}>
+            <tr>
                 <td><strong>{{ p.pedido.numero_pedido }}</strong></td>
                 <td>{{ p.pedido.cliente.nombre }}</td>
                 <td>{{ p.puerto_destino|default:"—" }}</td>
                 <td><span class="badge bg-secondary">{{ p.incoterm }}</span></td>
                 <td>
                     {{ p.fecha_eta|date:"d/m/Y"|default:"—" }}
-                    {% if p.dias_para_llegada is not None %}
-                        <br><small class="text-muted">({{ p.dias_para_llegada }} días)</small>
-                    {% endif %}
                 </td>
                 <td class="text-end">{{ p.pedido.total_importe|formato_es }} €</td>
                 <td class="text-end">
-                    {% with cobrado=p.pedido.total_cobrado %}
-                        {% if cobrado %}
-                            <span class="badge bg-success">
-                                {% widthratio cobrado p.pedido.total_importe 100 %}%
-                            </span>
-                            <br><small>{{ cobrado|formato_es }} €</small>
-                        {% else %}
-                            <span class="badge bg-secondary">0%</span>
-                            <br><small>0,00 €</small>
-                        {% endif %}
-                    {% endwith %}
+                    <span class="badge bg-success">{{ p.pedido.total_cobrado|formato_es }} €</span>
                 </td>
                 <td class="text-end text-danger">
-                    <strong>
-                        {% with cobrado=p.pedido.total_cobrado %}
-                            {{ p.pedido.total_importe|add:"-"|add:cobrado|formato_es }} €
-                        {% endwith %}
-                    </strong>
+                    <strong>{{ p.pedido.saldo_pendiente_cobro|formato_es }} €</strong>
                 </td>
                 <td>
                     {% if p.estado == 'ABIERTO' %}

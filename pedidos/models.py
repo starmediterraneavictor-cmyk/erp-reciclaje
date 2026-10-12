@@ -218,7 +218,11 @@ class Pedido(models.Model):
         if cuenta:
             return sum((c.importe for c in cuenta.cobros.all()), Decimal('0'))
         return Decimal('0')
-
+    
+    @property
+    def saldo_pendiente_cobro(self):
+        """Diferencia entre el importe total del pedido y lo cobrado"""
+        return self.total_importe - self.total_cobrado
 
 
     
