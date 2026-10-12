@@ -324,7 +324,7 @@ function añadirOrigen(datos = null) {
             <div class="row">
                 <div class="col-md-6 mb-2">
                     <label class="form-label small">Pedido de compra</label>
-                    <select name="origen_pedido[]" class="form-select form-select-sm">
+                    <select name="origen_pedido" class="form-select form-select-sm">
                         <option value="">-- Seleccionar --</option>
                         ${pedidosCompraDisponibles.map(pc => 
                             `<option value="${pc.id}">${pc.label}</option>`
