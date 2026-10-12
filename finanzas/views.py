@@ -248,7 +248,7 @@ def factura_pdf(request, factura_id):
 @login_required
 def cuentas_por_pagar(request):
     """Lista de cuentas por pagar (deudas)"""
-    cuentas = CuentaPorPagar.objects.all().order_by('fecha_vencimiento')
+    cuentas = CuentaPorPagar.objects.exclude(estado='ANULADO').order_by('fecha_vencimiento')
 
     categoria = request.GET.get('categoria', '')
     estado = request.GET.get('estado', '')
@@ -344,7 +344,7 @@ def registrar_pago_cuenta(request, cuenta_id):
 @login_required
 def cuentas_por_cobrar(request):
     """Lista de cuentas por cobrar"""
-    cuentas = CuentaPorCobrar.objects.all().order_by('fecha_vencimiento')
+    cuentas = CuentaPorCobrar.objects.exclude(estado='ANULADO').order_by('fecha_vencimiento')
 
     estado = request.GET.get('estado', '')
     if estado:
@@ -430,12 +430,12 @@ def registrar_cobro_cuenta(request, cuenta_id):
 def dashboard_financiero(request):
     """Dashboard con resumen de deudas y cobros"""
 
-    pagar_pendientes = CuentaPorPagar.objects.exclude(estado='PAGADO')
+    pagar_pendientes = CuentaPorPagar.objects.exclude(estado__in=['PAGADO', 'ANULADO'])
     total_pagar = sum(c.saldo_pendiente for c in pagar_pendientes)
     vencidas_pagar = [c for c in pagar_pendientes if c.esta_vencida]
     total_vencido_pagar = sum(c.saldo_pendiente for c in vencidas_pagar)
 
-    cobrar_pendientes = CuentaPorCobrar.objects.exclude(estado='COBRADO')
+    cobrar_pendientes = CuentaPorCobrar.objects.exclude(estado__in=['COBRADO', 'ANULADO'])
     total_cobrar = sum(c.saldo_pendiente for c in cobrar_pendientes)
     vencidas_cobrar = [c for c in cobrar_pendientes if c.dias_para_vencer < 0]
     total_vencido_cobrar = sum(c.saldo_pendiente for c in vencidas_cobrar)
@@ -811,10 +811,22 @@ def anular_factura(request, factura_id):
         numero = factura.numero_factura
         factura.estado_pago = 'ANULADO'
         factura.save()
-        # Anular también su cuenta asociada
+        
+        # Anular también sus cuentas asociadas
+        # 1. Por numero_factura exacto
         CuentaPorCobrar.objects.filter(numero_factura=numero).update(estado='ANULADO')
         CuentaPorPagar.objects.filter(numero_factura=numero).update(estado='ANULADO')
-        messages.success(request, f'✅ Factura {numero} anulada')
+        
+        # 2. Por concepto que contenga el número
+        CuentaPorCobrar.objects.filter(concepto__icontains=numero).update(estado='ANULADO')
+        CuentaPorPagar.objects.filter(concepto__icontains=numero).update(estado='ANULADO')
+        
+        # 3. Por pedido asociado (si la factura tiene pedido)
+        if factura.pedido:
+            CuentaPorCobrar.objects.filter(concepto__icontains=factura.pedido.numero_pedido).update(estado='ANULADO')
+            CuentaPorPagar.objects.filter(concepto__icontains=factura.pedido.numero_pedido).update(estado='ANULADO')
+        
+        messages.success(request, f'✅ Factura {numero} y sus cuentas asociadas anuladas')
         return redirect('lista_facturas')
 
     return redirect('lista_facturas')

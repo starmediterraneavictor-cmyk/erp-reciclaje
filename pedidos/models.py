@@ -224,7 +224,16 @@ class Pedido(models.Model):
         """Diferencia entre el importe total del pedido y lo cobrado"""
         return self.total_importe - self.total_cobrado
 
-
+    
+    @property
+    def total_cobrado(self):
+        from finanzas.models import CuentaPorCobrar
+        cuenta = CuentaPorCobrar.objects.filter(
+            concepto__icontains=self.numero_pedido
+        ).exclude(estado='ANULADO').first()
+        if cuenta:
+            return sum((c.importe for c in cuenta.cobros.all()), Decimal('0'))
+        return Decimal('0')
     
     
     class Meta:

@@ -64,7 +64,8 @@ def dashboard_analisis(request):
         fecha_emision__gte=fecha_inicio,
         fecha_emision__lte=fecha_fin,
         estado='COBRADO'
-    )
+    ).exclude(estado='ANULADO')
+
     ingresos_cuentas = sum(
         (c.importe_cobrado for c in cobros_rango if not c.tiene_factura),
         Decimal('0')
