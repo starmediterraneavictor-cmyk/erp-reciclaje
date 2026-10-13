@@ -172,6 +172,8 @@ def nuevo_pedido(request):
                         pedido=pedido,
                         incoterm=pedido.incoterm or 'CIF',
                         estado='ABIERTO',
+                        valor_total=pedido.total_importe,
+                        peso_total_kg=pedido.total_kg,
                     )
 
                 # 6. Guardar los orígenes de venta
