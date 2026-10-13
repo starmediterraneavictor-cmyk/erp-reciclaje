@@ -215,6 +215,11 @@ class Pedido(models.Model):
         cuenta = CuentaPorCobrar.objects.filter(
             concepto__icontains=self.numero_pedido
         ).first()
+
+        # Si la cuenta está anulada, devolver 0
+        if cuenta and cuenta.estado == 'ANULADO':
+            return Decimal('0')
+
         if cuenta:
             return sum((c.importe for c in cuenta.cobros.all()), Decimal('0'))
         return Decimal('0')
@@ -225,16 +230,7 @@ class Pedido(models.Model):
         return self.total_importe - self.total_cobrado
 
     
-    @property
-    def total_cobrado(self):
-        from finanzas.models import CuentaPorCobrar
-        cuenta = CuentaPorCobrar.objects.filter(
-            concepto__icontains=self.numero_pedido
-        ).exclude(estado='ANULADO').first()
-        if cuenta:
-            return sum((c.importe for c in cuenta.cobros.all()), Decimal('0'))
-        return Decimal('0')
-
+    
     @property
     def tiene_factura_activa(self):
         """Comprueba si el pedido tiene una factura NO anulada"""
@@ -249,6 +245,19 @@ class Pedido(models.Model):
             return False
         cuenta = CuentaPorCobrar.objects.filter(numero_factura=factura.numero_factura).first()
         return cuenta.cobros.exists() if cuenta else False
+
+    @property
+    def total_pendiente_cobro(self):
+        """Importe pendiente de cobro (0 si la cuenta está anulada)"""
+        from finanzas.models import CuentaPorCobrar
+        cuenta = CuentaPorCobrar.objects.filter(
+            concepto__icontains=self.numero_pedido
+        ).first()
+        
+        if cuenta and cuenta.estado == 'ANULADO':
+            return Decimal('0')
+        
+        return self.total_importe - self.total_cobrado
 
 
     
