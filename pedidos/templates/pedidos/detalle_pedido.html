@@ -4,6 +4,15 @@
 {% block title %}Detalle Pedido - {{ pedido.numero_pedido }}{% endblock %}
 
 {% block content %}
+{% if pedido.tiene_cobros %}
+<div class="alert alert-warning">
+    🔒 <strong>Este pedido ya tiene cobros registrados.</strong>
+    Para modificar los materiales o precios, primero debes 
+    <a href="{% url 'anular_factura' factura_existente.id %}" class="alert-link">anular la factura</a>.
+</div>
+{% endif %}
+
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>📋 Pedido {{ pedido.numero_pedido }}</h2>
     <div class="d-flex gap-2">

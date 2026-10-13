@@ -239,6 +239,18 @@ class Pedido(models.Model):
     def tiene_factura_activa(self):
         """Comprueba si el pedido tiene una factura NO anulada"""
         return self.facturas.exclude(estado_pago='ANULADO').exists()
+
+    @property
+    def tiene_cobros(self):
+        """Comprueba si el pedido tiene cobros registrados"""
+        from finanzas.models import CuentaPorCobrar
+        factura = self.facturas.first()
+        if not factura:
+            return False
+        cuenta = CuentaPorCobrar.objects.filter(numero_factura=factura.numero_factura).first()
+        return cuenta.cobros.exists() if cuenta else False
+
+
     
     
     class Meta:

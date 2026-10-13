@@ -223,6 +223,32 @@ def editar_pedido(request, pedido_id):
     pedido = get_object_or_404(Pedido, id=pedido_id)
 
     if request.method == 'POST':
+        # Comprobar si hay cobros registrados
+        if pedido.tiene_cobros:
+            # Detectar si se están modificando los materiales
+            materiales_nuevos = request.POST.getlist('material[]')
+            cantidades_nuevas = request.POST.getlist('cantidad[]')
+            precios_nuevos = request.POST.getlist('precio[]')
+            
+            # Comparar con los actuales
+            detalles_actuales = list(pedido.detalles.values_list('material_id', 'cantidad', 'precio_unitario'))
+            detalles_nuevos = []
+            for i, mat in enumerate(materiales_nuevos):
+                if mat and i < len(cantidades_nuevas):
+                    try:
+                        detalles_nuevos.append((int(mat), Decimal(cantidades_nuevas[i]), Decimal(precios_nuevos[i] or '0')))
+                    except (ValueError, InvalidOperation):
+                        pass
+            
+            if detalles_actuales != detalles_nuevos:
+                messages.error(
+                    request,
+                    '❌ Este pedido ya tiene cobros registrados. '
+                    'Para modificar los materiales o precios, primero anula la factura '
+                    'desde /finanzas/ y luego vuelve a editar.'
+                )
+                return redirect('detalle_pedido', pedido_id=pedido.id)
+            
         try:
             with transaction.atomic():
                 tipo = request.POST.get('tipo')
@@ -306,6 +332,8 @@ def editar_pedido(request, pedido_id):
                         pedido=pedido,
                         incoterm=pedido.incoterm or 'CIF',
                         estado='ABIERTO',
+                        valor_total=pedido.total_importe,
+                        peso_total_kg=pedido.total_kg,
                     )
                 elif not pedido.es_internacional and hasattr(pedido, 'internacional'):
                     try:
@@ -345,25 +373,20 @@ def editar_pedido(request, pedido_id):
                         factura_asociada.iva = pedido.total_importe * (iva_pct / Decimal('100'))
                         factura_asociada.total = pedido.total_importe + factura_asociada.iva
                     factura_asociada.save()
-                    print(f"DEBUG: Después - base={factura_asociada.base}, total={factura_asociada.total}")
 
-                    # Sincronizar el seguimiento internacional
-                    if pedido.es_internacional and hasattr(pedido, 'internacional'):
-                        pedido.internacional.valor_total = pedido.total_importe
-                        pedido.internacional.peso_total_kg = pedido.total_kg
-                        pedido.internacional.save()
-
-
-                
                     # Sincronizar también la cuenta asociada
-                    from finanzas.models import CuentaPorCobrar, CuentaPorPagar
                     CuentaPorCobrar.objects.filter(numero_factura=factura_asociada.numero_factura).update(
                         importe_total=factura_asociada.total
                     )
                     CuentaPorPagar.objects.filter(numero_factura=factura_asociada.numero_factura).update(
                         importe_total=factura_asociada.total
-                    )                    
+                    )
 
+                # 8. Sincronizar el seguimiento internacional (SIEMPRE, no solo si hay factura)
+                if pedido.es_internacional and hasattr(pedido, 'internacional'):
+                    pedido.internacional.valor_total = pedido.total_importe
+                    pedido.internacional.peso_total_kg = pedido.total_kg
+                    pedido.internacional.save()
 
 
                 messages.success(request, f'✅ Pedido {pedido.numero_pedido} actualizado')
