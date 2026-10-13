@@ -92,7 +92,7 @@
                     <span class="badge bg-success">{{ p.pedido.total_cobrado|formato_es }} €</span>
                 </td>
                 <td class="text-end text-danger">
-                    <strong>{{ p.pedido.saldo_pendiente_cobro|formato_es }} €</strong>
+                    <strong>{{ p.pedido.total_pendiente_cobro|formato_es }} €</strong>
                 </td>
                 <td>
                     {% if p.estado == 'ABIERTO' %}

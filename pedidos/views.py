@@ -544,12 +544,27 @@ def seguimiento_internacional(request):
     if estado:
         pedidos = pedidos.filter(estado=estado)
 
-    abiertos = pedidos.exclude(estado__in=['CERRADO', 'ENTREGADO'])
+    abiertos = list(pedidos.exclude(estado__in=['CERRADO', 'ENTREGADO']))
     cerrados = pedidos.filter(estado__in=['CERRADO', 'ENTREGADO'])
+
+    # Excluir pedidos cuya cuenta por cobrar esté ANULADA
+    from finanzas.models import CuentaPorCobrar
+    numeros_cuentas_anuladas = set(
+        CuentaPorCobrar.objects.filter(estado='ANULADO').values_list('numero_factura', flat=True)
+    )
+
+    abiertos_filtrados = []
+    for p in abiertos:
+        factura = p.pedido.facturas.first()
+        if factura and factura.numero_factura in numeros_cuentas_anuladas:
+            continue  # Saltar los pedidos con cuenta anulada
+        abiertos_filtrados.append(p)
+
+    abiertos = abiertos_filtrados
 
     total_valor_abierto = sum((p.pedido.total_importe for p in abiertos), Decimal('0'))
     total_pagado_abierto = sum((p.pedido.total_cobrado for p in abiertos), Decimal('0'))
-    total_pendiente = total_valor_abierto - total_pagado_abierto
+    total_pendiente = sum((p.pedido.total_pendiente_cobro for p in abiertos), Decimal('0'))
 
     alertas = [p for p in abiertos if p.alerta_cobro]
 
