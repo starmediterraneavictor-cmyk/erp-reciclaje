@@ -375,6 +375,10 @@ function actualizarOrigenesDisponibles() {
     });
 }
 
+// Al cargar la página, actualizar los orígenes disponibles
+document.addEventListener('DOMContentLoaded', function() {
+    actualizarOrigenesDisponibles();
+});
 
 </script>
 {% endblock %}
