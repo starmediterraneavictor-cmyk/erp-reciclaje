@@ -238,13 +238,15 @@ class Pedido(models.Model):
 
     @property
     def tiene_cobros(self):
-        """Comprueba si el pedido tiene cobros registrados"""
+        """Comprueba si el pedido tiene cobros registrados (ignora facturas anuladas)"""
         from finanzas.models import CuentaPorCobrar
-        factura = self.facturas.first()
+        factura = self.facturas.exclude(estado_pago='ANULADO').first()
         if not factura:
             return False
         cuenta = CuentaPorCobrar.objects.filter(numero_factura=factura.numero_factura).first()
-        return cuenta.cobros.exists() if cuenta else False
+        if not cuenta:
+            return False
+        return cuenta.cobros.exists()
 
     @property
     def total_pendiente_cobro(self):

@@ -4,7 +4,7 @@
 {% block title %}Detalle Pedido - {{ pedido.numero_pedido }}{% endblock %}
 
 {% block content %}
-{% if pedido.tiene_cobros %}
+{% if pedido.tiene_cobros and factura_existente %}
 <div class="alert alert-warning">
     🔒 <strong>Este pedido ya tiene cobros registrados.</strong>
     Para modificar los materiales o precios, primero debes 
