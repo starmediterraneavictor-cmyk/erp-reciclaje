@@ -243,7 +243,7 @@ def nuevo_pedido(request):
         'tipos': Pedido.TIPO_OPERACION,
         'estados': Pedido.ESTADO_PEDIDO,
         'incoterms': Pedido.INCOTERM_CHOICES,
-        'pedidos_compra': Pedido.objects.filter(tipo='COMPRA_MAT', pedidos_venta__isnull=True).order_by('-fecha'),
+        'pedidos_compra': Pedido.objects.filter(tipo='COMPRA_MAT', ventas_asociadas__isnull=True).order_by('-fecha'),
         'fecha_actual': datetime.now().strftime('%Y-%m-%d'),
     }
     return render(request, 'pedidos/nuevo_pedido.html', context)
@@ -427,12 +427,15 @@ def editar_pedido(request, pedido_id):
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
 
-    # Pedidos de compra disponibles para enlazar
-    pedidos_origen_actual_id = pedido.pedido_origen_id or -1
+    # Pedidos de compra ya asignados a este pedido de venta (vía OrigenVenta)
+    origenes_actuales_ids = list(
+        pedido.origenes_venta.values_list('pedido_compra_id', flat=True)
+    )
+
     pedidos_disponibles = Pedido.objects.filter(
         tipo='COMPRA_MAT'
     ).filter(
-        Q(pedidos_venta__isnull=True) | Q(id=pedidos_origen_actual_id)
+        Q(ventas_asociadas__isnull=True) | Q(id__in=origenes_actuales_ids)
     ).exclude(id=pedido.id).order_by('-fecha')
     
     context = {
