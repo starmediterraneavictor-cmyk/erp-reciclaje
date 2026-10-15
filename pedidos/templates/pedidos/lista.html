@@ -16,18 +16,46 @@
     </div>
 </div>
 
+<!-- 🗂️ PESTAÑAS -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if tipo_filtro == 'COMPRA_MAT' %}active{% endif %}" 
+           href="?tipo=COMPRA_MAT{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}">
+            📥 Compras <span class="badge bg-secondary">{{ contadores.COMPRA_MAT }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tipo_filtro == 'VENTA_MAT' %}active{% endif %}" 
+           href="?tipo=VENTA_MAT{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}">
+            📤 Ventas <span class="badge bg-secondary">{{ contadores.VENTA_MAT }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tipo_filtro == 'MAQUILA' %}active{% endif %}" 
+           href="?tipo=MAQUILA{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}">
+            🔧 Maquilas <span class="badge bg-secondary">{{ contadores.MAQUILA }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if not tipo_filtro %}active{% endif %}" 
+           href="?{% if estado_filtro %}estado={{ estado_filtro }}&{% endif %}{% if desde_filtro %}desde={{ desde_filtro }}&{% endif %}{% if hasta_filtro %}hasta={{ hasta_filtro }}&{% endif %}{% if buscar_filtro %}buscar={{ buscar_filtro }}{% endif %}">
+            📋 Todos <span class="badge bg-secondary">{{ contadores.TODOS }}</span>
+        </a>
+    </li>
+</ul>
+
 <!-- 🔍 FILTROS -->
 <div class="card card-custom mb-4">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Tipo</label>
-                <select name="tipo" class="form-select form-select-sm">
-                    <option value="">Todos</option>
-                    {% for key, value in tipos %}
-                    <option value="{{ key }}" {% if tipo_filtro == key %}selected{% endif %}>{{ value }}</option>
-                    {% endfor %}
-                </select>
+            <!-- Mantener el tipo activo al filtrar -->
+            <input type="hidden" name="tipo" value="{{ tipo_filtro }}">
+
+            <div class="col-md-4">
+                <label class="form-label small mb-1">🔎 Buscar</label>
+                <input type="text" name="buscar" class="form-control form-control-sm"
+                       placeholder="Nº pedido, cliente, proveedor..."
+                       value="{{ buscar_filtro }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label small mb-1">Estado</label>
@@ -46,11 +74,12 @@
                 <label class="form-label small mb-1">Hasta</label>
                 <input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta_filtro }}">
             </div>
-            <div class="col-md-4 d-flex gap-2">
+            <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-sm">
                     <i class="bi bi-funnel"></i> Filtrar
                 </button>
-                <a href="{% url 'lista_pedidos' %}" class="btn btn-outline-secondary btn-sm">
+                <a href="{% url 'lista_pedidos' %}{% if tipo_filtro %}?tipo={{ tipo_filtro }}{% endif %}" 
+                   class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-x-circle"></i> Limpiar
                 </a>
             </div>

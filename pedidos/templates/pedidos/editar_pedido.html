@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     actualizarClienteProveedor();
     actualizarAvisoEstado();
-    actualizarOrigenesDisponibles();
+    actualizarOrigenesDisponibles();  // 🔑 ahora dentro del mismo DOMContentLoaded
 });
 
 function añadirLinea() {
@@ -354,31 +354,20 @@ function eliminarOrigen(btn) {
 }
 
 function actualizarOrigenesDisponibles() {
-    // Recoger los IDs ya seleccionados
     const selects = document.querySelectorAll('.origen-select');
     const seleccionados = [];
     selects.forEach(s => {
         if (s.value) seleccionados.push(s.value);
     });
 
-    // Actualizar cada select: ocultar los que ya están seleccionados en otros
     selects.forEach(select => {
         const valorActual = select.value;
         Array.from(select.options).forEach(option => {
-            if (!option.value) return; // ignorar el "-- Seleccionar --"
-            
-            // Si el valor está seleccionado en OTRO select, ocultarlo
+            if (!option.value) return;
             const estaEnOtro = seleccionados.includes(option.value) && option.value !== valorActual;
             option.disabled = estaEnOtro;
             option.style.display = estaEnOtro ? 'none' : '';
         });
     });
 }
-
-// Al cargar la página, actualizar los orígenes disponibles
-document.addEventListener('DOMContentLoaded', function() {
-    actualizarOrigenesDisponibles();
-});
-
 </script>
-{% endblock %}

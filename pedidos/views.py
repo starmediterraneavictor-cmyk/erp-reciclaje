@@ -23,15 +23,15 @@ from inventario.models import Material, Inventario
 
 @login_required
 def lista_pedidos(request):
-    
-
+    # Base queryset
     pedidos = Pedido.objects.all().order_by('-fecha')
 
-    # Filtros
-    tipo = request.GET.get('tipo', '')
+    # --- Filtros ---
+    tipo = request.GET.get('tipo', '')          # pestaña activa
     estado = request.GET.get('estado', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
+    buscar = request.GET.get('buscar', '').strip()
 
     if tipo:
         pedidos = pedidos.filter(tipo=tipo)
@@ -42,7 +42,38 @@ def lista_pedidos(request):
     if hasta:
         pedidos = pedidos.filter(fecha__date__lte=hasta)
 
-    # Conceptos de cuentas pagadas y pendientes
+    # 🔍 Búsqueda libre: nº pedido, cliente o proveedor
+    if buscar:
+        pedidos = pedidos.filter(
+            Q(numero_pedido__icontains=buscar) |
+            Q(cliente__nombre__icontains=buscar) |
+            Q(proveedor__nombre__icontains=buscar)
+        )
+
+    # --- Contadores para las pestañas (sin filtros de tipo, pero con el resto) ---
+    # Para que los badges reflejen los filtros actuales (estado, fechas, búsqueda)
+    base_para_contadores = Pedido.objects.all()
+    if estado:
+        base_para_contadores = base_para_contadores.filter(estado=estado)
+    if desde:
+        base_para_contadores = base_para_contadores.filter(fecha__date__gte=desde)
+    if hasta:
+        base_para_contadores = base_para_contadores.filter(fecha__date__lte=hasta)
+    if buscar:
+        base_para_contadores = base_para_contadores.filter(
+            Q(numero_pedido__icontains=buscar) |
+            Q(cliente__nombre__icontains=buscar) |
+            Q(proveedor__nombre__icontains=buscar)
+        )
+
+    contadores = {
+        'COMPRA_MAT': base_para_contadores.filter(tipo='COMPRA_MAT').count(),
+        'VENTA_MAT': base_para_contadores.filter(tipo='VENTA_MAT').count(),
+        'MAQUILA': base_para_contadores.filter(tipo='MAQUILA').count(),
+        'TODOS': base_para_contadores.count(),
+    }
+
+    # --- Conceptos de cuentas pagadas y pendientes ---
     conceptos_pagados = set(
         CuentaPorPagar.objects.filter(estado='PAGADO').values_list('concepto', flat=True)
     )
@@ -50,7 +81,6 @@ def lista_pedidos(request):
         CuentaPorPagar.objects.filter(estado__in=['PENDIENTE', 'PARCIAL']).values_list('concepto', flat=True)
     )
 
-    # Marcar cada pedido
     for p in pedidos:
         concepto = f"Pedido {p.numero_pedido}"
         p.tiene_cuenta_pagada = concepto in conceptos_pagados
@@ -69,6 +99,8 @@ def lista_pedidos(request):
         'estado_filtro': estado,
         'desde_filtro': desde,
         'hasta_filtro': hasta,
+        'buscar_filtro': buscar,
+        'contadores': contadores,
     }
     return render(request, 'pedidos/lista.html', context)
 
