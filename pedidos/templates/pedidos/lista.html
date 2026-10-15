@@ -112,6 +112,13 @@
                         <a href="{% url 'detalle_pedido' p.id %}">
                             <strong>{{ p.numero_pedido }}</strong>
                         </a>
+                        {% if p.factura_activa %}
+                            <br>
+                            <small class="text-muted">
+                                📄 <a href="{% url 'editar_factura' p.factura_activa.id %}">{{ p.factura_activa.numero_factura }}</a>
+                            </small>
+                        {% endif %}
+                    
                     </td>
                     <td>{{ p.entidad_nombre }}</td>
                     <td>{{ p.get_tipo_display }}</td>
