@@ -257,12 +257,10 @@ def editar_pedido(request, pedido_id):
     if request.method == 'POST':
         # Comprobar si hay cobros registrados
         if pedido.tiene_cobros:
-            # Detectar si se están modificando los materiales
             materiales_nuevos = request.POST.getlist('material[]')
             cantidades_nuevas = request.POST.getlist('cantidad[]')
             precios_nuevos = request.POST.getlist('precio[]')
             
-            # Comparar con los actuales
             detalles_actuales = list(pedido.detalles.values_list('material_id', 'cantidad', 'precio_unitario'))
             detalles_nuevos = []
             for i, mat in enumerate(materiales_nuevos):
@@ -340,7 +338,6 @@ def editar_pedido(request, pedido_id):
                             transporte=transporte,
                         )
 
-                        # Si el nuevo estado es PREVISIÓN, NO tocar inventario
                         if pedido.estado == 'PREVISION':
                             continue
 
@@ -373,13 +370,38 @@ def editar_pedido(request, pedido_id):
                     except PedidoInternacional.DoesNotExist:
                         pass
 
-                # 6. Guardar los orígenes de venta
+                # 6. Guardar los orígenes de venta (solo los que NO estén marcados para borrar)
                 if pedido.tipo == 'VENTA_MAT':
                     from .models import OrigenVenta
-                    pedido.origenes_venta.all().delete()
                     
-                    origenes_pedidos = request.POST.getlist('origen_pedido')
-                    origenes_cantidades = request.POST.getlist('origen_cantidad')
+                    # Orígenes actuales del pedido
+                    origenes_actuales = {
+                        o.id: o for o in pedido.origenes_venta.all()
+                    }
+                    
+                    # IDs de los orígenes que se van a conservar (llegan como hidden input)
+                    ids_conservar = request.POST.getlist('origen_id_existente')
+                    ids_conservar = [int(i) for i in ids_conservar if i]
+
+                    # Borrar los que ya no están
+                    for origen_id, origen in origenes_actuales.items():
+                        if origen_id not in ids_conservar:
+                            origen.delete()
+                    
+                    # Actualizar la cantidad de los conservados
+                    for origen_id in ids_conservar:
+                        if origen_id in origenes_actuales:
+                            cantidad_str = request.POST.get(f'origen_cantidad_existente_{origen_id}')
+                            if cantidad_str:
+                                try:
+                                    origenes_actuales[origen_id].cantidad_tn = Decimal(cantidad_str)
+                                    origenes_actuales[origen_id].save()
+                                except (InvalidOperation, ValueError, TypeError):
+                                    pass
+                    
+                    # Crear nuevos orígenes (de los selectores "+ Añadir origen")
+                    origenes_pedidos = request.POST.getlist('origen_pedido_nuevo')
+                    origenes_cantidades = request.POST.getlist('origen_cantidad_nuevo')
                     
                     for i, pedido_compra_id in enumerate(origenes_pedidos):
                         if pedido_compra_id and i < len(origenes_cantidades) and origenes_cantidades[i]:
@@ -391,7 +413,7 @@ def editar_pedido(request, pedido_id):
                                     cantidad_tn=cantidad,
                                 )
                             except (InvalidOperation, ValueError, TypeError):
-                                pass        
+                                pass
 
                 # 7. Sincronizar la factura asociada (si existe)
                 factura_asociada = pedido.facturas.first()
@@ -406,7 +428,6 @@ def editar_pedido(request, pedido_id):
                         factura_asociada.total = pedido.total_importe + factura_asociada.iva
                     factura_asociada.save()
 
-                    # Sincronizar también la cuenta asociada
                     CuentaPorCobrar.objects.filter(numero_factura=factura_asociada.numero_factura).update(
                         importe_total=factura_asociada.total
                     )
@@ -414,12 +435,11 @@ def editar_pedido(request, pedido_id):
                         importe_total=factura_asociada.total
                     )
 
-                # 8. Sincronizar el seguimiento internacional (SIEMPRE, no solo si hay factura)
+                # 8. Sincronizar el seguimiento internacional
                 if pedido.es_internacional and hasattr(pedido, 'internacional'):
                     pedido.internacional.valor_total = pedido.total_importe
                     pedido.internacional.peso_total_kg = pedido.total_kg
                     pedido.internacional.save()
-
 
                 messages.success(request, f'✅ Pedido {pedido.numero_pedido} actualizado')
                 return redirect('lista_pedidos')
@@ -427,15 +447,14 @@ def editar_pedido(request, pedido_id):
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
 
-    # Pedidos de compra ya asignados a este pedido de venta (vía OrigenVenta)
-    origenes_actuales_ids = list(
-        pedido.origenes_venta.values_list('pedido_compra_id', flat=True)
-    )
-
+    # ============================================
+    # GET: cargar datos para el formulario
+    # ============================================
+    
+    # Pedidos de compra LIBRES (no asignados a NINGÚN pedido de venta)
     pedidos_disponibles = Pedido.objects.filter(
-        tipo='COMPRA_MAT'
-    ).filter(
-        Q(ventas_asociadas__isnull=True) | Q(id__in=origenes_actuales_ids)
+        tipo='COMPRA_MAT',
+        ventas_asociadas__isnull=True
     ).exclude(id=pedido.id).order_by('-fecha')
     
     context = {
@@ -449,6 +468,7 @@ def editar_pedido(request, pedido_id):
         'pedidos_compra': pedidos_disponibles,
     }
     return render(request, 'pedidos/editar_pedido.html', context)
+
 
 
 @login_required
