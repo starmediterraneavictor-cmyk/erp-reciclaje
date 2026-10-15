@@ -170,10 +170,16 @@ def editar_factura(request, factura_id):
                 factura.archivo_factura = request.FILES.get('archivo_factura')
 
             factura.save()
-            # Sincronizar el nuevo número de factura en las cuentas asociadas
+            # Sincronizar el nuevo número de factura en las cuentas asociadas (incluido el concepto)
             if numero_antiguo != factura.numero_factura:
-                CuentaPorPagar.objects.filter(numero_factura=numero_antiguo).update(numero_factura=factura.numero_factura)
-                CuentaPorCobrar.objects.filter(numero_factura=numero_antiguo).update(numero_factura=factura.numero_factura)
+                CuentaPorPagar.objects.filter(numero_factura=numero_antiguo).update(
+                    numero_factura=factura.numero_factura,
+                    concepto=f"Factura {factura.numero_factura}"
+                )
+                CuentaPorCobrar.objects.filter(numero_factura=numero_antiguo).update(
+                    numero_factura=factura.numero_factura,
+                    concepto=f"Factura {factura.numero_factura}"
+    )
 
 
             messages.success(request, f'✅ Factura {factura.numero_factura} actualizada')

@@ -95,7 +95,7 @@
                         <tr {% if c.alerta %}class="table-warning"{% endif %}>
                             <td>{{ c.concepto }}</td>
                             <td>{{ c.fecha_vencimiento|date:"d/m/Y" }}</td>
-                            <td>{{ c.saldo_pendiente|floatformat:0 }} €</td>
+                            <td>{{ c.saldo_pendiente|formato_es }} €</td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="3" class="text-center text-muted">Sin deudas</td></tr>
@@ -126,7 +126,7 @@
                         <tr {% if c.alerta %}class="table-warning"{% endif %}>
                             <td>{{ c.concepto }}</td>
                             <td>{{ c.fecha_vencimiento|date:"d/m/Y" }}</td>
-                            <td>{{ c.saldo_pendiente|floatformat:0 }} €</td>
+                            <td>{{ c.saldo_pendiente|formato_es }} €</td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="3" class="text-center text-muted">Sin cobros</td></tr>

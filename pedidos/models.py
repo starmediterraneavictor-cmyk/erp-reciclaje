@@ -237,6 +237,11 @@ class Pedido(models.Model):
         return self.facturas.exclude(estado_pago='ANULADO').exists()
 
     @property
+    def factura_activa(self):
+        """Devuelve la factura NO anulada asociada al pedido (o None)"""
+        return self.facturas.exclude(estado_pago='ANULADO').first()
+
+    @property
     def tiene_cobros(self):
         """Comprueba si el pedido tiene cobros registrados (ignora facturas anuladas)"""
         from finanzas.models import CuentaPorCobrar
