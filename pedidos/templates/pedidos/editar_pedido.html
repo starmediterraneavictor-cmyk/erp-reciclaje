@@ -91,43 +91,62 @@
                     </select>
                     <small class="text-muted">Solo para pedidos internacionales</small>
                 </div>
+
+                <!-- 🔗 ORÍGENES DE COMPRA -->
                 <div class="col-md-12 mb-3 d-none" id="bloque-origenes">
-                    <label class="form-label">Orígenes de compra</label>
-                    <div id="origenesContainer">
-                        {% for origen in pedido.origenes_venta.all %}
-                        <div class="origen-item border rounded p-2 mb-2">
-                            <div class="row">
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label small">Pedido de compra</label>
-                                    <select name="origen_pedido" class="form-select form-select-sm">
-                                        <option value="">-- Seleccionar --</option>
-                                        {% for pc in pedidos_compra %}
-                                        <option value="{{ pc.id }}" {% if origen.pedido_compra.id == pc.id %}selected{% endif %}>
-                                            {{ pc.numero_pedido }} - {{ pc.entidad_nombre }} - {{ pc.total_kg|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <label class="form-label small">Cantidad (tn)</label>
-                                    <input type="number" step="0.01" name="origen_cantidad" 
-                                        class="form-control form-control-sm"
-                                        value="{{ origen.cantidad_tn|unlocalize }}">
-                                </div>
-                                <div class="col-md-2 mb-2 d-flex align-items-end">
-                                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="this.closest('.origen-item').remove()">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                    <label class="form-label">🔗 Orígenes de compra</label>
+
+                    <!-- Orígenes YA ASIGNADOS (no editables directamente) -->
+                    {% if pedido.origenes_venta.exists %}
+                    <div class="mb-3">
+                        <h6 class="text-muted small">Orígenes asignados actualmente:</h6>
+                        <div id="origenesExistentes">
+                            {% for origen in pedido.origenes_venta.all %}
+                            <div class="origen-existente border rounded p-2 mb-2 bg-light">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small">Pedido de compra</label>
+                                        <input type="text" class="form-control form-control-sm" 
+                                               value="{{ origen.pedido_compra.numero_pedido }} - {{ origen.pedido_compra.entidad_nombre }} - {{ origen.pedido_compra.total_kg|floatformat:2 }} tn - {{ origen.pedido_compra.precio_compra_tn|floatformat:2 }} €/tn"
+                                               disabled>
+                                        <input type="hidden" name="origen_id_existente" value="{{ origen.id }}">
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <label class="form-label small">Cantidad (tn)</label>
+                                        <input type="number" step="0.01" 
+                                               name="origen_cantidad_existente_{{ origen.id }}"
+                                               class="form-control form-control-sm"
+                                               value="{{ origen.cantidad_tn|unlocalize }}">
+                                    </div>
+                                    <div class="col-md-2 mb-2 d-flex align-items-end">
+                                        <button type="button" class="btn btn-outline-danger btn-sm w-100" 
+                                                onclick="this.closest('.origen-existente').remove()"
+                                                title="Quitar este origen (se eliminará al guardar)">
+                                            <i class="bi bi-trash"></i> Quitar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+                        <small class="text-muted d-block mb-3">
+                            ℹ️ Si quieres cambiar un origen por otro, primero <strong>quítalo</strong> con el botón "Quitar" 
+                            y luego guarda. Después podrás añadir uno nuevo.
+                        </small>
                     </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="añadirOrigen()">
-                        <i class="bi bi-plus-circle"></i> Añadir origen
-                    </button>
+                    {% endif %}
+
+                    <!-- AÑADIR NUEVOS orígenes (solo pedidos libres) -->
+                    <div class="mb-2">
+                        <h6 class="text-muted small">Añadir nuevo origen (solo pedidos libres):</h6>
+                        <div id="origenesNuevos"></div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="añadirOrigen()">
+                            <i class="bi bi-plus-circle"></i> Añadir origen
+                        </button>
+                    </div>
+
                     <small class="text-muted d-block mt-1">
-                        Indica de qué pedidos de compra viene el material de esta venta.
+                        Solo aparecen los pedidos de compra que <strong>aún no están vinculados</strong> a ningún pedido de venta.
                     </small>
                 </div> 
             </div>
@@ -319,13 +338,13 @@ const pedidosCompraDisponibles = [
 ];
 
 function añadirOrigen(datos = null) {
-    const container = document.getElementById('origenesContainer');
+    const container = document.getElementById('origenesNuevos');
     const html = `
         <div class="origen-item border rounded p-2 mb-2">
             <div class="row">
                 <div class="col-md-6 mb-2">
                     <label class="form-label small">Pedido de compra</label>
-                    <select name="origen_pedido" class="form-select form-select-sm origen-select" onchange="actualizarOrigenesDisponibles()">
+                    <select name="origen_pedido_nuevo" class="form-select form-select-sm origen-select" onchange="actualizarOrigenesDisponibles()">
                         <option value="">-- Seleccionar --</option>
                         ${pedidosCompraDisponibles.map(pc => 
                             `<option value="${pc.id}" ${datos && datos.pedido_id == pc.id ? 'selected' : ''}>${pc.label}</option>`
@@ -334,7 +353,7 @@ function añadirOrigen(datos = null) {
                 </div>
                 <div class="col-md-4 mb-2">
                     <label class="form-label small">Cantidad (tn)</label>
-                    <input type="number" step="0.01" name="origen_cantidad" class="form-control form-control-sm" value="${datos ? datos.cantidad : ''}">
+                    <input type="number" step="0.01" name="origen_cantidad_nuevo" class="form-control form-control-sm" value="${datos ? datos.cantidad : ''}">
                 </div>
                 <div class="col-md-2 mb-2 d-flex align-items-end">
                     <button type="button" class="btn btn-danger btn-sm w-100" onclick="eliminarOrigen(this)">
