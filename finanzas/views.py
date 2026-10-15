@@ -71,7 +71,13 @@ def _crear_cuenta_para_factura(factura):
 
 @login_required
 def lista_facturas(request):
-    facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
+    # Ver anuladas: por defecto NO
+    ver_anuladas = request.GET.get('ver_anuladas', '') == '1'
+    
+    if ver_anuladas:
+        facturas = Factura.objects.all().order_by('-fecha')
+    else:
+        facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
 
     totales = facturas.aggregate(
         ingresos=Sum('total', filter=Q(tipo='INGRESO')),
@@ -86,6 +92,7 @@ def lista_facturas(request):
         'total_ingresos': total_ingresos,
         'total_gastos': total_gastos,
         'beneficio': beneficio,
+        'ver_anuladas': ver_anuladas,
     }
     return render(request, 'finanzas/lista.html', context)
 
@@ -198,6 +205,11 @@ def confirmar_eliminar_factura(request, factura_id):
 @login_required
 def eliminar_factura(request, factura_id):
     factura = get_object_or_404(Factura, id=factura_id)
+
+    # Solo se pueden eliminar facturas ANULADAS
+    if factura.estado_pago != 'ANULADO':
+        messages.error(request, '❌ Solo se pueden eliminar facturas ANULADAS. Anúlala primero.')
+        return redirect('lista_facturas')
 
     if request.method == 'POST':
         numero = factura.numero_factura

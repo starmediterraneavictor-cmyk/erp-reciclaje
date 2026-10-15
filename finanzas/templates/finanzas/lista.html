@@ -7,6 +7,15 @@
 <div class="d-flex justify-content-between mb-4">
     <h2>💰 Facturas</h2>
     <div class="d-flex gap-2">
+        <!-- 🔘 Botón para ver/ocultar anuladas -->
+        <a href="?ver_anuladas={% if ver_anuladas %}0{% else %}1{% endif %}" 
+           class="btn btn-outline-secondary">
+            {% if ver_anuladas %}
+                <i class="bi bi-eye-slash"></i> Ocultar anuladas
+            {% else %}
+                <i class="bi bi-eye"></i> Ver anuladas
+            {% endif %}
+        </a>
         <a href="{% url 'exportar_facturas_excel' %}" class="btn btn-outline-success">
             <i class="bi bi-file-earmark-excel"></i> Exportar Excel
         </a>
@@ -103,12 +112,23 @@
                         <a href="{% url 'editar_factura' f.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
                             <i class="bi bi-pencil"></i>
                         </a>
+
                         {% if f.estado_pago != 'ANULADO' %}
+                        <!-- Botón Anular (solo si NO está anulada) -->
                         <form method="POST" action="{% url 'anular_factura' f.id %}" style="display:inline;"
                             onsubmit="return confirm('¿Seguro que quieres anular esta factura? No se puede deshacer.');">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-outline-warning btn-sm" title="Anular">
                                 <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                        {% else %}
+                        <!-- 🆕 Botón Eliminar definitivamente (solo si está ANULADA) -->
+                        <form method="POST" action="{% url 'eliminar_factura' f.id %}" style="display:inline;"
+                            onsubmit="return confirm('¿Eliminar DEFINITIVAMENTE la factura {{ f.numero_factura }}?\n\nSe borrarán también sus cuentas y cobros/pagos asociados.\n\nEsta acción no se puede deshacer.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar definitivamente">
+                                <i class="bi bi-trash"></i>
                             </button>
                         </form>
                         {% endif %}
