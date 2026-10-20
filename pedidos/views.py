@@ -113,16 +113,17 @@ def lista_pedidos(request):
 @login_required
 def detalle_pedido(request, pedido_id):
     """Ver detalle completo de un pedido"""
-    
     pedido = get_object_or_404(Pedido, id=pedido_id)
     factura_existente = pedido.facturas.exclude(estado_pago='ANULADO').first()
 
-    # Comprobar si ya existe cuenta por pagar para este pedido
     cuenta_pagar_existente = None
     if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
         cuenta_pagar_existente = CuentaPorPagar.objects.filter(
             concepto=f"Pedido {pedido.numero_pedido}"
         ).first()
+
+    # 🆕 Capturamos la URL de retorno
+    url_retorno = request.GET.get('return_url', '')
 
     context = {
         'pedido': pedido,
@@ -130,6 +131,7 @@ def detalle_pedido(request, pedido_id):
         'cuenta_pagar_existente': cuenta_pagar_existente,
         'total_kg': pedido.total_kg,
         'total_importe': pedido.total_importe,
+        'url_retorno': url_retorno,  # 🆕
     }
     return render(request, 'pedidos/detalle_pedido.html', context)
 
@@ -565,6 +567,7 @@ def generar_factura_desde_pedido(request, pedido_id):
                 iva_porcentaje=iva_porcentaje,
                 estado_pago='PENDIENTE',
                 notas=f'Generada automáticamente desde el pedido {pedido.numero_pedido}',
+                numero_albaran=request.POST.get('numero_albaran', ''), # 🆕
             )
 
             from finanzas.views import _crear_cuenta_para_factura

@@ -108,6 +108,7 @@ def nueva_factura(request):
 
             factura = Factura.objects.create(
                 numero_factura=request.POST.get('numero_factura'),
+                numero_albaran=request.POST.get('numero_albaran', ''), # 🆕
                 tipo=tipo_factura,
                 fecha=request.POST.get('fecha') or datetime.now().date(),
                 fecha_vencimiento=request.POST.get('fecha_vencimiento') or None,
@@ -154,6 +155,7 @@ def editar_factura(request, factura_id):
 
             numero_antiguo = factura.numero_factura
             factura.numero_factura = request.POST.get('numero_factura')
+            factura.numero_albaran = request.POST.get('numero_albaran', '') # 🆕
             factura.tipo = tipo_factura
             factura.fecha = request.POST.get('fecha')
             factura.fecha_vencimiento = request.POST.get('fecha_vencimiento') or None

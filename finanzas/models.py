@@ -32,6 +32,7 @@ class Factura(models.Model):
     ]
     
     numero_factura = models.CharField(max_length=50, unique=True)
+    numero_albaran = models.CharField(max_length=50, blank=True, null=True, verbose_name="Nº Albarán") # 🆕 
     tipo = models.CharField(max_length=10, choices=TIPO_FACTURA)
     fecha = models.DateField(default=timezone.now)
     fecha_vencimiento = models.DateField(null=True, blank=True)

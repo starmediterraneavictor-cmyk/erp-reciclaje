@@ -17,11 +17,16 @@
         <div class="card-body">
             <h5 class="mb-3">💰 Datos de la factura</h5>
             <div class="row">
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <label class="form-label">Nº Factura <span class="text-danger">*</span></label>
                     <input type="text" name="numero_factura" class="form-control" required placeholder="2026001">
                 </div>
-                <div class="col-md-4 mb-3">
+                <!-- 🆕 AÑADIMOS AQUÍ EL ALBARÁN -->
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Nº Albarán</label>
+                    <input type="text" name="numero_albaran" class="form-control" placeholder="Ej: ALB-2026-001">
+                </div>
+                <div class="col-md-3 mb-3">
                     <label class="form-label">Tipo <span class="text-danger">*</span></label>
                     <select name="tipo" id="id_tipo" class="form-select" required>
                         {% for key, value in tipos %}

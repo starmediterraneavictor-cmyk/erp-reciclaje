@@ -49,10 +49,10 @@
             </a>
         {% endif %}
 
-        <a href="{% url 'editar_pedido' pedido.id %}" class="btn btn-primary">
+        <a href="{% url 'editar_pedido' pedido.id %}?return_url={{ url_retorno|urlencode }}" class="btn btn-primary">
             <i class="bi bi-pencil"></i> Editar
         </a>
-        <a href="{% url 'lista_pedidos' %}" class="btn btn-secondary">
+        <a href="{% if url_retorno %}{% url 'lista_pedidos' %}?{{ url_retorno }}{% else %}{% url 'lista_pedidos' %}{% endif %}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Volver
         </a>
     </div>
