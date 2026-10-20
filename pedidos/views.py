@@ -114,6 +114,18 @@ def lista_pedidos(request):
 def detalle_pedido(request, pedido_id):
     """Ver detalle completo de un pedido"""
     pedido = get_object_or_404(Pedido, id=pedido_id)
+
+    # 🆕 Guardar el peso real si viene por POST desde el propio detalle
+    if request.method == 'POST' and 'peso_real_tn' in request.POST:
+        peso_str = request.POST.get('peso_real_tn')
+        try:
+            pedido.peso_real_tn = Decimal(peso_str) if peso_str else None
+            pedido.save()
+            messages.success(request, '✅ Peso real guardado correctamente. Revisa el impacto económico.')
+        except (ValueError, TypeError):
+            messages.error(request, '❌ El peso introducido no es válido.')
+        return redirect('detalle_pedido', pedido_id=pedido.id)
+
     factura_existente = pedido.facturas.exclude(estado_pago='ANULADO').first()
 
     cuenta_pagar_existente = None
@@ -122,7 +134,6 @@ def detalle_pedido(request, pedido_id):
             concepto=f"Pedido {pedido.numero_pedido}"
         ).first()
 
-    # 🆕 Capturamos la URL de retorno
     url_retorno = request.GET.get('return_url', '')
 
     context = {
@@ -131,7 +142,7 @@ def detalle_pedido(request, pedido_id):
         'cuenta_pagar_existente': cuenta_pagar_existente,
         'total_kg': pedido.total_kg,
         'total_importe': pedido.total_importe,
-        'url_retorno': url_retorno,  # 🆕
+        'url_retorno': url_retorno,
     }
     return render(request, 'pedidos/detalle_pedido.html', context)
 
