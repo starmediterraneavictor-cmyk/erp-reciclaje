@@ -469,33 +469,6 @@ def editar_pedido(request, pedido_id):
 
 
 
-
-
-
-    # ============================================
-    # GET: cargar datos para el formulario
-    # ============================================
-    
-    # Pedidos de compra LIBRES (no asignados a NINGÚN pedido de venta)
-    pedidos_disponibles = Pedido.objects.filter(
-        tipo='COMPRA_MAT',
-        ventas_asociadas__isnull=True
-    ).exclude(id=pedido.id).order_by('-fecha')
-    
-    context = {
-        'pedido': pedido,
-        'clientes': Cliente.objects.filter(estado='ACTIVO').order_by('nombre'),
-        'proveedores': Proveedor.objects.filter(estado='ACTIVO', tipo='MATERIAL').order_by('nombre'),
-        'materiales': Material.objects.all().order_by('nombre'),
-        'tipos': Pedido.TIPO_OPERACION,
-        'estados': Pedido.ESTADO_PEDIDO,
-        'incoterms': Pedido.INCOTERM_CHOICES,
-        'pedidos_compra': pedidos_disponibles,
-    }
-    return render(request, 'pedidos/editar_pedido.html', context)
-
-
-
 @login_required
 def confirmar_eliminar_pedido(request, pedido_id):
     pedido = get_object_or_404(Pedido, id=pedido_id)
@@ -806,6 +779,7 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
                 # 1. Crear la Factura de Gasto
                 factura = Factura.objects.create(
                     numero_factura=numero_factura or f"G-{pedido.numero_pedido}",
+                    numero_albaran=request.POST.get('numero_albaran', ''),
                     tipo='GASTO',
                     fecha=request.POST.get('fecha_emision') or datetime.now().date(),
                     fecha_vencimiento=request.POST.get('fecha_vencimiento'),
