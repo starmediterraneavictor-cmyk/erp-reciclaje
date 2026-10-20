@@ -861,6 +861,16 @@ def generar_ajuste_peso(request, pedido_id):
         messages.error(request, '❌ Primero debes indicar el peso real.')
         return redirect('detalle_pedido', pedido_id=pedido.id)
 
+    # 🆕 VALIDACIÓN: Obligar a que exista la Cuenta por Pagar del pedido principal
+    from finanzas.models import CuentaPorPagar, CuentaPorCobrar
+    cuenta_pagar_existente = CuentaPorPagar.objects.filter(
+        concepto=f"Pedido {pedido.numero_pedido}"
+    ).first()
+
+    if not cuenta_pagar_existente:
+        messages.warning(request, '⚠️ Primero debes generar la Cuenta por Pagar de este pedido. Una vez generada, podrás apuntar el ajuste de peso.')
+        return redirect('detalle_pedido', pedido_id=pedido.id)
+
     ajuste = pedido.importe_ajuste
 
     if ajuste == 0:
