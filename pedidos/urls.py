@@ -22,4 +22,7 @@ urlpatterns = [
     path('internacional/<int:int_id>/', views.detalle_pedido_internacional, name='detalle_pedido_internacional'),
     path('internacional/<int:int_id>/editar/', views.editar_pedido_internacional, name='editar_pedido_internacional'),
     path('internacional/pago/<int:pago_id>/eliminar/', views.eliminar_pago_internacional, name='eliminar_pago_internacional'),
+
+    # Ajuste de peso
+    path('<int:pedido_id>/ajustar-peso/', views.generar_ajuste_peso, name='generar_ajuste_peso'),
 ]

@@ -318,6 +318,10 @@ def editar_pedido(request, pedido_id):
                 fecha_str = request.POST.get('fecha')
                 pedido.fecha = (fecha_str + 'T00:00') if fecha_str else datetime.now()
                 pedido.notas = request.POST.get('notas', '')
+
+                peso_real = request.POST.get('peso_real_tn')
+                pedido.peso_real_tn = Decimal(peso_real) if peso_real else None
+                
                 pedido.save()
 
                 # 3. Borrar detalles antiguos
@@ -831,3 +835,67 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
         'fecha_vencimiento_sugerida': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d'),
     }
     return render(request, 'pedidos/generar_cuenta_pagar.html', context)
+
+
+@login_required
+def generar_ajuste_peso(request, pedido_id):
+    """Genera una Cuenta por Cobrar o Pagar por diferencia de peso"""
+    pedido = get_object_or_404(Pedido, id=pedido_id)
+
+    if pedido.tipo not in ['COMPRA_MAT', 'MAQUILA']:
+        messages.error(request, '❌ Solo se pueden ajustar pedidos de compra o maquila.')
+        return redirect('detalle_pedido', pedido_id=pedido.id)
+
+    if pedido.peso_real_tn is None:
+        messages.error(request, '❌ Primero debes indicar el peso real.')
+        return redirect('detalle_pedido', pedido_id=pedido.id)
+
+    ajuste = pedido.importe_ajuste
+
+    if ajuste == 0:
+        messages.info(request, 'ℹ️ No hay diferencia de peso que ajustar.')
+        return redirect('detalle_pedido', pedido_id=pedido.id)
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                from finanzas.models import CuentaPorCobrar, CuentaPorPagar
+                importe_absoluto = abs(ajuste)
+                hoy = datetime.now().date()
+                
+                if ajuste < 0:
+                    # El proveedor nos debe dinero (pesó menos de lo facturado)
+                    cuenta = CuentaPorCobrar.objects.create(
+                        concepto=f"Ajuste peso Pedido {pedido.numero_pedido}",
+                        cliente_id=pedido.proveedor_id, # Al ser proveedor, lo metemos como 'cliente' que nos debe
+                        importe_total=importe_absoluto,
+                        fecha_emision=hoy,
+                        fecha_vencimiento=hoy + timedelta(days=30),
+                        notas=f"Diferencia de {abs(pedido.diferencia_peso_tn)} tn a favor.",
+                    )
+                    messages.success(request, f'✅ Creada Cuenta por Cobrar por {importe_absoluto} € al proveedor.')
+                
+                else:
+                    # Nosotros le debemos al proveedor (pesó más de lo facturado)
+                    cuenta = CuentaPorPagar.objects.create(
+                        concepto=f"Ajuste peso Pedido {pedido.numero_pedido}",
+                        categoria='PROVEEDOR',
+                        proveedor=pedido.proveedor,
+                        importe_total=importe_absoluto,
+                        fecha_emision=hoy,
+                        fecha_vencimiento=hoy + timedelta(days=30),
+                        notas=f"Diferencia de {pedido.diferencia_peso_tn} tn a pagar.",
+                    )
+                    messages.success(request, f'✅ Creada Cuenta por Pagar por {importe_absoluto} €.')
+                
+                return redirect('detalle_pedido', pedido_id=pedido.id)
+
+        except Exception as e:
+            messages.error(request, f'❌ Error al generar ajuste: {str(e)}')
+            return redirect('detalle_pedido', pedido_id=pedido.id)
+
+    context = {
+        'pedido': pedido,
+        'ajuste': ajuste,
+    }
+    return render(request, 'pedidos/confirmar_ajuste_peso.html', context)

@@ -252,6 +252,69 @@
         </div>
     </div>
 </div>
+
+<!-- 🆕 BLOQUE DE AJUSTE DE PESO -->
+<div class="card card-custom mb-4 border-warning">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">⚖️ Ajuste de Peso (Báscula)</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{% url 'generar_ajuste_peso' pedido.id %}">
+            {% csrf_token %}
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Peso Real en Báscula (tn)</label>
+                    <input type="number" step="0.01" name="peso_real_tn" class="form-control" 
+                           value="{{ pedido.peso_real_tn|default_if_none:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="bi bi-save"></i> Guardar Peso Real
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        {% if pedido.peso_real_tn is not None %}
+        <hr>
+        <div class="row">
+            <div class="col-md-6">
+                <p class="mb-1"><strong>Peso Estimado:</strong> {{ pedido.total_kg|formato_es }} tn</p>
+                <p class="mb-1"><strong>Peso Real:</strong> {{ pedido.peso_real_tn|formato_es }} tn</p>
+                <p class="mb-1">
+                    <strong>Diferencia:</strong> 
+                    <span class="{% if pedido.diferencia_peso_tn < 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ pedido.diferencia_peso_tn|formato_es }} tn
+                    </span>
+                </p>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-1"><strong>Impacto Económico:</strong> {{ pedido.importe_ajuste|formato_es }} €</p>
+                
+                {% if pedido.importe_ajuste != 0 %}
+                    {% if pedido.importe_ajuste < 0 %}
+                        <div class="alert alert-success py-2 mt-2">
+                            <small>Nos deben <strong>{{ pedido.importe_ajuste|formato_es }} €</strong> (Peso Real menor)</small>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger py-2 mt-2">
+                            <small>Debemos <strong>{{ pedido.importe_ajuste|formato_es }} €</strong> (Peso Real mayor)</small>
+                        </div>
+                    {% endif %}
+                    
+                    <a href="{% url 'generar_ajuste_peso' pedido.id %}" class="btn btn-sm btn-outline-primary mt-2">
+                        <i class="bi bi-cash-stack"></i> Generar Ajuste Contable
+                    </a>
+                {% else %}
+                    <div class="alert alert-info py-2 mt-2">
+                        <small>No hay diferencia económica (cuadra perfecto).</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
 {% endif %}
 
 <!-- Materiales -->

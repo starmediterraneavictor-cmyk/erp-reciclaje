@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Confirmar Ajuste de Peso{% endblock %}
+{% load formato_es %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card card-custom">
+            <div class="card-body p-4 text-center">
+                <h3>⚖️ Confirmar Ajuste</h3>
+                <hr>
+                <p>Estás a punto de generar una <strong>{% if ajuste < 0 %}Cuenta por Cobrar{% else %}Cuenta por Pagar{% endif %}</strong> al proveedor <strong>{{ pedido.proveedor.nombre }}</strong>.</p>
+                <h2 class="{% if ajuste < 0 %}text-success{% else %}text-danger{% endif %}">
+                    {% if ajuste < 0 %}Nos debe: {{ ajuste|formato_es }}{% else %}Le debemos: {{ ajuste|formato_es }}{% endif %} €
+                </h2>
+                <form method="POST" class="mt-4">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary w-100">Confirmar y Crear</button>
+                    <a href="{% url 'detalle_pedido' pedido.id %}" class="btn btn-secondary w-100 mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

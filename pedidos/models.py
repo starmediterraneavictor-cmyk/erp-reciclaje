@@ -61,6 +61,13 @@ class Pedido(models.Model):
         verbose_name="Pedido de compra origen"
     )
 
+    # NUEVO: Peso real para ajustes
+    peso_real_tn = models.DecimalField(
+        max_digits=12, decimal_places=2, 
+        null=True, blank=True, 
+        verbose_name="Peso real en báscula (tn)"
+    )
+
     
     notas = models.TextField(blank=True)
     
@@ -265,6 +272,20 @@ class Pedido(models.Model):
             return Decimal('0')
         
         return self.total_importe - self.total_cobrado
+
+    @property
+    def diferencia_peso_tn(self):
+        """Calcula la diferencia entre el peso estimado (del pedido) y el real"""
+        if self.peso_real_tn is None:
+            return Decimal('0')
+        return self.peso_real_tn - self.total_kg
+
+    @property
+    def importe_ajuste(self):
+        """Calcula el dinero a favor o en contra basado en el precio de compra"""
+        if self.peso_real_tn is None:
+            return Decimal('0')
+        return self.diferencia_peso_tn * self.precio_compra_tn
 
 
     
