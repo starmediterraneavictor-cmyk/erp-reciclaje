@@ -27,7 +27,7 @@ def lista_pedidos(request):
     pedidos = Pedido.objects.all().order_by('-fecha')
 
     # --- Filtros ---
-    tipo = request.GET.get('tipo', '')          # pestaña activa
+    tipo = request.GET.get('tipo', '')
     estado = request.GET.get('estado', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
@@ -42,7 +42,6 @@ def lista_pedidos(request):
     if hasta:
         pedidos = pedidos.filter(fecha__date__lte=hasta)
 
-    # 🔍 Búsqueda libre: nº pedido, cliente o proveedor
     if buscar:
         pedidos = pedidos.filter(
             Q(numero_pedido__icontains=buscar) |
@@ -50,8 +49,7 @@ def lista_pedidos(request):
             Q(proveedor__nombre__icontains=buscar)
         )
 
-    # --- Contadores para las pestañas (sin filtros de tipo, pero con el resto) ---
-    # Para que los badges reflejen los filtros actuales (estado, fechas, búsqueda)
+    # Contadores
     base_para_contadores = Pedido.objects.all()
     if estado:
         base_para_contadores = base_para_contadores.filter(estado=estado)
@@ -73,7 +71,7 @@ def lista_pedidos(request):
         'TODOS': base_para_contadores.count(),
     }
 
-    # --- Conceptos de cuentas pagadas y pendientes ---
+    # Conceptos de cuentas
     conceptos_pagados = set(
         CuentaPorPagar.objects.filter(estado='PAGADO').values_list('concepto', flat=True)
     )
@@ -85,6 +83,13 @@ def lista_pedidos(request):
         concepto = f"Pedido {p.numero_pedido}"
         p.tiene_cuenta_pagada = concepto in conceptos_pagados
         p.tiene_cuenta_pendiente = concepto in conceptos_pendientes
+        
+        # 🆕 Saber a qué pedido de venta está asociado (si es compra)
+        if p.tipo == 'COMPRA_MAT':
+            venta_asociada = p.ventas_asociadas.first()
+            p.venta_asociada = venta_asociada.pedido_venta if venta_asociada else None
+        else:
+            p.venta_asociada = None
 
     total_pedidos = pedidos.count()
     total_importe = sum((p.total_importe for p in pedidos), Decimal('0'))
@@ -254,7 +259,13 @@ def editar_pedido(request, pedido_id):
     """Formulario para editar un pedido existente (cabecera + detalles + inventario)"""
     pedido = get_object_or_404(Pedido, id=pedido_id)
 
+    # 🆕 Capturamos la URL de origen para volver a ella después de guardar
+    url_retorno = request.GET.get('return_url', '')
+    
     if request.method == 'POST':
+        # 🆕 Recuperamos la url_retorno del POST
+        url_retorno = request.POST.get('return_url', '')
+
         # Comprobar si hay cobros registrados
         if pedido.tiene_cobros:
             materiales_nuevos = request.POST.getlist('material[]')
@@ -271,22 +282,17 @@ def editar_pedido(request, pedido_id):
                         pass
             
             if detalles_actuales != detalles_nuevos:
-                messages.error(
-                    request,
-                    '❌ Este pedido ya tiene cobros registrados. '
-                    'Para modificar los materiales o precios, primero anula la factura '
-                    'desde /finanzas/ y luego vuelve a editar.'
-                )
+                messages.error(request, '❌ Este pedido ya tiene cobros registrados. Para modificar los materiales o precios, primero anula la factura desde /finanzas/ y luego vuelve a editar.')
                 return redirect('detalle_pedido', pedido_id=pedido.id)
-            
+
         try:
             with transaction.atomic():
                 tipo = request.POST.get('tipo')
                 estado_nuevo = request.POST.get('estado')
                 estado_antiguo = pedido.estado
                 tipo_antiguo = pedido.tipo
-                
-                # 1. Revertir inventario de detalles antiguos SOLO si el estado antiguo NO era PREVISIÓN
+
+                # 1. Revertir inventario
                 if estado_antiguo != 'PREVISION':
                     for detalle_antiguo in pedido.detalles.all():
                         inventario, _ = Inventario.objects.get_or_create(material=detalle_antiguo.material)
@@ -345,50 +351,33 @@ def editar_pedido(request, pedido_id):
 
                         if pedido.tipo == 'VENTA_MAT':
                             if inventario.cantidad < cantidad:
-                                raise ValueError(
-                                    f"Stock insuficiente de {detalle.material.nombre}. "
-                                    f"Disponible: {inventario.cantidad}, solicitado: {cantidad}"
-                                )
+                                raise ValueError(f"Stock insuficiente de {detalle.material.nombre}. Disponible: {inventario.cantidad}, solicitado: {cantidad}")
                             inventario.cantidad -= cantidad
                         else:
                             inventario.cantidad += cantidad
 
                         inventario.save()
 
-                # 5. Gestionar el seguimiento internacional
+                # 5. Seguimiento internacional
                 if pedido.es_internacional and not hasattr(pedido, 'internacional'):
-                    PedidoInternacional.objects.create(
-                        pedido=pedido,
-                        incoterm=pedido.incoterm or 'CIF',
-                        estado='ABIERTO',
-                        valor_total=pedido.total_importe,
-                        peso_total_kg=pedido.total_kg,
-                    )
+                    PedidoInternacional.objects.create(pedido=pedido, incoterm=pedido.incoterm or 'CIF', estado='ABIERTO', valor_total=pedido.total_importe, peso_total_kg=pedido.total_kg)
                 elif not pedido.es_internacional and hasattr(pedido, 'internacional'):
                     try:
                         pedido.internacional.delete()
                     except PedidoInternacional.DoesNotExist:
                         pass
 
-                # 6. Guardar los orígenes de venta (solo los que NO estén marcados para borrar)
+                # 6. Guardar los orígenes de venta
                 if pedido.tipo == 'VENTA_MAT':
                     from .models import OrigenVenta
-                    
-                    # Orígenes actuales del pedido
-                    origenes_actuales = {
-                        o.id: o for o in pedido.origenes_venta.all()
-                    }
-                    
-                    # IDs de los orígenes que se van a conservar (llegan como hidden input)
+                    origenes_actuales = {o.id: o for o in pedido.origenes_venta.all()}
                     ids_conservar = request.POST.getlist('origen_id_existente')
                     ids_conservar = [int(i) for i in ids_conservar if i]
 
-                    # Borrar los que ya no están
                     for origen_id, origen in origenes_actuales.items():
                         if origen_id not in ids_conservar:
                             origen.delete()
                     
-                    # Actualizar la cantidad de los conservados
                     for origen_id in ids_conservar:
                         if origen_id in origenes_actuales:
                             cantidad_str = request.POST.get(f'origen_cantidad_existente_{origen_id}')
@@ -399,7 +388,6 @@ def editar_pedido(request, pedido_id):
                                 except (InvalidOperation, ValueError, TypeError):
                                     pass
                     
-                    # Crear nuevos orígenes (de los selectores "+ Añadir origen")
                     origenes_pedidos = request.POST.getlist('origen_pedido_nuevo')
                     origenes_cantidades = request.POST.getlist('origen_cantidad_nuevo')
                     
@@ -407,15 +395,11 @@ def editar_pedido(request, pedido_id):
                         if pedido_compra_id and i < len(origenes_cantidades) and origenes_cantidades[i]:
                             try:
                                 cantidad = Decimal(origenes_cantidades[i])
-                                OrigenVenta.objects.create(
-                                    pedido_venta=pedido,
-                                    pedido_compra_id=pedido_compra_id,
-                                    cantidad_tn=cantidad,
-                                )
+                                OrigenVenta.objects.create(pedido_venta=pedido, pedido_compra_id=pedido_compra_id, cantidad_tn=cantidad)
                             except (InvalidOperation, ValueError, TypeError):
                                 pass
 
-                # 7. Sincronizar la factura asociada (si existe)
+                # 7. Sincronizar la factura
                 factura_asociada = pedido.facturas.first()
                 if factura_asociada:
                     factura_asociada.base = pedido.total_importe
@@ -428,24 +412,48 @@ def editar_pedido(request, pedido_id):
                         factura_asociada.total = pedido.total_importe + factura_asociada.iva
                     factura_asociada.save()
 
-                    CuentaPorCobrar.objects.filter(numero_factura=factura_asociada.numero_factura).update(
-                        importe_total=factura_asociada.total
-                    )
-                    CuentaPorPagar.objects.filter(numero_factura=factura_asociada.numero_factura).update(
-                        importe_total=factura_asociada.total
-                    )
+                    CuentaPorCobrar.objects.filter(numero_factura=factura_asociada.numero_factura).update(importe_total=factura_asociada.total)
+                    CuentaPorPagar.objects.filter(numero_factura=factura_asociada.numero_factura).update(importe_total=factura_asociada.total)
 
-                # 8. Sincronizar el seguimiento internacional
+                # 8. Sincronizar seguimiento internacional
                 if pedido.es_internacional and hasattr(pedido, 'internacional'):
                     pedido.internacional.valor_total = pedido.total_importe
                     pedido.internacional.peso_total_kg = pedido.total_kg
                     pedido.internacional.save()
 
                 messages.success(request, f'✅ Pedido {pedido.numero_pedido} actualizado')
+                
+                # 🆕 Redirigir a la URL de retorno si existe, si no a la lista
+                if url_retorno:
+                    return redirect(f"/pedidos/?{url_retorno}")
                 return redirect('lista_pedidos')
 
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
+
+    # Pedidos de compra LIBRES
+    pedidos_disponibles = Pedido.objects.filter(
+        tipo='COMPRA_MAT',
+        ventas_asociadas__isnull=True
+    ).exclude(id=pedido.id).order_by('-fecha')
+    
+    context = {
+        'pedido': pedido,
+        'clientes': Cliente.objects.filter(estado='ACTIVO').order_by('nombre'),
+        'proveedores': Proveedor.objects.filter(estado='ACTIVO', tipo='MATERIAL').order_by('nombre'),
+        'materiales': Material.objects.all().order_by('nombre'),
+        'tipos': Pedido.TIPO_OPERACION,
+        'estados': Pedido.ESTADO_PEDIDO,
+        'incoterms': Pedido.INCOTERM_CHOICES,
+        'pedidos_compra': pedidos_disponibles,
+        'url_retorno': url_retorno, # 🆕 Pasamos la URL
+    }
+    return render(request, 'pedidos/editar_pedido.html', context)
+
+
+
+
+
 
     # ============================================
     # GET: cargar datos para el formulario

@@ -71,6 +71,17 @@
                     <i class="bi bi-arrow-counterclockwise"></i>
                 </a>
             </div>
+            <div class="col-md-3">
+                <label class="form-label small">Ordenar por</label>
+                <select name="orden" class="form-select form-select-sm">
+                    <option value="-fecha_vencimiento" {% if orden_filtro == '-fecha_vencimiento' %}selected{% endif %}>Vencimiento (más reciente)</option>
+                    <option value="fecha_vencimiento" {% if orden_filtro == 'fecha_vencimiento' %}selected{% endif %}>Vencimiento (más antiguo)</option>
+                    <option value="-fecha_emision" {% if orden_filtro == '-fecha_emision' %}selected{% endif %}>Emisión (más reciente)</option>
+                    <option value="fecha_emision" {% if orden_filtro == 'fecha_emision' %}selected{% endif %}>Emisión (más antiguo)</option>
+                    <option value="-importe_total" {% if orden_filtro == '-importe_total' %}selected{% endif %}>Importe total (mayor a menor)</option>
+                    <option value="importe_total" {% if orden_filtro == 'importe_total' %}selected{% endif %}>Importe total (menor a mayor)</option>
+                </select>
+            </div>
         </form>
     </div>
 </div>

@@ -13,7 +13,7 @@
 
 <form method="POST" id="formPedido">
     {% csrf_token %}
-    
+    <input type="hidden" name="return_url" value="{{ url_retorno }}"> <!-- 🆕 -->
     <!-- Datos del pedido -->
     <div class="card card-custom mb-4">
         <div class="card-body">

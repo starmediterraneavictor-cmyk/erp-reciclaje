@@ -16,7 +16,7 @@
     </div>
 </div>
 
-<!-- 🗂️ PESTAÑAS -->
+<!-- Pestañas -->
 <ul class="nav nav-tabs mb-4">
     <li class="nav-item">
         <a class="nav-link {% if tipo_filtro == 'COMPRA_MAT' %}active{% endif %}" 
@@ -44,18 +44,14 @@
     </li>
 </ul>
 
-<!-- 🔍 FILTROS -->
+<!-- Filtros -->
 <div class="card card-custom mb-4">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
-            <!-- Mantener el tipo activo al filtrar -->
             <input type="hidden" name="tipo" value="{{ tipo_filtro }}">
-
             <div class="col-md-4">
                 <label class="form-label small mb-1">🔎 Buscar</label>
-                <input type="text" name="buscar" class="form-control form-control-sm"
-                       placeholder="Nº pedido, cliente, proveedor..."
-                       value="{{ buscar_filtro }}">
+                <input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nº pedido, cliente, proveedor..." value="{{ buscar_filtro }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label small mb-1">Estado</label>
@@ -75,19 +71,14 @@
                 <input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta_filtro }}">
             </div>
             <div class="col-md-2 d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-funnel"></i> Filtrar
-                </button>
-                <a href="{% url 'lista_pedidos' %}{% if tipo_filtro %}?tipo={{ tipo_filtro }}{% endif %}" 
-                   class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-x-circle"></i> Limpiar
-                </a>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel"></i> Filtrar</button>
+                <a href="{% url 'lista_pedidos' %}{% if tipo_filtro %}?tipo={{ tipo_filtro }}{% endif %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle"></i> Limpiar</a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- 📋 TABLA DE PEDIDOS -->
+<!-- Tabla -->
 <div class="card card-custom">
     <div class="card-body">
         <table class="table table-hover">
@@ -99,6 +90,7 @@
                     <th>Ámbito</th>
                     <th>Fecha</th>
                     <th>Estado</th>
+                    <th class="text-end">Cant. (tn)</th> <!-- 🆕 -->
                     <th class="text-end">€/TN</th>
                     <th class="text-end">Beneficio €/TN</th>
                     <th class="text-end">Total</th>
@@ -109,92 +101,62 @@
                 {% for p in pedidos %}
                 <tr {% if p.estado == 'PREVISION' %}class="table-light"{% endif %}>
                     <td>
-                        <a href="{% url 'detalle_pedido' p.id %}">
-                            <strong>{{ p.numero_pedido }}</strong>
-                        </a>
+                        <a href="{% url 'detalle_pedido' p.id %}"><strong>{{ p.numero_pedido }}</strong></a>
+                        
+                        <!-- 🆕 Factura -->
                         {% if p.factura_activa %}
-                            <br>
-                            <small class="text-muted">
-                                📄 <a href="{% url 'editar_factura' p.factura_activa.id %}">{{ p.factura_activa.numero_factura }}</a>
-                            </small>
+                            <br><a href="{% url 'editar_factura' p.factura_activa.id %}" class="badge bg-success text-decoration-none" title="Ver factura">💰 {{ p.factura_activa.numero_factura }}</a>
                         {% endif %}
-                    
+
+                        <!-- 🆕 Venta asociada -->
+                        {% if p.venta_asociada %}
+                            <br><a href="{% url 'detalle_pedido' p.venta_asociada.id %}" class="badge bg-info text-dark text-decoration-none" title="Asociado a venta">🔗 {{ p.venta_asociada.numero_pedido }}</a>
+                        {% endif %}
                     </td>
                     <td>{{ p.entidad_nombre }}</td>
                     <td>{{ p.get_tipo_display }}</td>
                     <td>
-                        {% if p.es_internacional %}
-                        <span class="badge bg-primary">🌍 Int</span>
-                        {% else %}
-                        <span class="badge bg-secondary">🇪🇸 Nac</span>
-                        {% endif %}
+                        {% if p.es_internacional %}<span class="badge bg-primary">🌍 Int</span>{% else %}<span class="badge bg-secondary">🇪🇸 Nac</span>{% endif %}
                     </td>
                     <td>{{ p.fecha|date:"d/m/Y" }}</td>
                     <td>
-                        {% if p.estado == 'PREVISION' %}
-                        <span class="badge bg-warning text-dark">⏸️ Previsión</span>
-                        {% elif p.estado == 'COMPLETADO' %}
-                        <span class="badge bg-success">✅ Completado</span>
-                        {% elif p.estado == 'PENDIENTE' %}
-                        <span class="badge bg-info">⏳ Pendiente</span>
-                        {% elif p.estado == 'PROCESANDO' %}
-                        <span class="badge bg-primary">🔄 Procesando</span>
-                        {% elif p.estado == 'CANCELADO' %}
-                        <span class="badge bg-danger">❌ Cancelado</span>
-                        {% else %}
-                        <span class="badge bg-secondary">{{ p.get_estado_display }}</span>
-                        {% endif %}
+                        {% if p.estado == 'PREVISION' %}<span class="badge bg-warning text-dark">⏸️ Previsión</span>
+                        {% elif p.estado == 'COMPLETADO' %}<span class="badge bg-success">✅ Completado</span>
+                        {% elif p.estado == 'PENDIENTE' %}<span class="badge bg-info">⏳ Pendiente</span>
+                        {% elif p.estado == 'PROCESANDO' %}<span class="badge bg-primary">🔄 Procesando</span>
+                        {% elif p.estado == 'CANCELADO' %}<span class="badge bg-danger">❌ Cancelado</span>
+                        {% else %}<span class="badge bg-secondary">{{ p.get_estado_display }}</span>{% endif %}
                     </td>
+                    <!-- 🆕 CANTIDAD TN -->
+                    <td class="text-end"><strong>{{ p.total_kg|formato_es }}</strong></td>
                     <td class="text-end">
-                        {% if p.tipo == 'VENTA_MAT' %}
-                            <strong>{{ p.precio_venta_tn|formato_es }} €</strong>
-                        {% else %}
-                            <strong>{{ p.precio_compra_tn|formato_es }} €</strong>
-                        {% endif %}
+                        {% if p.tipo == 'VENTA_MAT' %}<strong>{{ p.precio_venta_tn|formato_es }} €</strong>
+                        {% else %}<strong>{{ p.precio_compra_tn|formato_es }} €</strong>{% endif %}
                     </td>
                     <td class="text-end">
                         {% if p.origenes_venta.exists %}
                             <span class="badge {% if p.beneficio_tn >= 0 %}bg-success{% else %}bg-danger{% endif %}">
                                 {% if p.beneficio_tn >= 0 %}+{% endif %}{{ p.beneficio_tn|formato_es }} €
                             </span>
-                        {% else %}
-                            <span class="text-muted">—</span>
-                        {% endif %}
+                        {% else %}<span class="text-muted">—</span>{% endif %}
                     </td>
                     <td class="text-end">
                         <strong>{{ p.total_importe|formato_es }} €</strong>
-                        {% if p.tiene_factura_activa %}
-                            <br><span class="badge bg-success" title="Factura emitida">💰 Facturado</span>
-                        {% else %}
-                            <br><span class="badge bg-secondary" title="Sin factura activa">⏳ Sin factura</span>
-                        {% endif %}
+                        {% if p.tiene_factura_activa %}<br><span class="badge bg-success" title="Factura emitida">💰 Facturado</span>
+                        {% else %}<br><span class="badge bg-secondary" title="Sin factura activa">⏳ Sin factura</span>{% endif %}
                     </td>
                     <td class="text-center">
-                        <a href="{% url 'detalle_pedido' p.id %}" class="btn btn-outline-secondary btn-sm" title="Ver detalle">
-                            <i class="bi bi-eye"></i>
-                        </a>
+                        <a href="{% url 'detalle_pedido' p.id %}" class="btn btn-outline-secondary btn-sm" title="Ver detalle"><i class="bi bi-eye"></i></a>
                         {% if p.es_internacional and p.internacional %}
-                        <a href="{% url 'detalle_pedido_internacional' p.internacional.id %}" class="btn btn-info btn-sm" title="Ver seguimiento internacional">
-                            <i class="bi bi-globe"></i> 🌍
-                        </a>
+                        <a href="{% url 'detalle_pedido_internacional' p.internacional.id %}" class="btn btn-info btn-sm" title="Seguimiento"><i class="bi bi-globe"></i></a>
                         {% endif %}
-                        <a href="{% url 'editar_pedido' p.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        <a href="{% url 'confirmar_eliminar_pedido' p.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
-                            <i class="bi bi-trash"></i>
-                        </a>
+                        <!-- 🆕 Editar pasando la url_retorno -->
+                        <a href="{% url 'editar_pedido' p.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-outline-primary btn-sm" title="Editar"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'confirmar_eliminar_pedido' p.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar"><i class="bi bi-trash"></i></a>
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="10" class="text-center py-4">
-                        <p class="text-muted">No hay pedidos con los filtros seleccionados</p>
-                        <a href="{% url 'lista_pedidos' %}" class="btn btn-outline-secondary btn-sm">
-                            <i class="bi bi-x-circle"></i> Limpiar filtros
-                        </a>
-                    </td>
-                </tr>
+                <tr><td colspan="11" class="text-center py-4 text-muted">No hay pedidos con los filtros seleccionados</td></tr>
                 {% endfor %}
             </tbody>
         </table>

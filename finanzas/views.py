@@ -266,10 +266,12 @@ def factura_pdf(request, factura_id):
 @login_required
 def cuentas_por_pagar(request):
     """Lista de cuentas por pagar (deudas)"""
-    cuentas = CuentaPorPagar.objects.exclude(estado='ANULADO').order_by('fecha_vencimiento')
-
+    # 🆕 Ordenación
+    orden = request.GET.get('orden', '-fecha_vencimiento') # por defecto: más reciente a más antiguo
     categoria = request.GET.get('categoria', '')
     estado = request.GET.get('estado', '')
+
+    cuentas = CuentaPorPagar.objects.exclude(estado='ANULADO').order_by(orden)
 
     if categoria:
         cuentas = cuentas.filter(categoria=categoria)
@@ -292,9 +294,9 @@ def cuentas_por_pagar(request):
         'estados': CuentaPorPagar.ESTADO_CHOICES,
         'categoria_filtro': categoria,
         'estado_filtro': estado,
+        'orden_filtro': orden, # 🆕
     }
     return render(request, 'finanzas/cuentas_por_pagar.html', context)
-
 
 @login_required
 def nueva_cuenta_por_pagar(request):
