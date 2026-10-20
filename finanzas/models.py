@@ -298,7 +298,20 @@ class CuentaPorCobrar(models.Model):
     ]
     
     concepto = models.CharField(max_length=200)
-    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='cuentas_cobrar')
+
+    # 🆕 MODIFICADO: Cliente opcional (para que podamos usar proveedor)
+    cliente = models.ForeignKey(
+        Cliente, on_delete=models.PROTECT, 
+        null=True, blank=True, 
+        related_name='cuentas_cobrar'
+    )
+
+    # 🆕 AÑADIDO: Campo proveedor para ajustes
+    proveedor = models.ForeignKey(
+        Proveedor, on_delete=models.PROTECT, 
+        null=True, blank=True, 
+        related_name='cuentas_cobrar'
+    )
     
     importe_total = models.DecimalField(max_digits=12, decimal_places=2)
     importe_cobrado = models.DecimalField(max_digits=12, decimal_places=2, default=0)

@@ -297,7 +297,7 @@
                 {% if pedido.importe_ajuste != 0 %}
                     {% if pedido.importe_ajuste < 0 %}
                         <div class="alert alert-success py-2 mt-2">
-                            <small>Nos deben <strong>{{ pedido.importe_ajuste|formato_es }} €</strong> (Peso Real menor)</small>
+                            <small>Nos deben <strong>{{ pedido.importe_ajuste|stringformat:"f"|slice:"1:"|formato_es }} €</strong> (Peso Real menor)</small>
                         </div>
                     {% else %}
                         <div class="alert alert-danger py-2 mt-2">
