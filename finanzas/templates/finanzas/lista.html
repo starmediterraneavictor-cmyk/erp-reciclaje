@@ -8,7 +8,7 @@
     <h2>💰 Facturas</h2>
     <div class="d-flex gap-2">
         <!-- 🔘 Botón para ver/ocultar anuladas -->
-        <a href="?ver_anuladas={% if ver_anuladas %}0{% else %}1{% endif %}" 
+        <a href="?ver_anuladas={% if ver_anuladas %}0{% else %}1{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}" 
            class="btn btn-outline-secondary">
             {% if ver_anuladas %}
                 <i class="bi bi-eye-slash"></i> Ocultar anuladas
@@ -25,6 +25,7 @@
     </div>
 </div>
 
+<!-- KPIs -->
 <div class="row mb-4">
     <div class="col-md-4">
         <div class="card card-custom">
@@ -52,6 +53,59 @@
     </div>
 </div>
 
+<!-- 🆕 PESTAÑAS DE FILTRO -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if not tipo_filtro %}active{% endif %}" 
+           href="?{% if ver_anuladas %}ver_anuladas=1&{% endif %}{% if buscar_filtro %}buscar={{ buscar_filtro }}{% endif %}">
+            📋 Todas
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tipo_filtro == 'INGRESO' %}active{% endif %}" 
+           href="?tipo=INGRESO{% if ver_anuladas %}&ver_anuladas=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}">
+            📥 Ingresos
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tipo_filtro == 'GASTO' %}active{% endif %}" 
+           href="?tipo=GASTO{% if ver_anuladas %}&ver_anuladas=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}">
+            📤 Gastos
+        </a>
+    </li>
+</ul>
+
+<!-- 🆕 BARRA DE BÚSQUEDA -->
+<div class="card card-custom mb-4">
+    <div class="card-body py-3">
+        <form method="GET" class="row g-2 align-items-center">
+            <!-- Mantener el filtro de tipo y anuladas al buscar -->
+            <input type="hidden" name="tipo" value="{{ tipo_filtro }}">
+            {% if ver_anuladas %}
+            <input type="hidden" name="ver_anuladas" value="1">
+            {% endif %}
+
+            <div class="col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="buscar" class="form-control" 
+                           placeholder="Buscar por Nº Factura, Nº Albarán, Cliente o Proveedor..." 
+                           value="{{ buscar_filtro }}">
+                </div>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+                {% if buscar_filtro or tipo_filtro %}
+                <a href="{% url 'lista_facturas' %}{% if ver_anuladas %}?ver_anuladas=1{% endif %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Limpiar
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TABLA -->
 <div class="card card-custom">
     <div class="card-body">
         <table class="table table-hover">
@@ -69,7 +123,12 @@
             <tbody>
                 {% for f in facturas %}
                 <tr {% if f.estado_pago == 'ANULADO' %}class="table-secondary text-muted"{% endif %}>
-                    <td><strong>{{ f.numero_factura }}</strong></td>
+                    <td>
+                        <strong>{{ f.numero_factura }}</strong>
+                        {% if f.numero_albaran %}
+                            <br><small class="text-muted">Alb: {{ f.numero_albaran }}</small>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if f.tipo == 'INGRESO' %}
                         <span class="badge bg-success">Ingreso</span>
@@ -132,6 +191,13 @@
                             </button>
                         </form>
                         {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                        <h5>No se encontraron facturas</h5>
+                        <p class="mb-0">Prueba con otros términos de búsqueda o limpia los filtros.</p>
                     </td>
                 </tr>
                 {% endfor %}

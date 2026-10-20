@@ -74,12 +74,32 @@ def lista_facturas(request):
     # Ver anuladas: por defecto NO
     ver_anuladas = request.GET.get('ver_anuladas', '') == '1'
     
+    # 🆕 Filtro por tipo (Ingreso / Gasto)
+    tipo_filtro = request.GET.get('tipo', '')
+    
+    # 🆕 Filtro de búsqueda libre
+    buscar = request.GET.get('buscar', '').strip()
+
     if ver_anuladas:
         facturas = Factura.objects.all().order_by('-fecha')
     else:
         facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
+        
+    if tipo_filtro:
+        facturas = facturas.filter(tipo=tipo_filtro)
+        
+    # 🆕 Búsqueda por nº factura, nº albarán, cliente o proveedor
+    if buscar:
+        facturas = facturas.filter(
+            Q(numero_factura__icontains=buscar) |
+            Q(numero_albaran__icontains=buscar) |
+            Q(cliente__nombre__icontains=buscar) |
+            Q(proveedor__nombre__icontains=buscar)
+        )
 
-    totales = facturas.aggregate(
+    # Para los totales (KPI), calculamos sobre TODAS las facturas (ignorando el filtro de tipo y búsqueda)
+    facturas_base = Factura.objects.exclude(estado_pago='ANULADO')
+    totales = facturas_base.aggregate(
         ingresos=Sum('total', filter=Q(tipo='INGRESO')),
         gastos=Sum('total', filter=Q(tipo='GASTO')),
     )
@@ -93,6 +113,8 @@ def lista_facturas(request):
         'total_gastos': total_gastos,
         'beneficio': beneficio,
         'ver_anuladas': ver_anuladas,
+        'tipo_filtro': tipo_filtro,
+        'buscar_filtro': buscar, # 🆕
     }
     return render(request, 'finanzas/lista.html', context)
 
