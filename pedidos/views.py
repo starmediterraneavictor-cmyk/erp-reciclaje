@@ -878,14 +878,15 @@ def generar_ajuste_peso(request, pedido_id):
                     # El proveedor nos debe dinero (pesó menos de lo facturado)
                     cuenta = CuentaPorCobrar.objects.create(
                         concepto=f"Ajuste peso Pedido {pedido.numero_pedido}",
-                        proveedor=pedido.proveedor,
-                        cliente_id=pedido.proveedor_id, # Al ser proveedor, lo metemos como 'cliente' que nos debe
+                        proveedor=pedido.proveedor, # 🆕 Usamos el campo proveedor
                         importe_total=importe_absoluto,
                         fecha_emision=hoy,
                         fecha_vencimiento=hoy + timedelta(days=30),
                         notas=f"Diferencia de {abs(pedido.diferencia_peso_tn)} tn a favor.",
                     )
-                    messages.success(request, f'✅ Creada Cuenta por Cobrar por {importe_absoluto} € al proveedor.')
+                    # Formateo para que salga con coma
+                    msg_importe = f"{importe_absoluto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    messages.success(request, f'✅ Creada Cuenta por Cobrar por {msg_importe} € al proveedor.')
                 
                 else:
                     # Nosotros le debemos al proveedor (pesó más de lo facturado)
@@ -898,7 +899,8 @@ def generar_ajuste_peso(request, pedido_id):
                         fecha_vencimiento=hoy + timedelta(days=30),
                         notas=f"Diferencia de {pedido.diferencia_peso_tn} tn a pagar.",
                     )
-                    messages.success(request, f'✅ Creada Cuenta por Pagar por {importe_absoluto} €.')
+                    msg_importe = f"{importe_absoluto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    messages.success(request, f'✅ Creada Cuenta por Pagar por {msg_importe} €.')
                 
                 return redirect('detalle_pedido', pedido_id=pedido.id)
 
