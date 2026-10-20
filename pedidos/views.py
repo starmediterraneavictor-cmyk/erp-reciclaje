@@ -878,6 +878,7 @@ def generar_ajuste_peso(request, pedido_id):
                     # El proveedor nos debe dinero (pesó menos de lo facturado)
                     cuenta = CuentaPorCobrar.objects.create(
                         concepto=f"Ajuste peso Pedido {pedido.numero_pedido}",
+                        proveedor=pedido.proveedor,
                         cliente_id=pedido.proveedor_id, # Al ser proveedor, lo metemos como 'cliente' que nos debe
                         importe_total=importe_absoluto,
                         fecha_emision=hoy,

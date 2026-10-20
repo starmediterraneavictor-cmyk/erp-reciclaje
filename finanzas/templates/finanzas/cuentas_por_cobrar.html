@@ -60,7 +60,15 @@
                 {% for c in cuentas %}
                 <tr {% if c.estado != 'COBRADO' and c.alerta %}class="table-warning"{% endif %}>
                     <td><strong>{{ c.concepto }}</strong></td>
-                    <td>{{ c.cliente.nombre }}</td>
+                    <td>
+                        {% if c.cliente %}
+                            {{ c.cliente.nombre }}
+                        {% elif c.proveedor %}
+                            <span class="badge bg-warning text-dark">Proveedor:</span> {{ c.proveedor.nombre }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
                     <td>{{ c.importe_total|formato_es }} €</td>
                     <td><strong>{{ c.saldo_pendiente|formato_es }} €</strong></td>
                     <td>
