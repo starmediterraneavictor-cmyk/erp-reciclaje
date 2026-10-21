@@ -175,7 +175,7 @@ class CuentaPorPagar(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"{self.concepto} - {self.importe_total}€ ({self.get_estado_display()})"
+        return f"{self.numero_factura} - {self.entidad_nombre} ({self.total}€)"
     
     @property
     def saldo_pendiente(self):
@@ -327,7 +327,8 @@ class CuentaPorCobrar(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"{self.concepto} - {self.cliente.nombre} - {self.importe_total}€"
+        entidad = self.cliente.nombre if self.cliente else (self.proveedor.nombre if self.proveedor else '—')
+        return f"{self.concepto} - {entidad} - {self.importe_total}€"
     
     @property
     def saldo_pendiente(self):
