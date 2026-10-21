@@ -326,14 +326,28 @@ def dashboard_analisis(request):
             importe_venta += tn * precio_venta
             transporte_venta += Decimal(str(d.transporte))
 
-            # Si la venta tiene orígenes → calcular beneficio real
+            # Si la venta tiene orígenes → calcular beneficio real (restando transporte)
             if d.pedido.origenes_venta.exists():
                 for origen in d.pedido.origenes_venta.all():
                     if origen.pedido_compra.total_kg > 0:
+                        # 1. Precio de compra del origen
                         precio_compra_origen = origen.pedido_compra.total_importe / origen.pedido_compra.total_kg
+                        
+                        # 2. Transporte de la compra (prorrateado a los TN que nos llevamos)
+                        transporte_compra_tn = origen.pedido_compra.transporte_total / origen.pedido_compra.total_kg
+                        
+                        # 3. Transporte de la venta
+                        transporte_venta_tn = d.transporte / tn if tn > 0 else Decimal('0')
+                        
+                        # 4. Proporción de TN que corresponden a este origen
                         proporcion = Decimal(str(origen.cantidad_tn)) / d.pedido.total_kg
                         tn_origen = tn * proporcion
-                        beneficio_linea = (precio_venta - precio_compra_origen) * tn_origen
+                        
+                        # 5. BENEFICIO REAL (Venta - Compra - Transporte Compra - Transporte Venta)
+                        beneficio_tn_real = precio_venta - precio_compra_origen - transporte_compra_tn - transporte_venta_tn
+                        
+                        beneficio_linea = beneficio_tn_real * tn_origen
+                        
                         beneficio_total += beneficio_linea
                         tn_con_beneficio += tn_origen
 
