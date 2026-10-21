@@ -276,11 +276,23 @@ class Pedido(models.Model):
         return self.total_importe - self.total_cobrado
 
     @property
+    def peso_original_notas(self):
+        """Extrae el peso original de las notas de auditoría, si existe"""
+        import re
+        if self.notas:
+            match = re.search(r'Peso original:\s*([\d\.]+)', self.notas)
+            if match:
+                return Decimal(match.group(1))
+        return self.total_kg # Si no encuentra nada, devuelve el peso actual
+    
+    
+    
+    @property
     def diferencia_peso_tn(self):
-        """Calcula la diferencia entre el peso estimado (del pedido) y el real"""
+        """Calcula la diferencia entre el peso original y el real"""
         if self.peso_real_tn is None:
             return Decimal('0')
-        return self.peso_real_tn - self.total_kg
+        return self.peso_real_tn - self.peso_original_notas
 
     @property
     def importe_ajuste(self):

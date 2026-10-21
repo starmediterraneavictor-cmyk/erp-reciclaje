@@ -282,7 +282,8 @@
         <hr>
         <div class="row">
             <div class="col-md-6">
-                <p class="mb-1"><strong>Peso Estimado:</strong> {{ pedido.total_kg|formato_es }} tn</p>
+                <!-- 🆕 Mostramos el peso original de las notas -->
+                <p class="mb-1"><strong>Peso Original (Previsión):</strong> {{ pedido.peso_original_notas|formato_es }} tn</p>
                 <p class="mb-1"><strong>Peso Real:</strong> {{ pedido.peso_real_tn|formato_es }} tn</p>
                 <p class="mb-1">
                     <strong>Diferencia:</strong> 

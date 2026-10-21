@@ -875,29 +875,28 @@ def generar_ajuste_peso(request, pedido_id):
                     messages.success(request, f'✅ Creada Cuenta por Pagar por {importe_absoluto} €.')
 
                 # 2. ACTUALIZAR LAS TONELADAS DEL PEDIDO
-                # Para no complicar la lógica si hay varios materiales, ajustamos en la primera línea.
-                # Lo normal en compras es que haya un solo material por camión.
                 if pedido.detalles.exists():
                     diferencia_tn = pedido.diferencia_peso_tn
                     
                     if diferencia_tn != 0:
                         detalle = pedido.detalles.first()
                         
+                        # Guardamos el peso original en las notas para no perder la referencia
+                        peso_original = pedido.total_kg
+                        nota_auditoria = f"[Auditoría {hoy.strftime('%d/%m/%Y')}] Peso original: {peso_original} tn. Peso real: {pedido.peso_real_tn} tn."
+                        pedido.notas = f"{pedido.notas}\n{nota_auditoria}".strip()
+                        
                         # Si el pedido ya afectó al inventario, ajustamos el stock
                         if pedido.estado != 'PREVISION':
                             inventario, _ = Inventario.objects.get_or_create(material=detalle.material)
-                            # Si la diferencia es negativa (pesó menos), restamos del stock
                             inventario.cantidad += diferencia_tn 
                             inventario.save()
                         
-                        # Modificamos la línea del pedido
+                        # Modificamos la línea del pedido al peso real
                         detalle.cantidad = pedido.peso_real_tn
                         detalle.save()
                         
-                        # Añadimos una nota de auditoría
-                        pedido.notas = f"{pedido.notas}\n[Auditoría {hoy.strftime('%d/%m/%Y')}] Peso original: {pedido.total_kg + abs(diferencia_tn) if diferencia_tn < 0 else pedido.total_kg - diferencia_tn} tn. Peso real: {pedido.peso_real_tn} tn."
                         pedido.save()
-                        
                         messages.success(request, f'✅ Pedido actualizado a {pedido.peso_real_tn} tn reales.')
 
                 return redirect('detalle_pedido', pedido_id=pedido.id)
