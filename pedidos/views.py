@@ -824,7 +824,7 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
 
 @login_required
 def generar_ajuste_peso(request, pedido_id):
-    """Genera una Cuenta por Cobrar o Pagar por diferencia de peso"""
+    """Genera una Cuenta por Cobrar/Pagar y actualiza el pedido con el peso real"""
     pedido = get_object_or_404(Pedido, id=pedido_id)
 
     if pedido.tipo not in ['COMPRA_MAT', 'MAQUILA']:
@@ -833,16 +833,6 @@ def generar_ajuste_peso(request, pedido_id):
 
     if pedido.peso_real_tn is None:
         messages.error(request, '❌ Primero debes indicar el peso real.')
-        return redirect('detalle_pedido', pedido_id=pedido.id)
-
-    # 🆕 VALIDACIÓN: Obligar a que exista la Cuenta por Pagar del pedido principal
-    from finanzas.models import CuentaPorPagar, CuentaPorCobrar
-    cuenta_pagar_existente = CuentaPorPagar.objects.filter(
-        concepto=f"Pedido {pedido.numero_pedido}"
-    ).first()
-
-    if not cuenta_pagar_existente:
-        messages.warning(request, '⚠️ Primero debes generar la Cuenta por Pagar de este pedido. Una vez generada, podrás apuntar el ajuste de peso.')
         return redirect('detalle_pedido', pedido_id=pedido.id)
 
     ajuste = pedido.importe_ajuste
@@ -855,26 +845,25 @@ def generar_ajuste_peso(request, pedido_id):
         try:
             with transaction.atomic():
                 from finanzas.models import CuentaPorCobrar, CuentaPorPagar
+                from inventario.models import Inventario
                 importe_absoluto = abs(ajuste)
                 hoy = datetime.now().date()
                 
+                # 1. CREAR LA CUENTA CONTABLE
                 if ajuste < 0:
                     # El proveedor nos debe dinero (pesó menos de lo facturado)
-                    cuenta = CuentaPorCobrar.objects.create(
+                    CuentaPorCobrar.objects.create(
                         concepto=f"Ajuste peso Pedido {pedido.numero_pedido}",
-                        proveedor=pedido.proveedor, # 🆕 Usamos el campo proveedor
+                        proveedor=pedido.proveedor,
                         importe_total=importe_absoluto,
                         fecha_emision=hoy,
                         fecha_vencimiento=hoy + timedelta(days=30),
                         notas=f"Diferencia de {abs(pedido.diferencia_peso_tn)} tn a favor.",
                     )
-                    # Formateo para que salga con coma
-                    msg_importe = f"{importe_absoluto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                    messages.success(request, f'✅ Creada Cuenta por Cobrar por {msg_importe} € al proveedor.')
-                
+                    messages.success(request, f'✅ Creada Cuenta por Cobrar por {importe_absoluto} € al proveedor.')
                 else:
                     # Nosotros le debemos al proveedor (pesó más de lo facturado)
-                    cuenta = CuentaPorPagar.objects.create(
+                    CuentaPorPagar.objects.create(
                         concepto=f"Ajuste peso Pedido {pedido.numero_pedido}",
                         categoria='PROVEEDOR',
                         proveedor=pedido.proveedor,
@@ -883,9 +872,34 @@ def generar_ajuste_peso(request, pedido_id):
                         fecha_vencimiento=hoy + timedelta(days=30),
                         notas=f"Diferencia de {pedido.diferencia_peso_tn} tn a pagar.",
                     )
-                    msg_importe = f"{importe_absoluto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                    messages.success(request, f'✅ Creada Cuenta por Pagar por {msg_importe} €.')
-                
+                    messages.success(request, f'✅ Creada Cuenta por Pagar por {importe_absoluto} €.')
+
+                # 2. ACTUALIZAR LAS TONELADAS DEL PEDIDO
+                # Para no complicar la lógica si hay varios materiales, ajustamos en la primera línea.
+                # Lo normal en compras es que haya un solo material por camión.
+                if pedido.detalles.exists():
+                    diferencia_tn = pedido.diferencia_peso_tn
+                    
+                    if diferencia_tn != 0:
+                        detalle = pedido.detalles.first()
+                        
+                        # Si el pedido ya afectó al inventario, ajustamos el stock
+                        if pedido.estado != 'PREVISION':
+                            inventario, _ = Inventario.objects.get_or_create(material=detalle.material)
+                            # Si la diferencia es negativa (pesó menos), restamos del stock
+                            inventario.cantidad += diferencia_tn 
+                            inventario.save()
+                        
+                        # Modificamos la línea del pedido
+                        detalle.cantidad = pedido.peso_real_tn
+                        detalle.save()
+                        
+                        # Añadimos una nota de auditoría
+                        pedido.notas = f"{pedido.notas}\n[Auditoría {hoy.strftime('%d/%m/%Y')}] Peso original: {pedido.total_kg + abs(diferencia_tn) if diferencia_tn < 0 else pedido.total_kg - diferencia_tn} tn. Peso real: {pedido.peso_real_tn} tn."
+                        pedido.save()
+                        
+                        messages.success(request, f'✅ Pedido actualizado a {pedido.peso_real_tn} tn reales.')
+
                 return redirect('detalle_pedido', pedido_id=pedido.id)
 
         except Exception as e:

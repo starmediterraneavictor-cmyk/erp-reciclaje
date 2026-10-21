@@ -171,18 +171,20 @@ class Pedido(models.Model):
     
     @property
     def coste_transporte_tn(self):
-        """€/TN de transporte (propio + el de los orígenes, ponderado por cantidad)"""
+        """€/TN de transporte real (propio + el de los orígenes de compra)"""
         total_tn = self.total_kg
         if total_tn == 0:
             return Decimal('0')
         
-        total_transporte = self.transporte_total
+        total_transporte = self.transporte_total # Transporte del pedido de venta
+        
+        # Sumamos el transporte de los pedidos de compra origen, ponderado por los TN
         for origen in self.origenes_venta.all():
             if origen.pedido_compra.total_kg > 0:
                 proporcion = Decimal(str(origen.cantidad_tn)) / origen.pedido_compra.total_kg
                 total_transporte += origen.pedido_compra.transporte_total * proporcion
         
-        return total_transporte / total_tn
+        return total_transporte / total_tn     
     
     @property
     def beneficio_tn(self):
