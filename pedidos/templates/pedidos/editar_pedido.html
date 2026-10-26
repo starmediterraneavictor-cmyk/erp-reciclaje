@@ -445,37 +445,41 @@ document.addEventListener('DOMContentLoaded', function() {
     calcularTotalToneladas();
 });
 
-// 🆕 Calcular el total de toneladas en orígenes
+// 🆕 Calcular el total de toneladas en orígenes (SOLO orígenes)
 function calcularTotalOrigenes() {
     let total = 0;
     
-    // Inputs de orígenes existentes (suelen tener el name "origen_cantidad_existente_...")
-    const inputsExistentes = document.querySelectorAll('input[name^="origen_cantidad_existente_"]');
-    inputsExistentes.forEach(input => {
-        const valor = parseFloat(input.value);
-        if (!isNaN(valor)) total += valor;
-    });
+    // Buscamos solo los inputs que estén DENTRO del bloque de orígenes
+    const bloqueOrigenes = document.getElementById('bloque-origenes');
+    if (bloqueOrigenes) {
+        // Inputs de existentes
+        const inputsExistentes = bloqueOrigenes.querySelectorAll('input[name^="origen_cantidad_existente_"]');
+        inputsExistentes.forEach(input => {
+            const valor = parseFloat(input.value);
+            if (!isNaN(valor)) total += valor;
+        });
 
-    // Inputs de orígenes nuevos (name "origen_cantidad_nuevo")
-    const inputsNuevos = document.querySelectorAll('input[name="origen_cantidad_nuevo"]');
-    inputsNuevos.forEach(input => {
-        const valor = parseFloat(input.value);
-        if (!isNaN(valor)) total += valor;
-    });
+        // Inputs de nuevos
+        const inputsNuevos = bloqueOrigenes.querySelectorAll('input[name="origen_cantidad_nuevo"]');
+        inputsNuevos.forEach(input => {
+            const valor = parseFloat(input.value);
+            if (!isNaN(valor)) total += valor;
+        });
+    }
 
     document.getElementById('total_origenes').textContent = total.toFixed(2);
 }
 
-// Escuchar cambios en los inputs
+// Escuchar cambios SOLO en los inputs que estén dentro del bloque de orígenes
 document.addEventListener('input', function(e) {
-    if (e.target && (e.target.name.startsWith('origen_cantidad'))) {
+    if (e.target && e.target.name && e.target.name.startsWith('origen_cantidad')) {
         calcularTotalOrigenes();
     }
 });
 
-// Calcular al cargar la página
+// Calcular al cargar la página (con un pequeño delay para que el HTML esté listo)
 document.addEventListener('DOMContentLoaded', function() {
-    calcularTotalOrigenes();
+    setTimeout(calcularTotalOrigenes, 50); 
 });
 
 
