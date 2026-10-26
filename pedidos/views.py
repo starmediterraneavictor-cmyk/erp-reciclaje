@@ -52,7 +52,7 @@ def lista_pedidos(request):
 
     if material_tipo:
         # Filtramos pedidos que tengan al menos un detalle con ese tipo de material
-        pedidos = pedidos.filter(detalles__material__tipo_id=material_tipo).distinct()
+        pedidos = pedidos.filter(detalles__material__tipo=material_tipo).distinct()
     
 
     # Contadores
