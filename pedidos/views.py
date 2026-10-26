@@ -52,7 +52,7 @@ def lista_pedidos(request):
 
     if material_tipo:
         # Filtramos pedidos que tengan al menos un detalle con ese tipo de material
-        pedidos = pedidos.filter(detalles__material__tipo=material_tipo).distinct()
+        pedidos = pedidos.filter(detalles__material__tipo_id=material_tipo).distinct()
     
 
     # Contadores
@@ -100,16 +100,21 @@ def lista_pedidos(request):
     total_pedidos = pedidos.count()
     total_importe = sum((p.total_importe for p in pedidos), Decimal('0'))
 
-    # 🆕 Obtener los tipos únicos de material (ID y Nombre) para el filtro
-    from inventario.models import Material
-    # Asumimos que la relación se llama 'tipo' y el campo de texto dentro de esa relación es 'nombre'
-    tipos_query = Material.objects.values('tipo__id', 'tipo__nombre').distinct().order_by('tipo__nombre')
+    # 🆕 Obtener los tipos únicos de material
     
-    # Lo convertimos en una lista de diccionarios fácil de leer para el HTML
-    tipos_materiales = [
-        {'id': t['tipo__id'], 'nombre': t['tipo__nombre']} 
-        for t in tipos_query if t['tipo__id']
-    ]
+    # Traemos los objetos Material y nos quedamos solo con sus tipos, sin repetir
+    tipos_objs = Material.objects.exclude(tipo__isnull=True).values_list('tipo', flat=True).distinct()
+    
+    tipos_materiales = []
+    for t_id in tipos_objs:
+        # Para cada ID, sacamos su objeto TipoMaterial para obtener el nombre
+        try:
+            # Importamos el modelo del tipo (cambia 'TipoMaterial' por el nombre real de tu modelo)
+            from inventario.models import TipoMaterial 
+            obj = TipoMaterial.objects.get(id=t_id)
+            tipos_materiales.append({'id': obj.id, 'nombre': obj.nombre})
+        except:
+            pass
 
     context = {
         'pedidos': pedidos,
