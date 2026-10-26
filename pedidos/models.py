@@ -128,12 +128,17 @@ class Pedido(models.Model):
     @property
     def tipos_materiales(self):
         """Devuelve una lista con los tipos de material únicos del pedido"""
-        # Asumiendo que en tu modelo Material tienes un campo 'tipo'
-        # Si el campo se llama diferente (ej: 'categoria'), cámbialo aquí.
         tipos = set()
         for detalle in self.detalles.all():
-            if detalle.material.tipo:
-                tipos.add(detalle.material.get_tipo_display())
+            # Intentamos leer el campo 'tipo' o 'categoria' directamente
+            tipo_mat = getattr(detalle.material, 'tipo', None) or getattr(detalle.material, 'categoria', None)
+            
+            if tipo_mat:
+                # Si es un objeto (ForeignKey), sacamos su nombre. Si es texto, lo usamos tal cual.
+                if hasattr(tipo_mat, 'nombre'):
+                    tipos.add(str(tipo_mat.nombre))
+                else:
+                    tipos.add(str(tipo_mat))
         return list(tipos)
     
     @property
