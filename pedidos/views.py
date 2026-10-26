@@ -449,22 +449,32 @@ def editar_pedido(request, pedido_id):
             messages.error(request, f'❌ Error: {str(e)}')
 
     # Pedidos de compra LIBRES
-    pedidos_disponibles = Pedido.objects.filter(
-        tipo='COMPRA_MAT',
-        ventas_asociadas__isnull=True
-    ).exclude(id=pedido.id).order_by('-fecha')
+    # ============================================
+    # GET: cargar datos para el formulario
+    # ============================================
     
-    context = {
-        'pedido': pedido,
-        'clientes': Cliente.objects.filter(estado='ACTIVO').order_by('nombre'),
-        'proveedores': Proveedor.objects.filter(estado='ACTIVO', tipo='MATERIAL').order_by('nombre'),
-        'materiales': Material.objects.all().order_by('nombre'),
-        'tipos': Pedido.TIPO_OPERACION,
-        'estados': Pedido.ESTADO_PEDIDO,
-        'incoterms': Pedido.INCOTERM_CHOICES,
-        'pedidos_compra': pedidos_disponibles,
-        'url_retorno': url_retorno, # 🆕 Pasamos la URL
-    }
+    # 1. Obtener todos los pedidos de compra
+    todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').exclude(id=pedido.id).order_by('-fecha')
+    
+    # 2. Obtener los orígenes que ya tiene ESTE pedido para sumarlos a lo "usado"
+    origenes_este_pedido = pedido.origenes_venta.all()
+    cantidades_este_pedido = {o.pedido_compra_id: o.cantidad_tn for o in origenes_este_pedido}
+    
+    pedidos_disponibles = []
+    for pc in todos_compra:
+        # Cuánto se ha vendido de este pedido de compra (en otros pedidos)
+        tn_vendidas = sum(o.cantidad_tn for o in pc.ventas_asociadas.all())
+        
+        # Cuánto tiene este pedido actual asignado (si estamos editando)
+        tn_asignadas_actual = cantidades_este_pedido.get(pc.id, Decimal('0'))
+        
+        # Cuánto queda libre realmente (excluyendo lo que ya tiene este pedido)
+        tn_libres = pc.total_kg - (tn_vendidas - tn_asignadas_actual)
+        
+        # Si queda algo libre, lo añadimos a la lista
+        if tn_libres > Decimal('0'):
+            pedidos_disponibles.append(pc)
+    
     return render(request, 'pedidos/editar_pedido.html', context)
 
 

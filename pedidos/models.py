@@ -317,6 +317,15 @@ class Pedido(models.Model):
             return Decimal('0')
         return self.diferencia_peso_tn * self.precio_compra_tn
 
+    @property
+    def tn_disponibles(self):
+        """Devuelve los TN libres de un pedido de compra"""
+        if self.tipo != 'COMPRA_MAT':
+            return self.total_kg
+        # Sumamos lo que se ha vendido en OrigenVenta
+        tn_vendidas = sum(o.cantidad_tn for o in self.ventas_asociadas.all())
+        return self.total_kg - tn_vendidas
+
 
     
     
