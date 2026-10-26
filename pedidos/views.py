@@ -32,6 +32,7 @@ def lista_pedidos(request):
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
     buscar = request.GET.get('buscar', '').strip()
+    material_tipo = request.GET.get('material_tipo', '')
 
     if tipo:
         pedidos = pedidos.filter(tipo=tipo)
@@ -48,6 +49,11 @@ def lista_pedidos(request):
             Q(cliente__nombre__icontains=buscar) |
             Q(proveedor__nombre__icontains=buscar)
         )
+        
+    if material_tipo:
+        # Filtramos pedidos que tengan al menos un detalle con ese tipo de material
+        pedidos = pedidos.filter(detalles__material__tipo=material_tipo).distinct()
+    
 
     # Contadores
     base_para_contadores = Pedido.objects.all()
