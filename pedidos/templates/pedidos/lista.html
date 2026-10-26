@@ -113,10 +113,11 @@
                     </td>
                     <td>{{ p.entidad_nombre }}</td>
                     <td>
-                        {{ p.get_tipo_display }}
                         <!-- 🆕 Mostrar los tipos de material -->
                         {% for tipo_mat in p.tipos_materiales %}
-                            <br><span class="badge bg-secondary" style="font-size: 0.7em;">{{ tipo_mat }}</span>
+                            <span class="badge bg-secondary" style="font-size: 0.8em;">{{ tipo_mat }}</span><br>
+                        {% empty %}
+                            <span class="text-muted">—</span>
                         {% endfor %}
                     </td>
                     <td>
