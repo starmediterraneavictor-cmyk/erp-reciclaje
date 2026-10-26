@@ -112,7 +112,13 @@
                         {% endif %}
                     </td>
                     <td>{{ p.entidad_nombre }}</td>
-                    <td>{{ p.get_tipo_display }}</td>
+                    <td>
+                        {{ p.get_tipo_display }}
+                        <!-- 🆕 Mostrar los tipos de material -->
+                        {% for tipo_mat in p.tipos_materiales %}
+                            <br><span class="badge bg-secondary" style="font-size: 0.7em;">{{ tipo_mat }}</span>
+                        {% endfor %}
+                    </td>
                     <td>
                         {% if p.es_internacional %}<span class="badge bg-primary">🌍 Int</span>{% else %}<span class="badge bg-secondary">🇪🇸 Nac</span>{% endif %}
                     </td>

@@ -124,6 +124,17 @@ class Pedido(models.Model):
         for d in self.detalles.all():
             total += Decimal(str(d.cantidad))
         return total
+
+    @property
+    def tipos_materiales(self):
+        """Devuelve una lista con los tipos de material únicos del pedido"""
+        # Asumiendo que en tu modelo Material tienes un campo 'tipo'
+        # Si el campo se llama diferente (ej: 'categoria'), cámbialo aquí.
+        tipos = set()
+        for detalle in self.detalles.all():
+            if detalle.material.tipo:
+                tipos.add(detalle.material.get_tipo_display())
+        return list(tipos)
     
     @property
     def total_importe(self):
