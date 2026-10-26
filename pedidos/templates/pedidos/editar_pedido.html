@@ -238,6 +238,12 @@
                 </div>
                 {% endfor %}
             </div>
+            <div class="d-flex justify-content-end mt-3 border-top pt-3">
+                <h5 class="mb-0 me-3">Total Cantidad:</h5>
+                <h4 class="mb-0 text-success fw-bold">
+                    <span id="total_toneladas">0.00</span> tn
+                </h4>
+            </div>
         </div>
     </div>
 
@@ -398,5 +404,33 @@ function actualizarOrigenesDisponibles() {
         });
     });
 }
+
+// 🆕 Función para calcular el total de toneladas
+function calcularTotalToneladas() {
+    let total = 0;
+    const inputsCantidad = document.querySelectorAll('input[name="cantidad[]"]');
+    
+    inputsCantidad.forEach(input => {
+        const valor = parseFloat(input.value);
+        if (!isNaN(valor)) {
+            total += valor;
+        }
+    });
+
+    // Mostrar con 2 decimales (cambiando el punto por coma si quieres, pero 2 decimales está bien)
+    document.getElementById('total_toneladas').textContent = total.toFixed(2);
+}
+
+// Escuchar cambios en los inputs de cantidad
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.name === 'cantidad[]') {
+        calcularTotalToneladas();
+    }
+});
+
+// Calcular al cargar la página por primera vez
+document.addEventListener('DOMContentLoaded', function() {
+    calcularTotalToneladas();
+});
 </script>
 {% endblock %}
