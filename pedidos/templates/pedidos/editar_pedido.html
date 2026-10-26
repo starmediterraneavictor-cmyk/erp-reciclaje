@@ -96,7 +96,7 @@
                 <div class="col-md-12 mb-3 d-none" id="bloque-origenes">
                     <label class="form-label">🔗 Orígenes de compra</label>
 
-                    <!-- Orígenes YA ASIGNADOS (no editables directamente) -->
+                    <!-- Orígenes YA ASIGNADOS -->
                     {% if pedido.origenes_venta.exists %}
                     <div class="mb-3">
                         <h6 class="text-muted small">Orígenes asignados actualmente:</h6>
@@ -136,7 +136,7 @@
                     </div>
                     {% endif %}
 
-                    <!-- AÑADIR NUEVOS orígenes (solo pedidos libres) -->
+                    <!-- AÑADIR NUEVOS ORÍGENES -->
                     <div class="mb-2">
                         <h6 class="text-muted small">Añadir nuevo origen (solo pedidos libres):</h6>
                         <div id="origenesNuevos"></div>
@@ -144,11 +144,7 @@
                             <i class="bi bi-plus-circle"></i> Añadir origen
                         </button>
                     </div>
-                    <div id="origenesNuevos"></div>
-                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="añadirOrigen()">
-                        <i class="bi bi-plus-circle"></i> Añadir origen
-                    </button>
-                    
+
                     <!-- 🆕 TOTAL DE TONELADAS EN ORÍGENES -->
                     <div class="d-flex justify-content-end mt-3 border-top pt-3">
                         <h6 class="mb-0 me-3">Total Asignado:</h6>
@@ -156,7 +152,7 @@
                             <span id="total_origenes">0.00</span> tn
                         </h6>
                     </div>
-                    
+
                     <small class="text-muted d-block mt-1">
                         Solo aparecen los pedidos de compra que <strong>aún no están vinculados</strong> a ningún pedido de venta.
                     </small>
