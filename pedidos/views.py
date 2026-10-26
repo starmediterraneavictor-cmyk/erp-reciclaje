@@ -448,32 +448,30 @@ def editar_pedido(request, pedido_id):
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
 
-    # Pedidos de compra LIBRES
-        # ============================================
+    # ============================================
     # GET: cargar datos para el formulario
     # ============================================
     
     # 1. Obtener todos los pedidos de compra
     todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').exclude(id=pedido.id).order_by('-fecha')
     
-    # 2. Obtener los orígenes que ya tiene ESTE pedido para sumarlos a lo "usado"
+    # 2. Obtener los orígenes que ya tiene ESTE pedido para no restarlos dos veces
     origenes_este_pedido = pedido.origenes_venta.all()
     cantidades_este_pedido = {o.pedido_compra_id: o.cantidad_tn for o in origenes_este_pedido}
     
     pedidos_disponibles = []
     for pc in todos_compra:
-        # Cuánto se ha vendido de este pedido de compra (en otros pedidos)
-        tn_vendidas = sum(o.cantidad_tn for o in pc.ventas_asociadas.all())
+        # Cuánto se ha vendido de este pedido de compra en OTROS pedidos
+        tn_vendidas_otros = sum(o.cantidad_tn for o in pc.ventas_asociadas.exclude(pedido_venta=pedido))
         
-        # Cuánto tiene este pedido actual asignado (si estamos editando)
+        # Cuánto tiene asignado este pedido actualmente
         tn_asignadas_actual = cantidades_este_pedido.get(pc.id, Decimal('0'))
         
-        # Cuánto queda libre realmente (excluyendo lo que ya tiene este pedido)
-        tn_libres = pc.total_kg - (tn_vendidas - tn_asignadas_actual)
+        # Cuánto queda libre realmente
+        tn_libres = pc.total_kg - tn_vendidas_otros - tn_asignadas_actual
         
         # Si queda algo libre, lo añadimos a la lista
         if tn_libres > Decimal('0'):
-            # 🆕 Añadimos un atributo dinámico para que la plantilla sepa cuánto queda
             pc.tn_libres_calculadas = tn_libres 
             pedidos_disponibles.append(pc)
 
