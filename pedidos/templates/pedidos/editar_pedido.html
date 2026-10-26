@@ -120,7 +120,7 @@
                                     </div>
                                     <div class="col-md-2 mb-2 d-flex align-items-end">
                                         <button type="button" class="btn btn-outline-danger btn-sm w-100" 
-                                                onclick="this.closest('.origen-existente').remove()"
+                                                onclick="this.closest('.origen-existente').remove(); calcularTotalOrigenes();"
                                                 title="Quitar este origen (se eliminará al guardar)">
                                             <i class="bi bi-trash"></i> Quitar
                                         </button>
@@ -383,7 +383,7 @@ function añadirOrigen(datos = null) {
                     <input type="number" step="0.01" name="origen_cantidad_nuevo" class="form-control form-control-sm" value="${datos ? datos.cantidad : ''}">
                 </div>
                 <div class="col-md-2 mb-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="eliminarOrigen(this)">
+                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="eliminarOrigen(this); calcularTotalOrigenes();">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
