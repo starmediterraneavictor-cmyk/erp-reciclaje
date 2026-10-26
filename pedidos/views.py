@@ -449,7 +449,7 @@ def editar_pedido(request, pedido_id):
             messages.error(request, f'❌ Error: {str(e)}')
 
     # Pedidos de compra LIBRES
-    # ============================================
+        # ============================================
     # GET: cargar datos para el formulario
     # ============================================
     
@@ -473,8 +473,23 @@ def editar_pedido(request, pedido_id):
         
         # Si queda algo libre, lo añadimos a la lista
         if tn_libres > Decimal('0'):
+            # 🆕 Añadimos un atributo dinámico para que la plantilla sepa cuánto queda
+            pc.tn_libres_calculadas = tn_libres 
             pedidos_disponibles.append(pc)
-    
+
+    # 🆕 AQUÍ DEFINIMOS EL CONTEXT
+    context = {
+        'pedido': pedido,
+        'clientes': Cliente.objects.filter(estado='ACTIVO').order_by('nombre'),
+        'proveedores': Proveedor.objects.filter(estado='ACTIVO', tipo='MATERIAL').order_by('nombre'),
+        'materiales': Material.objects.all().order_by('nombre'),
+        'tipos': Pedido.TIPO_OPERACION,
+        'estados': Pedido.ESTADO_PEDIDO,
+        'incoterms': Pedido.INCOTERM_CHOICES,
+        'pedidos_compra': pedidos_disponibles,
+        'url_retorno': url_retorno,
+    }
+        
     return render(request, 'pedidos/editar_pedido.html', context)
 
 

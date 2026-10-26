@@ -350,7 +350,8 @@ const pedidosCompraDisponibles = [
     {% for pc in pedidos_compra %}
     { 
         id: {{ pc.id }}, 
-        label: "{{ pc.numero_pedido }} - {{ pc.entidad_nombre|escapejs }} - {{ pc.total_kg|floatformat:2 }} tn (Quedan: {{ pc.tn_disponibles|default:pc.total_kg|floatformat:2 }} tn) - {{ pc.precio_compra_tn|floatformat:2 }} €/tn" 
+        // 🆕 Usamos pc.tn_libres_calculadas
+        label: "{{ pc.numero_pedido }} - {{ pc.entidad_nombre|escapejs }} - Quedan: {{ pc.tn_libres_calculadas|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn" 
     },
     {% endfor %}
 ];
