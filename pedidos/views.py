@@ -49,7 +49,7 @@ def lista_pedidos(request):
             Q(cliente__nombre__icontains=buscar) |
             Q(proveedor__nombre__icontains=buscar)
         )
-        
+
     if material_tipo:
         # Filtramos pedidos que tengan al menos un detalle con ese tipo de material
         pedidos = pedidos.filter(detalles__material__tipo=material_tipo).distinct()
@@ -100,6 +100,10 @@ def lista_pedidos(request):
     total_pedidos = pedidos.count()
     total_importe = sum((p.total_importe for p in pedidos), Decimal('0'))
 
+    # Obtener los tipos únicos de material para el filtro
+    
+    tipos_materiales = Material.objects.values_list('tipo', flat=True).distinct().order_by('tipo')
+
     context = {
         'pedidos': pedidos,
         'total_pedidos': total_pedidos,
@@ -112,6 +116,8 @@ def lista_pedidos(request):
         'hasta_filtro': hasta,
         'buscar_filtro': buscar,
         'contadores': contadores,
+        'material_tipo_filtro': material_tipo,  # 🆕
+        'tipos_materiales': tipos_materiales,
     }
     return render(request, 'pedidos/lista.html', context)
 

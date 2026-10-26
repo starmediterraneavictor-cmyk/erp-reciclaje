@@ -20,25 +20,25 @@
 <ul class="nav nav-tabs mb-4">
     <li class="nav-item">
         <a class="nav-link {% if tipo_filtro == 'COMPRA_MAT' %}active{% endif %}" 
-           href="?tipo=COMPRA_MAT{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}"></a>">
+           href="?tipo=COMPRA_MAT{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}">
             📥 Compras <span class="badge bg-secondary">{{ contadores.COMPRA_MAT }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if tipo_filtro == 'VENTA_MAT' %}active{% endif %}" 
-           href="?tipo=VENTA_MAT{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}"></a>">
+           href="?tipo=VENTA_MAT{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}">
             📤 Ventas <span class="badge bg-secondary">{{ contadores.VENTA_MAT }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if tipo_filtro == 'MAQUILA' %}active{% endif %}" 
-           href="?tipo=MAQUILA{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}"></a>">
+           href="?tipo=MAQUILA{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}">
             🔧 Maquilas <span class="badge bg-secondary">{{ contadores.MAQUILA }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if not tipo_filtro %}active{% endif %}" 
-           href="?{% if estado_filtro %}estado={{ estado_filtro }}&{% endif %}{% if desde_filtro %}desde={{ desde_filtro }}&{% endif %}{% if hasta_filtro %}hasta={{ hasta_filtro }}&{% endif %}{% if buscar_filtro %}buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}"></a>">
+           href="?{% if estado_filtro %}estado={{ estado_filtro }}&{% endif %}{% if desde_filtro %}desde={{ desde_filtro }}&{% endif %}{% if hasta_filtro %}hasta={{ hasta_filtro }}&{% endif %}{% if buscar_filtro %}buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}">
             📋 Todos <span class="badge bg-secondary">{{ contadores.TODOS }}</span>
         </a>
     </li>
