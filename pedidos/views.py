@@ -100,21 +100,23 @@ def lista_pedidos(request):
     total_pedidos = pedidos.count()
     total_importe = sum((p.total_importe for p in pedidos), Decimal('0'))
 
-    # 🆕 Obtener los tipos únicos de material
+    # 🆕 Obtener los tipos únicos de material (ID y Nombre)
     
-    # Traemos los objetos Material y nos quedamos solo con sus tipos, sin repetir
+    
+    # Traemos los tipos de material que estén en uso, sin repetir el ID
     tipos_objs = Material.objects.exclude(tipo__isnull=True).values_list('tipo', flat=True).distinct()
     
     tipos_materiales = []
     for t_id in tipos_objs:
-        # Para cada ID, sacamos su objeto TipoMaterial para obtener el nombre
         try:
-            # Importamos el modelo del tipo (cambia 'TipoMaterial' por el nombre real de tu modelo)
             from inventario.models import TipoMaterial 
             obj = TipoMaterial.objects.get(id=t_id)
             tipos_materiales.append({'id': obj.id, 'nombre': obj.nombre})
         except:
             pass
+            
+    # Ordenamos alfabéticamente por nombre para que quede más bonito
+    tipos_materiales = sorted(tipos_materiales, key=lambda x: x['nombre'])
 
     context = {
         'pedidos': pedidos,
