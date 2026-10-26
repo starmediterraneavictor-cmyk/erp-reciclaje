@@ -75,7 +75,8 @@
                 <select name="material_tipo" class="form-select form-select-sm">
                     <option value="">Todos</option>
                     {% for tm in tipos_materiales %}
-                    <option value="{{ tm }}" {% if material_tipo_filtro == tm %}selected{% endif %}>{{ tm }}</option>
+                    <!-- 🆕 Enviamos el ID en el value, pero mostramos el nombre -->
+                    <option value="{{ tm.id }}" {% if material_tipo_filtro == tm.id|stringformat:"s" %}selected{% endif %}>{{ tm.nombre }}</option>
                     {% endfor %}
                 </select>
             </div>

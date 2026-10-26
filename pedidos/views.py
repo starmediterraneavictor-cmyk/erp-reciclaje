@@ -100,21 +100,16 @@ def lista_pedidos(request):
     total_pedidos = pedidos.count()
     total_importe = sum((p.total_importe for p in pedidos), Decimal('0'))
 
-    # Obtener los tipos únicos de material para el filtro
+    # 🆕 Obtener los tipos únicos de material (ID y Nombre) para el filtro
+    from inventario.models import Material
+    # Asumimos que la relación se llama 'tipo' y el campo de texto dentro de esa relación es 'nombre'
+    tipos_query = Material.objects.values('tipo__id', 'tipo__nombre').distinct().order_by('tipo__nombre')
     
-    # Intentamos sacar el nombre del objeto relacionado.
-    # (Usamos 'tipo__nombre' o 'tipo__tipo' asumiendo que la tabla relacionada se llama así).
-    # Si da error, prueba con 'tipo__descripcion' o mira cómo se llama el campo en tu modelo de Tipos.
-    try:
-        tipos_materiales = Material.objects.values_list('tipo__nombre', flat=True).distinct().order_by('tipo__nombre')
-    except:
-        # Si falla, hacemos un plan B: traernos los objetos y sacar sus nombres en Python
-        tipos_objs = Material.objects.values_list('tipo', flat=True).distinct()
-        tipos_materiales = set()
-        for t in tipos_objs:
-            if t:
-                # Si es un objeto, le pedimos el nombre (o usamos str(t))
-                tipos_materiales.add(t.nombre if hasattr(t, 'nombre') else str(t))
+    # Lo convertimos en una lista de diccionarios fácil de leer para el HTML
+    tipos_materiales = [
+        {'id': t['tipo__id'], 'nombre': t['tipo__nombre']} 
+        for t in tipos_query if t['tipo__id']
+    ]
 
     context = {
         'pedidos': pedidos,
@@ -129,7 +124,7 @@ def lista_pedidos(request):
         'buscar_filtro': buscar,
         'contadores': contadores,
         'material_tipo_filtro': material_tipo,  # 🆕
-        'tipos_materiales': tipos_materiales,
+        'tipos_materiales': tipos_materiales,    # 🆕
     }
     return render(request, 'pedidos/lista.html', context)
 
