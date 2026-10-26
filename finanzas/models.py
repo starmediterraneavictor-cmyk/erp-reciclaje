@@ -71,7 +71,7 @@ class Factura(models.Model):
     
     def __str__(self):
         entidad = self.cliente.nombre if self.cliente else (self.proveedor.nombre if self.proveedor else '—')
-        return f"{self.concepto} - {entidad} - {self.importe_total}€"
+        return f"{self.numero_factura} - {entidad} ({self.total}€)"
     
     @property
     def entidad(self):
