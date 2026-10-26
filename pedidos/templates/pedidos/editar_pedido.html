@@ -144,6 +144,22 @@
                             <i class="bi bi-plus-circle"></i> Añadir origen
                         </button>
                     </div>
+                    <div id="origenesNuevos"></div>
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="añadirOrigen()">
+                        <i class="bi bi-plus-circle"></i> Añadir origen
+                    </button>
+                    
+                    <!-- 🆕 TOTAL DE TONELADAS EN ORÍGENES -->
+                    <div class="d-flex justify-content-end mt-3 border-top pt-3">
+                        <h6 class="mb-0 me-3">Total Asignado:</h6>
+                        <h6 class="mb-0 text-primary fw-bold">
+                            <span id="total_origenes">0.00</span> tn
+                        </h6>
+                    </div>
+                    
+                    <small class="text-muted d-block mt-1">
+                        Solo aparecen los pedidos de compra que <strong>aún no están vinculados</strong> a ningún pedido de venta.
+                    </small>
 
                     <small class="text-muted d-block mt-1">
                         Solo aparecen los pedidos de compra que <strong>aún no están vinculados</strong> a ningún pedido de venta.
@@ -436,5 +452,40 @@ document.addEventListener('input', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     calcularTotalToneladas();
 });
+
+// 🆕 Calcular el total de toneladas en orígenes
+function calcularTotalOrigenes() {
+    let total = 0;
+    
+    // Inputs de orígenes existentes (suelen tener el name "origen_cantidad_existente_...")
+    const inputsExistentes = document.querySelectorAll('input[name^="origen_cantidad_existente_"]');
+    inputsExistentes.forEach(input => {
+        const valor = parseFloat(input.value);
+        if (!isNaN(valor)) total += valor;
+    });
+
+    // Inputs de orígenes nuevos (name "origen_cantidad_nuevo")
+    const inputsNuevos = document.querySelectorAll('input[name="origen_cantidad_nuevo"]');
+    inputsNuevos.forEach(input => {
+        const valor = parseFloat(input.value);
+        if (!isNaN(valor)) total += valor;
+    });
+
+    document.getElementById('total_origenes').textContent = total.toFixed(2);
+}
+
+// Escuchar cambios en los inputs
+document.addEventListener('input', function(e) {
+    if (e.target && (e.target.name.startsWith('origen_cantidad'))) {
+        calcularTotalOrigenes();
+    }
+});
+
+// Calcular al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    calcularTotalOrigenes();
+});
+
+
 </script>
 {% endblock %}
