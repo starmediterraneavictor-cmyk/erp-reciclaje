@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Pedido, DetallePedido, PedidoInternacional, PagoInternacional, CondicionPago
-
+from .models import OrigenVenta
 
 class DetalleInline(admin.TabularInline):
     model = DetallePedido
@@ -62,3 +62,9 @@ class PedidoInternacionalAdmin(admin.ModelAdmin):
             'fields': ('notas',)
         }),
     )
+    
+@admin.register(OrigenVenta)
+class OrigenVentaAdmin(admin.ModelAdmin):
+    list_display = ('pedido_venta', 'pedido_compra', 'cantidad_tn', 'fecha_asignacion')
+    search_fields = ('pedido_venta__numero_pedido', 'pedido_compra__numero_pedido')
+    list_filter = ('pedido_venta__tipo', 'pedido_compra__tipo')
