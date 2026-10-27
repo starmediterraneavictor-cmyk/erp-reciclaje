@@ -236,7 +236,11 @@ document.addEventListener('change', function(e) {
 
 const pedidosCompraDisponibles = [
     {% for pc in pedidos_compra %}
-    { id: {{ pc.id }}, label: "{{ pc.numero_pedido }} - {{ pc.entidad_nombre|escapejs }} - {{ pc.total_kg|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn" },
+    { 
+        id: {{ pc.id }}, 
+        // Calculamos lo que queda: total - lo asignado
+        label: "{{ pc.numero_pedido }} - {{ pc.entidad_nombre|escapejs }} - Quedan: {{ pc.tn_disponibles|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn" 
+    },
     {% endfor %}
 ];
 

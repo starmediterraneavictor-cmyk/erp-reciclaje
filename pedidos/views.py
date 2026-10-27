@@ -290,7 +290,7 @@ def nuevo_pedido(request):
         'tipos': Pedido.TIPO_OPERACION,
         'estados': Pedido.ESTADO_PEDIDO,
         'incoterms': Pedido.INCOTERM_CHOICES,
-        'pedidos_compra': Pedido.objects.filter(tipo='COMPRA_MAT', ventas_asociadas__isnull=True).order_by('-fecha'),
+        'pedidos_compra': Pedido.objects.filter(tipo='COMPRA_MAT').order_by('-fecha'),
         'fecha_actual': datetime.now().strftime('%Y-%m-%d'),
     }
     return render(request, 'pedidos/nuevo_pedido.html', context)
