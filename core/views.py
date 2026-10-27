@@ -6,6 +6,10 @@ from finanzas.models import Factura
 from clientes.models import Cliente
 from inventario.models import Material, Inventario
 from django.contrib.auth.decorators import login_required
+from inventario.models import Inventario, Material
+from pedidos.models import DetallePedido, OrigenVenta
+from decimal import Decimal
+
 
 @login_required
 def dashboard(request):
@@ -34,34 +38,52 @@ def dashboard(request):
     ).exclude(estado_pago='ANULADO').aggregate(total=Sum('total'))['total'] or 0
     
     # ============================================
-    # STOCK TOTAL
+    # STOCK TOTAL (RECALCULADO DESDE CERO)
     # ============================================
-    stock_total = Inventario.objects.aggregate(
-        total=Sum('cantidad')
-    )['total'] or 0
-    
-    # ============================================
-    # MATERIALES CON MARGEN
-    # ============================================
-    materiales = []
-    materiales = []
-    for m in Material.objects.all()[:10]:  # Hasta 10 materiales
+        
+    stock_total = 0
+    materiales_con_stock = []
+
+    for mat in Material.objects.all():
+        total_disponible = Decimal('0')
+        
+        # Buscar todos los pedidos de compra/maquila de este material
+        detalles_compra = DetallePedido.objects.filter(
+            material=mat,
+            pedido__tipo__in=['COMPRA_MAT', 'MAQUILA']
+        ).exclude(pedido__estado='CANCELADO')
+        
+        for detalle in detalles_compra:
+            pedido = detalle.pedido
+            
+            # Cuánto se ha comprado en esta línea
+            tn_compradas_linea = detalle.cantidad
+            
+            # Cuánto se ha asignado a ventas
+            tn_asignadas = sum(o.cantidad_tn for o in pedido.ventas_asociadas.all())
+            
+            # Lo que queda libre
+            libre = tn_compradas_linea - tn_asignadas
+            if libre > 0:
+                total_disponible += libre
+        
+        # Actualizar el inventario en la base de datos (para que coincida)
         try:
-            inv = Inventario.objects.get(material=m)
-            stock = float(inv.cantidad)
+            inv = Inventario.objects.get(material=mat)
         except Inventario.DoesNotExist:
-            stock = 0
+            inv = Inventario(material=mat)
         
-        # Solo mostrar los que tengan stock > 0
-        if stock <= 0:
-            continue
+        inv.cantidad = total_disponible
+        inv.save()
         
-        materiales.append({
-            'nombre': m.nombre,
-            'codigo': m.codigo,
-            'stock': stock,
-        })
-    
+        # Solo añadir a la lista si tiene stock > 0
+        if total_disponible > 0:
+            stock_total += float(total_disponible)
+            materiales_con_stock.append({
+                'nombre': mat.nombre,
+                'codigo': mat.codigo,
+                'stock': float(total_disponible),
+            })
     # ============================================
     # DEMANDA INTERNACIONAL
     # ============================================
