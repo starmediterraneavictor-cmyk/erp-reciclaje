@@ -28,8 +28,9 @@ def lista_pedidos(request):
     OrigenVenta.objects.filter(pedido_compra__isnull=True).delete()
     # ---------------------------------------------
 
-    # Base queryset (Ocultamos las previsiones por defecto)
-    pedidos = Pedido.objects.exclude(estado='PREVISION').order_by('-fecha')
+    
+    # Base queryset
+    pedidos = Pedido.objects.all().order_by('-fecha')
 
     # --- Filtros ---
     tipo = request.GET.get('tipo', '')
