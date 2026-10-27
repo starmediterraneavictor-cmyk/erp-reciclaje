@@ -278,6 +278,14 @@ def nuevo_pedido(request):
 
                 
                 messages.success(request, f'✅ Pedido {pedido.numero_pedido} creado correctamente')
+
+                # 🆕 Recalcular stock de los materiales afectados
+                from .models import recalcular_stock_material
+                for material_id in set(materiales):
+                    if material_id:
+                        mat = Material.objects.get(id=material_id)
+                        recalcular_stock_material(mat)
+                
                 return redirect('lista_pedidos')
 
         except Exception as e:
@@ -471,6 +479,17 @@ def editar_pedido(request, pedido_id):
                     pedido.internacional.peso_total_kg = pedido.total_kg
                     pedido.internacional.save()
 
+                # 🆕 Recalcular stock (tanto del pedido actual como de los orígenes que se hayan podido modificar)
+                from .models import recalcular_stock_material
+                # Recalcular los materiales del pedido actual
+                for detalle in pedido.detalles.all():
+                    recalcular_stock_material(detalle.material)
+                # Recalcular los materiales de los pedidos de compra que se han usado como origen
+                for origen in pedido.origenes_venta.all():
+                    for detalle in origen.pedido_compra.detalles.all():
+                        recalcular_stock_material(detalle.material)
+                
+                
                 messages.success(request, f'✅ Pedido {pedido.numero_pedido} actualizado')
                 
                 # 🆕 Redirigir a la URL de retorno si existe, si no a la lista
@@ -567,8 +586,24 @@ def eliminar_pedido(request, pedido_id):
                             inventario.cantidad -= detalle.cantidad
                         inventario.save()
 
-                # Finalmente, borrar el pedido
+                # 🆕 Recalcular stock de los materiales que se van a liberar
+                from .models import recalcular_stock_material
+                materiales_afectados = [d.material for d in pedido.detalles.all()]
+                # Si es compra, también los materiales de sus ventas asociadas
+                if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
+                    for origen in pedido.ventas_asociadas.all():
+                        materiales_afectados.extend([d.material for d in origen.pedido_venta.detalles.all()])
+                
+                # Limpiar duplicados
+                materiales_afectados = list(set(materiales_afectados))
+                
+                # Borrar pedido
                 pedido.delete()
+                
+                # Recalcular
+                for mat in materiales_afectados:
+                    recalcular_stock_material(mat)
+
                 messages.success(request, f'✅ Pedido {numero} de {entidad} eliminado y orígenes liberados')
         except Exception as e:
             messages.error(request, f'❌ Error al eliminar: {str(e)}')

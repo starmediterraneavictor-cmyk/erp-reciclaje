@@ -552,3 +552,43 @@ class OrigenVenta(models.Model):
         verbose_name = "Origen de venta"
         verbose_name_plural = "Orígenes de venta"
         ordering = ['-fecha_asignacion']   
+
+
+def recalcular_stock_material(material):
+    """
+    Calcula el stock disponible real de un material sumando las toneladas
+    libres (no asignadas a ventas) de todos los pedidos de compra/maquila.
+    """
+    from inventario.models import Inventario
+    from decimal import Decimal
+    
+    # 1. Buscar todos los pedidos de compra/maquila que tengan este material y no estén cancelados
+    detalles_compra = DetallePedido.objects.filter(
+        material=material,
+        pedido__tipo__in=['COMPRA_MAT', 'MAQUILA']
+    ).exclude(pedido__estado='CANCELADO')
+    
+    total_disponible = Decimal('0')
+    
+    for detalle in detalles_compra:
+        pedido = detalle.pedido
+        
+        # Cuánto se ha comprado en esta línea del pedido
+        tn_compradas_linea = detalle.cantidad
+        
+        # Cuánto se ha asignado a ventas DESDE ESTE PEDIDO
+        # (Sumamos todas las OrigenVenta que apunten a este pedido de compra)
+        tn_asignadas = sum(o.cantidad_tn for o in pedido.ventas_asociadas.all())
+        
+        # Lo que queda libre en este pedido
+        libre = tn_compradas_linea - tn_asignadas
+        
+        if libre > 0:
+            total_disponible += libre
+
+    # 2. Actualizar el inventario con el total disponible
+    inventario, _ = Inventario.objects.get_or_create(material=material)
+    inventario.cantidad = total_disponible
+    inventario.save()
+    
+    return total_disponible
