@@ -170,6 +170,7 @@ def nueva_factura(request):
 def editar_factura(request, factura_id):
     """Formulario para editar una factura existente"""
     factura = get_object_or_404(Factura, id=factura_id)
+    url_retorno = request.GET.get('return_url', '') # 🆕 Capturamos
 
     if request.method == 'POST':
         try:
@@ -207,9 +208,13 @@ def editar_factura(request, factura_id):
 
 
             messages.success(request, f'✅ Factura {factura.numero_factura} actualizada')
+            # 🆕 Redirigir con los filtros si existen
+            if url_retorno:
+                return redirect(f"/finanzas/?{url_retorno}")
             return redirect('lista_facturas')
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
+
 
     context = {
         'factura': factura,

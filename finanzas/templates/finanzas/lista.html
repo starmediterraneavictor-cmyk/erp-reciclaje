@@ -168,7 +168,8 @@
                             {% endif %}
                         {% endif %}
 
-                        <a href="{% url 'editar_factura' f.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                        <!-- 🆕 BOTÓN EDITAR CON FILTROS -->
+                        <a href="{% url 'editar_factura' f.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-outline-primary btn-sm" title="Editar">
                             <i class="bi bi-pencil"></i>
                         </a>
 

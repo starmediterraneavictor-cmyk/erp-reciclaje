@@ -20,13 +20,17 @@ def dashboard(request):
     total_clientes = Cliente.objects.count()
     total_materiales = Material.objects.count()
     
+        # ============================================
+    # INGRESOS (MES ACTUAL Y TOTAL HISTÓRICO)
     # ============================================
-    # INGRESOS DEL MES
-    # ============================================
-    total_ingresos = Factura.objects.filter(
+    ingresos_mes = Factura.objects.filter(
         tipo='INGRESO',
         fecha__month=hoy.month,
         fecha__year=hoy.year
+    ).exclude(estado_pago='ANULADO').aggregate(total=Sum('total'))['total'] or 0
+    
+    ingresos_totales = Factura.objects.filter(
+        tipo='INGRESO'
     ).exclude(estado_pago='ANULADO').aggregate(total=Sum('total'))['total'] or 0
     
     # ============================================
@@ -84,7 +88,8 @@ def dashboard(request):
         'pedidos_compra': pedidos_compra,
         'total_clientes': total_clientes,
         'total_materiales': total_materiales,
-        'total_ingresos': total_ingresos,
+        'ingresos_mes': ingresos_mes,
+        'ingresos_totales': ingresos_totales,
         'stock_total': stock_total,
         'materiales': materiales,
         'demanda': demanda,

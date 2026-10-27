@@ -31,8 +31,11 @@
     <div class="col-md-3">
         <div class="card card-custom">
             <div class="card-body">
-                <h6 class="text-muted">💰 Ingresos del mes</h6>
-                <h2>{{ total_ingresos|formato_es }} €</h2>
+                <h6 class="text-muted">💰 Ingresos</h6>
+                <h3 class="text-success">{{ ingresos_mes|formato_es }} €</h3>
+                <small class="text-muted">Este mes</small>
+                <hr class="my-2">
+                <small class="text-muted">Total histórico: <strong>{{ ingresos_totales|formato_es }} €</strong></small>
             </div>
         </div>
     </div>

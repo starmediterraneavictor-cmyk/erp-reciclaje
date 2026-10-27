@@ -6,7 +6,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>✏️ Editar Factura {{ factura.numero_factura }}</h2>
-    <a href="{% url 'lista_facturas' %}" class="btn btn-secondary">
+    <a href="{% if request.GET.return_url %}{% url 'lista_facturas' %}?{{ request.GET.return_url }}{% else %}{% url 'lista_facturas' %}{% endif %}" class="btn btn-secondary">
         <i class="bi bi-arrow-left"></i> Volver
     </a>
 </div>
@@ -148,7 +148,7 @@
         <button type="submit" class="btn btn-primary btn-lg">
             <i class="bi bi-check-circle"></i> Guardar cambios
         </button>
-        <a href="{% url 'lista_facturas' %}" class="btn btn-secondary btn-lg">
+        <a href="{% if request.GET.return_url %}{% url 'lista_facturas' %}?{{ request.GET.return_url }}{% else %}{% url 'lista_facturas' %}{% endif %}" class="btn btn-secondary btn-lg">
             <i class="bi bi-x-circle"></i> Cancelar
         </a>
     </div>

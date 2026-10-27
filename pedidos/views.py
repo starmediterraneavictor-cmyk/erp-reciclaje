@@ -23,6 +23,11 @@ from inventario.models import Material, Inventario
 
 @login_required
 def lista_pedidos(request):
+    # 🆕 LIMPIEZA AUTOMÁTICA DE ORÍGENES HUÉRFANOS
+    from .models import OrigenVenta
+    OrigenVenta.objects.filter(pedido_compra__isnull=True).delete()
+    # ---------------------------------------------
+
     # Base queryset
     pedidos = Pedido.objects.all().order_by('-fecha')
 
@@ -533,7 +538,20 @@ def eliminar_pedido(request, pedido_id):
 
         try:
             with transaction.atomic():
-                # Solo revertir inventario si el pedido NO estaba en PREVISIÓN
+                # 🆕 LIBERAR ORÍGENES (TANTO DE COMPRA COMO DE VENTA)
+                from .models import OrigenVenta
+                
+                # Si es un pedido de COMPRA, borramos las relaciones de venta que lo usan
+                if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
+                    OrigenVenta.objects.filter(pedido_compra=pedido).delete()
+                
+                # Si es un pedido de VENTA, borramos sus orígenes para liberar las toneladas
+                if pedido.tipo == 'VENTA_MAT':
+                    pedido.origenes_venta.all().delete()
+                
+                # ---------------------------------------------
+
+                # Revertir inventario (solo si no estaba en PREVISIÓN)
                 if pedido.estado != 'PREVISION':
                     for detalle in pedido.detalles.all():
                         inventario, created = Inventario.objects.get_or_create(
@@ -545,8 +563,9 @@ def eliminar_pedido(request, pedido_id):
                             inventario.cantidad -= detalle.cantidad
                         inventario.save()
 
+                # Finalmente, borrar el pedido
                 pedido.delete()
-                messages.success(request, f'✅ Pedido {numero} de {entidad} eliminado correctamente')
+                messages.success(request, f'✅ Pedido {numero} de {entidad} eliminado y orígenes liberados')
         except Exception as e:
             messages.error(request, f'❌ Error al eliminar: {str(e)}')
 
