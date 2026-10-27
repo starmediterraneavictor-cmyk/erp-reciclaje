@@ -51,7 +51,7 @@ def dashboard(request):
         detalles_compra = DetallePedido.objects.filter(
             material=mat,
             pedido__tipo__in=['COMPRA_MAT', 'MAQUILA']
-        ).exclude(pedido__estado='CANCELADO')
+        ).exclude(pedido__estado__in=['CANCELADO', 'PREVISION'])
         
         for detalle in detalles_compra:
             pedido = detalle.pedido

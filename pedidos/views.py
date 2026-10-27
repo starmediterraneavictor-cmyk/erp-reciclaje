@@ -28,8 +28,8 @@ def lista_pedidos(request):
     OrigenVenta.objects.filter(pedido_compra__isnull=True).delete()
     # ---------------------------------------------
 
-    # Base queryset
-    pedidos = Pedido.objects.all().order_by('-fecha')
+    # Base queryset (Ocultamos las previsiones por defecto)
+    pedidos = Pedido.objects.exclude(estado='PREVISION').order_by('-fecha')
 
     # --- Filtros ---
     tipo = request.GET.get('tipo', '')
@@ -292,7 +292,7 @@ def nuevo_pedido(request):
             messages.error(request, f'❌ Error: {str(e)}')
 
     # 🆕 Filtrar solo los pedidos de compra que tengan toneladas disponibles
-    todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').order_by('-fecha')
+    todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').exclude(estado='PREVISION').order_by('-fecha')
     pedidos_disponibles = [pc for pc in todos_compra if pc.tn_disponibles > Decimal('0')]
 
     context = {
@@ -505,7 +505,7 @@ def editar_pedido(request, pedido_id):
     # ============================================
     
     # 1. Obtener todos los pedidos de compra
-    todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').exclude(id=pedido.id).order_by('-fecha')
+    todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').exclude(id=pedido.id).exclude(estado='PREVISION').order_by('-fecha')
     
     # 2. Obtener los orígenes que ya tiene ESTE pedido para no restarlos dos veces
     origenes_este_pedido = pedido.origenes_venta.all()
