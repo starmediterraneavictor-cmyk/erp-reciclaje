@@ -113,7 +113,7 @@ def dashboard(request):
         'ingresos_mes': ingresos_mes,
         'ingresos_totales': ingresos_totales,
         'stock_total': stock_total,
-        'materiales': materiales,
+        'materiales': materiales_con_stock,
         'demanda': demanda,
     }
     return render(request, 'core/dashboard.html', context)
