@@ -283,6 +283,10 @@ def nuevo_pedido(request):
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
 
+    # 🆕 Filtrar solo los pedidos de compra que tengan toneladas disponibles
+    todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').order_by('-fecha')
+    pedidos_disponibles = [pc for pc in todos_compra if pc.tn_disponibles > Decimal('0')]
+
     context = {
         'clientes': Cliente.objects.filter(estado='ACTIVO').order_by('nombre'),
         'proveedores': Proveedor.objects.filter(estado='ACTIVO', tipo='MATERIAL').order_by('nombre'),
@@ -290,7 +294,7 @@ def nuevo_pedido(request):
         'tipos': Pedido.TIPO_OPERACION,
         'estados': Pedido.ESTADO_PEDIDO,
         'incoterms': Pedido.INCOTERM_CHOICES,
-        'pedidos_compra': Pedido.objects.filter(tipo='COMPRA_MAT').order_by('-fecha'),
+        'pedidos_compra': pedidos_disponibles, # 🆕 Aquí pasamos la lista filtrada
         'fecha_actual': datetime.now().strftime('%Y-%m-%d'),
     }
     return render(request, 'pedidos/nuevo_pedido.html', context)
