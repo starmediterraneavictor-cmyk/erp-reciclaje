@@ -181,6 +181,47 @@ document.addEventListener('DOMContentLoaded', function() {
     selectTipo.addEventListener('change', actualizarBloques);
     actualizarBloques();
 });
+
+// 🆕 Datos de proveedores desde Django
+const proveedoresJson = {{ proveedores_json|safe }};
+const selectCategoria = document.querySelector('select[name="categoria"]');
+const selectProveedor = document.querySelector('select[name="proveedor"]');
+
+// Función para filtrar proveedores
+function filtrarProveedores() {
+    const categoria = selectCategoria.value;
+    let tipoProveedorBuscado = '';
+
+    // Mapeamos la categoría de la factura al tipo de proveedor
+    if (categoria === 'COMERCIO_MATERIALES') tipoProveedorBuscado = 'MATERIAL';
+    else if (categoria === 'TRANSPORTE') tipoProveedorBuscado = 'SERVICIO';
+    else if (categoria === 'SERVICIOS_PROFESIONALES') tipoProveedorBuscado = 'SERVICIO';
+    else if (categoria === 'SUMINISTROS') tipoProveedorBuscado = 'SUMINISTRO';
+    else if (categoria === 'IMPUESTOS') tipoProveedorBuscado = 'IMPUESTO';
+    else if (categoria === 'OTROS') tipoProveedorBuscado = 'OTRO';
+
+    // Guardar el valor actual (para no perderlo si ya estaba seleccionado y sigue siendo válido)
+    const valorActual = selectProveedor.value;
+
+    // Limpiar el desplegable de proveedores
+    selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
+
+    // Rellenar solo con los que coincidan con el tipo
+    proveedoresJson.forEach(p => {
+        if (p.tipo === tipoProveedorBuscado) {
+            const option = document.createElement('option');
+            option.value = p.id;
+            option.textContent = p.nombre;
+            if (p.id == valorActual) option.selected = true;
+            selectProveedor.appendChild(option);
+        }
+    });
+}
+
+// Escuchar cambios en la categoría
+selectCategoria.addEventListener('change', filtrarProveedores);
+
+
 </script>
 
 {% endblock %}

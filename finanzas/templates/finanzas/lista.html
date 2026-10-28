@@ -85,7 +85,7 @@
             <input type="hidden" name="ver_anuladas" value="1">
             {% endif %}
 
-            <div class="col-md-8">
+            <div class="col-md-5">
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                     <input type="text" name="buscar" class="form-control" 
@@ -93,9 +93,20 @@
                            value="{{ buscar_filtro }}">
                 </div>
             </div>
+            
+            <!-- 🆕 SELECTOR DE CATEGORÍA -->
+            <div class="col-md-3">
+                <select name="categoria" class="form-select">
+                    <option value="">Todas las categorías</option>
+                    {% for key, value in categorias %}
+                    <option value="{{ key }}" {% if categoria_filtro == key %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
             <div class="col-md-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Buscar</button>
-                {% if buscar_filtro or tipo_filtro %}
+                {% if buscar_filtro or tipo_filtro or categoria_filtro %}
                 <a href="{% url 'lista_facturas' %}{% if ver_anuladas %}?ver_anuladas=1{% endif %}" class="btn btn-outline-secondary">
                     <i class="bi bi-x-circle"></i> Limpiar
                 </a>

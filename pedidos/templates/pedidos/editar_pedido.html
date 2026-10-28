@@ -13,7 +13,8 @@
 
 <form method="POST" id="formPedido">
     {% csrf_token %}
-    <input type="hidden" name="return_url" value="{{ url_retorno }}"> <!-- 🆕 -->
+    <input type="hidden" name="return_url" value="{{ url_retorno }}">
+    
     <!-- Datos del pedido -->
     <div class="card card-custom mb-4">
         <div class="card-body">
@@ -96,7 +97,6 @@
                 <div class="col-md-12 mb-3 d-none" id="bloque-origenes">
                     <label class="form-label">🔗 Orígenes de compra</label>
 
-                    <!-- Orígenes YA ASIGNADOS -->
                     {% if pedido.origenes_venta.exists %}
                     <div class="mb-3">
                         <h6 class="text-muted small">Orígenes asignados actualmente:</h6>
@@ -115,7 +115,7 @@
                                         <label class="form-label small">Cantidad (tn)</label>
                                         <input type="number" step="0.01" 
                                                name="origen_cantidad_existente_{{ origen.id }}"
-                                               class="form-control form-control-sm"
+                                               class="form-control form-control-sm origen-cant-input"
                                                value="{{ origen.cantidad_tn|unlocalize }}">
                                     </div>
                                     <div class="col-md-2 mb-2 d-flex align-items-end">
@@ -129,10 +129,6 @@
                             </div>
                             {% endfor %}
                         </div>
-                        <small class="text-muted d-block mb-3">
-                            ℹ️ Si quieres cambiar un origen por otro, primero <strong>quítalo</strong> con el botón "Quitar" 
-                            y luego guarda. Después podrás añadir uno nuevo.
-                        </small>
                     </div>
                     {% endif %}
 
@@ -145,17 +141,12 @@
                         </button>
                     </div>
 
-                    <!-- 🆕 TOTAL DE TONELADAS EN ORÍGENES -->
                     <div class="d-flex justify-content-end mt-3 border-top pt-3">
                         <h6 class="mb-0 me-3">Total Asignado:</h6>
                         <h6 class="mb-0 text-primary fw-bold">
                             <span id="total_origenes">0.00</span> tn
                         </h6>
                     </div>
-
-                    <small class="text-muted d-block mt-1">
-                        Solo aparecen los pedidos de compra que <strong>aún no están vinculados</strong> a ningún pedido de venta.
-                    </small>
                 </div> 
             </div>
         </div>
@@ -168,7 +159,6 @@
             <button type="button" class="btn btn-success btn-sm" onclick="añadirLinea()">
                 <i class="bi bi-plus-circle"></i> Añadir línea
             </button>
-            
         </div>
         <div class="card-body">
             <div id="lineasContainer">
@@ -247,6 +237,7 @@
                 </div>
                 {% endfor %}
             </div>
+            
             <div class="d-flex justify-content-end mt-3 border-top pt-3">
                 <h5 class="mb-0 me-3">Total Cantidad:</h5>
                 <h4 class="mb-0 text-success fw-bold">
@@ -273,8 +264,7 @@
         </a>
     </div>
 
-    <!-- Peso real en bascula -->
-     <div class="card card-custom mb-4">
+    <div class="card card-custom mb-4 mt-4">
         <div class="card-body">
             <label class="form-label">⚖️ Peso real en báscula (tn)</label>
             <input type="number" step="0.01" name="peso_real_tn" class="form-control" value="{{ pedido.peso_real_tn|default_if_none:'' }}">
@@ -284,6 +274,7 @@
 </form>
 
 <script>
+// 1. LÓGICA DE INTERFAZ
 document.addEventListener('DOMContentLoaded', function() {
     const selectTipo = document.getElementById('id_tipo');
     const selectEstado = document.getElementById('id_estado');
@@ -295,7 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function actualizarClienteProveedor() {
         const tipo = selectTipo.value;
         const esVenta = tipo === 'VENTA_MAT';
-        
         if (esVenta) {
             bloqueCliente.classList.remove('d-none');
             bloqueProveedor.classList.add('d-none');
@@ -309,10 +299,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function actualizarAvisoEstado() {
         const estado = selectEstado.value;
-        
         if (estado === 'PREVISION') {
             avisoEstado.className = 'alert alert-warning mb-3';
-            avisoEstado.innerHTML = '<strong>⏸️ Estado PREVISIÓN:</strong> Este pedido <strong>NO afectará al inventario</strong>. Sirve para anotar pedidos sin material disponible. Cuando tengas el material, cambia el estado a <strong>Pendiente</strong> para aplicarlo al stock.';
+            avisoEstado.innerHTML = '<strong>⏸️ Estado PREVISIÓN:</strong> Este pedido <strong>NO afectará al inventario</strong>. Sirve para anotar pedidos sin material disponible.';
         } else {
             avisoEstado.className = 'alert alert-success mb-3';
             avisoEstado.innerHTML = '<strong>✅ Estado activo:</strong> Este pedido <strong>SÍ afectará al inventario</strong>. Al guardar, se validará el stock y se descontará automáticamente.';
@@ -325,41 +314,33 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarClienteProveedor();
     actualizarAvisoEstado();
     actualizarOrigenesDisponibles();
+    calcularTotales();
 });
 
+// 2. FUNCIONES PARA AÑADIR/ELIMINAR
 function añadirLinea() {
     const container = document.getElementById('lineasContainer');
     const template = container.querySelector('.linea-item').cloneNode(true);
     template.querySelectorAll('input').forEach(i => i.value = '');
     template.querySelector('select').selectedIndex = 0;
     container.appendChild(template);
+    calcularTotales();
 }
 
 function eliminarLinea(btn) {
     const lineas = document.querySelectorAll('.linea-item');
     if (lineas.length > 1) {
         btn.closest('.linea-item').remove();
+        calcularTotales();
     } else {
         alert('Debe haber al menos una línea');
     }
 }
 
-document.addEventListener('change', function(e) {
-    if (e.target.name === 'material[]') {
-        const precio = e.target.options[e.target.selectedIndex]?.dataset?.precio;
-        const linea = e.target.closest('.linea-item');
-        const precioInput = linea.querySelector('.precio-input');
-        if (precio && !precioInput.value) {
-            precioInput.value = precio;
-        }
-    }
-});
-
 const pedidosCompraDisponibles = [
     {% for pc in pedidos_compra %}
     { 
         id: {{ pc.id }}, 
-        // 🆕 Usamos pc.tn_libres_calculadas
         label: "{{ pc.numero_pedido }} - {{ pc.entidad_nombre|escapejs }} - Quedan: {{ pc.tn_libres_calculadas|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn" 
     },
     {% endfor %}
@@ -381,10 +362,10 @@ function añadirOrigen(datos = null) {
                 </div>
                 <div class="col-md-4 mb-2">
                     <label class="form-label small">Cantidad (tn)</label>
-                    <input type="number" step="0.01" name="origen_cantidad_nuevo" class="form-control form-control-sm" value="">
+                    <input type="number" step="0.01" name="origen_cantidad_nuevo" class="form-control form-control-sm origen-cant-input" value="${datos ? datos.cantidad : ''}">
                 </div>
                 <div class="col-md-2 mb-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="eliminarOrigen(this); calcularTotalOrigenes();">
+                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="eliminarOrigen(this)">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -398,6 +379,7 @@ function añadirOrigen(datos = null) {
 function eliminarOrigen(btn) {
     btn.closest('.origen-item').remove();
     actualizarOrigenesDisponibles();
+    calcularTotales();
 }
 
 function actualizarOrigenesDisponibles() {
@@ -418,123 +400,57 @@ function actualizarOrigenesDisponibles() {
     });
 }
 
-// 🆕 Función para calcular el total de toneladas
-function calcularTotalToneladas() {
-    let total = 0;
-    const inputsCantidad = document.querySelectorAll('input[name="cantidad[]"]');
-    
-    inputsCantidad.forEach(input => {
-        const valor = parseFloat(input.value);
-        if (!isNaN(valor)) {
-            total += valor;
-        }
-    });
-
-    // Mostrar con 2 decimales (cambiando el punto por coma si quieres, pero 2 decimales está bien)
-    document.getElementById('total_toneladas').textContent = total.toFixed(2);
-}
-
-// Escuchar cambios en los inputs de cantidad
-document.addEventListener('input', function(e) {
-    if (e.target && e.target.name === 'cantidad[]') {
-        calcularTotalToneladas();
-    }
-});
-
-// Calcular al cargar la página por primera vez
-document.addEventListener('DOMContentLoaded', function() {
+// 3. CÁLCULO DE TOTALES
+function calcularTotales() {
     calcularTotalToneladas();
-});
-
-// 🆕 Calcular el total de toneladas en orígenes (SOLO orígenes)
-function calcularTotalOrigenes() {
-    let total = 0;
-    
-    // Buscamos solo los inputs que estén DENTRO del bloque de orígenes
-    const bloqueOrigenes = document.getElementById('bloque-origenes');
-    if (bloqueOrigenes) {
-        // Inputs de existentes
-        const inputsExistentes = bloqueOrigenes.querySelectorAll('input[name^="origen_cantidad_existente_"]');
-        inputsExistentes.forEach(input => {
-            const valor = parseFloat(input.value);
-            if (!isNaN(valor)) total += valor;
-        });
-
-        // Inputs de nuevos
-        const inputsNuevos = bloqueOrigenes.querySelectorAll('input[name="origen_cantidad_nuevo"]');
-        inputsNuevos.forEach(input => {
-            const valor = parseFloat(input.value);
-            if (!isNaN(valor)) total += valor;
-        });
-    }
-
-    document.getElementById('total_origenes').textContent = total.toFixed(2);
+    calcularTotalOrigenes();
 }
 
-// Escuchar cambios SOLO en los inputs que estén dentro del bloque de orígenes
-document.addEventListener('input', function(e) {
-    if (e.target && e.target.name && e.target.name.startsWith('origen_cantidad')) {
-        calcularTotalOrigenes();
-    }
-});
-
-// Calcular al cargar la página (con un pequeño delay para que el HTML esté listo)
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(calcularTotalOrigenes, 50); 
-});
-
-// 🆕 Función para calcular el total de toneladas en Materiales
 function calcularTotalToneladas() {
     let total = 0;
     const inputsCantidad = document.querySelectorAll('input[name="cantidad[]"]');
-    
     inputsCantidad.forEach(input => {
         const valor = parseFloat(input.value);
         if (!isNaN(valor)) total += valor;
     });
-
     const el = document.getElementById('total_toneladas');
     if (el) el.textContent = total.toFixed(2);
 }
 
-// 🆕 Función para calcular el total de toneladas en Orígenes
 function calcularTotalOrigenes() {
     let total = 0;
-    
-    // Inputs de orígenes existentes (si estamos editando)
     const inputsExistentes = document.querySelectorAll('input[name^="origen_cantidad_existente_"]');
     inputsExistentes.forEach(input => {
         const valor = parseFloat(input.value);
         if (!isNaN(valor)) total += valor;
     });
-
-    // Inputs de orígenes nuevos
     const inputsNuevos = document.querySelectorAll('input[name="origen_cantidad_nuevo"]');
     inputsNuevos.forEach(input => {
         const valor = parseFloat(input.value);
         if (!isNaN(valor)) total += valor;
     });
-
     const el = document.getElementById('total_origenes');
     if (el) el.textContent = total.toFixed(2);
 }
 
-// Escuchar cambios en TODOS los inputs de cantidad
+// Escuchar cambios en los inputs
 document.addEventListener('input', function(e) {
-    if (e.target && e.target.name === 'cantidad[]') {
-        calcularTotalToneladas();
-    }
-    if (e.target && e.target.name && e.target.name.startsWith('origen_cantidad')) {
-        calcularTotalOrigenes();
+    if (e.target.name === 'cantidad[]' || e.target.name.startsWith('origen_cantidad')) {
+        calcularTotales();
     }
 });
 
-// Calcular al cargar la página por primera vez
-document.addEventListener('DOMContentLoaded', function() {
-    calcularTotalToneladas();
-    calcularTotalOrigenes();
+// Auto-rellenar precio al seleccionar material
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'material[]') {
+        const precio = e.target.options[e.target.selectedIndex]?.dataset?.precio;
+        const linea = e.target.closest('.linea-item');
+        const precioInput = linea.querySelector('.precio-input');
+        if (precio && !precioInput.value) {
+            precioInput.value = precio;
+            calcularTotales();
+        }
+    }
 });
-
-
 </script>
 {% endblock %}

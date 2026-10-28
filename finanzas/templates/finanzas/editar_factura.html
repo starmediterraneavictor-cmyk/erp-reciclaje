@@ -177,5 +177,38 @@ document.addEventListener('DOMContentLoaded', function() {
     selectTipo.addEventListener('change', actualizarBloques);
     actualizarBloques();
 });
+// 🆕 Filtrar proveedores según categoría en edición
+const proveedoresJson = {{ proveedores_json|safe }};
+const selectCategoria = document.querySelector('select[name="categoria"]');
+const selectProveedor = document.querySelector('select[name="proveedor"]');
+
+function filtrarProveedores() {
+    const categoria = selectCategoria.value;
+    let tipoProveedorBuscado = '';
+
+    if (categoria === 'COMERCIO_MATERIALES') tipoProveedorBuscado = 'MATERIAL';
+    else if (categoria === 'TRANSPORTE') tipoProveedorBuscado = 'SERVICIO';
+    else if (categoria === 'SERVICIOS_PROFESIONALES') tipoProveedorBuscado = 'SERVICIO';
+    else if (categoria === 'SUMINISTROS') tipoProveedorBuscado = 'SUMINISTRO';
+    else if (categoria === 'IMPUESTOS') tipoProveedorBuscado = 'IMPUESTO';
+    else if (categoria === 'OTROS') tipoProveedorBuscado = 'OTRO';
+
+    const valorActual = selectProveedor.value;
+    selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
+
+    proveedoresJson.forEach(p => {
+        if (p.tipo === tipoProveedorBuscado) {
+            const option = document.createElement('option');
+            option.value = p.id;
+            option.textContent = p.nombre;
+            if (p.id == valorActual) option.selected = true;
+            selectProveedor.appendChild(option);
+        }
+    });
+}
+
+selectCategoria.addEventListener('change', filtrarProveedores);
+// Ejecutar al cargar la página para que empiece filtrado
+document.addEventListener('DOMContentLoaded', filtrarProveedores);
 </script>
 {% endblock %}

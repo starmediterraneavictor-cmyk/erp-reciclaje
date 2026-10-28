@@ -74,32 +74,19 @@ def lista_facturas(request):
     # Ver anuladas: por defecto NO
     ver_anuladas = request.GET.get('ver_anuladas', '') == '1'
     
-    # 🆕 Filtro por tipo (Ingreso / Gasto)
-    tipo_filtro = request.GET.get('tipo', '')
-    
-    # 🆕 Filtro de búsqueda libre
-    buscar = request.GET.get('buscar', '').strip()
+    # 🆕 Filtro por Categoría
+    categoria = request.GET.get('categoria', '')
 
     if ver_anuladas:
         facturas = Factura.objects.all().order_by('-fecha')
     else:
         facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
-        
-    if tipo_filtro:
-        facturas = facturas.filter(tipo=tipo_filtro)
-        
-    # 🆕 Búsqueda por nº factura, nº albarán, cliente o proveedor
-    if buscar:
-        facturas = facturas.filter(
-            Q(numero_factura__icontains=buscar) |
-            Q(numero_albaran__icontains=buscar) |
-            Q(cliente__nombre__icontains=buscar) |
-            Q(proveedor__nombre__icontains=buscar)
-        )
 
-    # Para los totales (KPI), calculamos sobre TODAS las facturas (ignorando el filtro de tipo y búsqueda)
-    facturas_base = Factura.objects.exclude(estado_pago='ANULADO')
-    totales = facturas_base.aggregate(
+    # 🆕 Aplicar filtro de categoría
+    if categoria:
+        facturas = facturas.filter(categoria=categoria)
+
+    totales = facturas.aggregate(
         ingresos=Sum('total', filter=Q(tipo='INGRESO')),
         gastos=Sum('total', filter=Q(tipo='GASTO')),
     )
@@ -113,8 +100,8 @@ def lista_facturas(request):
         'total_gastos': total_gastos,
         'beneficio': beneficio,
         'ver_anuladas': ver_anuladas,
-        'tipo_filtro': tipo_filtro,
-        'buscar_filtro': buscar, # 🆕
+        'categorias': Factura.CATEGORIAS, # 🆕 Enviamos las opciones al HTML
+        'categoria_filtro': categoria,    # 🆕
     }
     return render(request, 'finanzas/lista.html', context)
 
@@ -157,6 +144,7 @@ def nueva_factura(request):
     context = {
         'clientes': Cliente.objects.all().order_by('nombre'),
         'proveedores': Proveedor.objects.all().order_by('nombre'),
+        'proveedores_json': list(Proveedor.objects.values('id', 'nombre', 'tipo')), # 🆕 Para el JS
         'pedidos': Pedido.objects.all().order_by('-fecha')[:50],
         'tipos': Factura.TIPO_FACTURA,
         'categorias': Factura.CATEGORIAS,
@@ -220,6 +208,7 @@ def editar_factura(request, factura_id):
         'factura': factura,
         'clientes': Cliente.objects.all().order_by('nombre'),
         'proveedores': Proveedor.objects.all().order_by('nombre'),
+        'proveedores_json': list(Proveedor.objects.values('id', 'nombre', 'tipo')), # 🆕 Para el JS
         'pedidos': Pedido.objects.all().order_by('-fecha')[:50],
         'tipos': Factura.TIPO_FACTURA,
         'categorias': Factura.CATEGORIAS,
