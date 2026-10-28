@@ -43,11 +43,21 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+        <div class="col-md-4">
         <div class="card card-custom">
             <div class="card-body">
-                <h6 class="text-primary">📊 Beneficio</h6>
-                <h3>{{ beneficio|formato_es }} €</h3>
+                <h6 class="text-primary">
+                    {% if tipo_filtro == 'GASTO' or tipo_filtro == 'INGRESO' %}
+                        📊 Total Gastos Filtrados
+                    {% else %}
+                        📊 Beneficio
+                    {% endif %}
+                </h6>
+                {% if tipo_filtro == 'GASTO' or tipo_filtro == 'INGRESO' %}
+                    <h3 class="text-danger">{{ total_ingresos|formato_es }} €</h3>
+                {% else %}
+                    <h3 class="text-primary">{{ beneficio|formato_es }} €</h3>
+                {% endif %}
             </div>
         </div>
     </div>
