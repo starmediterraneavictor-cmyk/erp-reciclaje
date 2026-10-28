@@ -168,6 +168,7 @@
             <button type="button" class="btn btn-success btn-sm" onclick="añadirLinea()">
                 <i class="bi bi-plus-circle"></i> Añadir línea
             </button>
+            
         </div>
         <div class="card-body">
             <div id="lineasContainer">
@@ -480,6 +481,58 @@ document.addEventListener('input', function(e) {
 // Calcular al cargar la página (con un pequeño delay para que el HTML esté listo)
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(calcularTotalOrigenes, 50); 
+});
+
+// 🆕 Función para calcular el total de toneladas en Materiales
+function calcularTotalToneladas() {
+    let total = 0;
+    const inputsCantidad = document.querySelectorAll('input[name="cantidad[]"]');
+    
+    inputsCantidad.forEach(input => {
+        const valor = parseFloat(input.value);
+        if (!isNaN(valor)) total += valor;
+    });
+
+    const el = document.getElementById('total_toneladas');
+    if (el) el.textContent = total.toFixed(2);
+}
+
+// 🆕 Función para calcular el total de toneladas en Orígenes
+function calcularTotalOrigenes() {
+    let total = 0;
+    
+    // Inputs de orígenes existentes (si estamos editando)
+    const inputsExistentes = document.querySelectorAll('input[name^="origen_cantidad_existente_"]');
+    inputsExistentes.forEach(input => {
+        const valor = parseFloat(input.value);
+        if (!isNaN(valor)) total += valor;
+    });
+
+    // Inputs de orígenes nuevos
+    const inputsNuevos = document.querySelectorAll('input[name="origen_cantidad_nuevo"]');
+    inputsNuevos.forEach(input => {
+        const valor = parseFloat(input.value);
+        if (!isNaN(valor)) total += valor;
+    });
+
+    const el = document.getElementById('total_origenes');
+    if (el) el.textContent = total.toFixed(2);
+}
+
+// Escuchar cambios en TODOS los inputs de cantidad
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.name === 'cantidad[]') {
+        calcularTotalToneladas();
+    }
+    if (e.target && e.target.name && e.target.name.startsWith('origen_cantidad')) {
+        calcularTotalOrigenes();
+    }
+});
+
+// Calcular al cargar la página por primera vez
+document.addEventListener('DOMContentLoaded', function() {
+    calcularTotalToneladas();
+    calcularTotalOrigenes();
 });
 
 
