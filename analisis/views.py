@@ -10,6 +10,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from collections import defaultdict
 from django.contrib.auth.decorators import login_required
+from pedidos.models import Comision
 
 
 @login_required
@@ -59,6 +60,15 @@ def dashboard_analisis(request):
         total=Sum('total')
     )['total'] or Decimal('0')
 
+    # 🆕 Restar las comisiones de los comerciales
+        
+    comisiones_rango = Comision.objects.filter(
+            pedido__fecha__date__gte=fecha_inicio,
+            pedido__fecha__date__lte=fecha_fin
+        ).select_related('pedido')
+    
+    total_comisiones = sum((c.importe_comision for c in comisiones_rango), Decimal('0'))
+
     # --- Cuentas por cobrar SIN factura (para no duplicar) ---
     cobros_rango = CuentaPorCobrar.objects.filter(
         fecha_emision__gte=fecha_inicio,
@@ -85,7 +95,9 @@ def dashboard_analisis(request):
     # --- Totales ---
     total_ingresos = ingresos_facturas + ingresos_cuentas
     total_gastos = gastos_facturas + gastos_cuentas
-    beneficio = total_ingresos - total_gastos
+
+    # 🆕 Beneficio = Ingresos - Gastos - Comisiones
+    beneficio = total_ingresos - total_gastos - total_comisiones
     margen_beneficio = (beneficio / total_ingresos * 100) if total_ingresos > 0 else 0
 
     # --- Desglose de gastos por categoría ---
@@ -410,6 +422,7 @@ def dashboard_analisis(request):
         'rango_filtro': rango,
         'fecha_inicio': fecha_inicio,
         'fecha_fin': fecha_fin,
+        'total_comisiones': float(total_comisiones),
     }
 
     return render(request, 'analisis/dashboard_analisis.html', context)
