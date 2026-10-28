@@ -25,4 +25,10 @@ urlpatterns = [
 
     # Ajuste de peso
     path('<int:pedido_id>/ajustar-peso/', views.generar_ajuste_peso, name='generar_ajuste_peso'),
+
+    # Comisiones
+    path('<int:pedido_id>/comision/nueva/', views.nueva_comision, name='nueva_comision'),
+    path('comision/<int:comision_id>/eliminar/', views.eliminar_comision, name='eliminar_comision'),
+
 ]
+

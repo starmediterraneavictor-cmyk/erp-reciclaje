@@ -62,9 +62,25 @@ class PedidoInternacionalAdmin(admin.ModelAdmin):
             'fields': ('notas',)
         }),
     )
-    
+
 @admin.register(OrigenVenta)
 class OrigenVentaAdmin(admin.ModelAdmin):
     list_display = ('pedido_venta', 'pedido_compra', 'cantidad_tn', 'fecha_asignacion')
     search_fields = ('pedido_venta__numero_pedido', 'pedido_compra__numero_pedido')
     list_filter = ('pedido_venta__tipo', 'pedido_compra__tipo')
+
+
+from .models import Comercial, Comision
+
+@admin.register(Comercial)
+class ComercialAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'telefono', 'email', 'activo')
+    search_fields = ('nombre', 'email')
+    list_filter = ('activo',)
+
+class ComisionInline(admin.TabularInline):
+    model = Comision
+    extra = 1
+
+# Y añade el Inline al PedidoAdmin (si no lo tienes):
+# inlines = [DetalleInline, ComisionInline]

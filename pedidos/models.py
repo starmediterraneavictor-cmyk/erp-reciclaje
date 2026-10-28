@@ -592,3 +592,46 @@ def recalcular_stock_material(material):
     inventario.save()
     
     return total_disponible
+
+class Comercial(models.Model):
+    """Datos del comercial o agente"""
+    nombre = models.CharField(max_length=200)
+    telefono = models.CharField(max_length=50, blank=True)
+    email = models.EmailField(blank=True)
+    activo = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return self.nombre
+    
+    class Meta:
+        verbose_name = "Comercial"
+        verbose_name_plural = "Comerciales"
+        ordering = ['nombre']
+
+
+class Comision(models.Model):
+    """Comisión asociada a un pedido y a un comercial"""
+    TIPO_CHOICES = [
+        ('PORCENTAJE', 'Porcentaje (%)'),
+        ('FIJO', 'Importe Fijo (€)'),
+    ]
+    
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='comisiones')
+    comercial = models.ForeignKey(Comercial, on_delete=models.PROTECT)
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='PORCENTAJE')
+    valor = models.DecimalField(max_digits=10, decimal_places=2, help_text="Porcentaje (ej: 5) o importe fijo en €")
+    notas = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.comercial.nombre} - {self.pedido.numero_pedido}"
+
+    @property
+    def importe_comision(self):
+        """Calcula el importe real de la comisión"""
+        if self.tipo == 'PORCENTAJE':
+            return self.pedido.total_importe * (self.valor / 100)
+        return self.valor
+
+    class Meta:
+        verbose_name = "Comisión"
+        verbose_name_plural = "Comisiones"

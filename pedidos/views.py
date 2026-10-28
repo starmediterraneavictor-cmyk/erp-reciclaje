@@ -162,6 +162,9 @@ def detalle_pedido(request, pedido_id):
         'cuenta_pagar_existente': cuenta_pagar_existente,
         'total_kg': pedido.total_kg,
         'total_importe': pedido.total_importe,
+        'comerciales': Comercial.objects.filter(activo=True),
+        'comisiones': pedido.comisiones.all(),
+        'total_comisiones': sum((c.importe_comision for c in pedido.comisiones.all()), Decimal('0')),
         'url_retorno': url_retorno,
     }
     return render(request, 'pedidos/detalle_pedido.html', context)
@@ -976,3 +979,39 @@ def generar_ajuste_peso(request, pedido_id):
         'ajuste': ajuste,
     }
     return render(request, 'pedidos/confirmar_ajuste_peso.html', context)
+
+
+@login_required
+def nueva_comision(request, pedido_id):
+    """Añade una comisión a un pedido"""
+    from .models import Comercial, Comision
+    pedido = get_object_or_404(Pedido, id=pedido_id)
+    
+    if request.method == 'POST':
+        try:
+            comercial_id = request.POST.get('comercial')
+            tipo = request.POST.get('tipo')
+            valor = Decimal(request.POST.get('valor'))
+            
+            Comision.objects.create(
+                pedido=pedido,
+                comercial_id=comercial_id,
+                tipo=tipo,
+                valor=valor
+            )
+            messages.success(request, '✅ Comisión añadida correctamente')
+        except Exception as e:
+            messages.error(request, f'❌ Error al añadir comisión: {str(e)}')
+            
+    return redirect('detalle_pedido', pedido_id=pedido.id)
+
+
+@login_required
+def eliminar_comision(request, comision_id):
+    """Elimina una comisión"""
+    from .models import Comision
+    comision = get_object_or_404(Comision, id=comision_id)
+    pedido_id = comision.pedido.id
+    comision.delete()
+    messages.success(request, '✅ Comisión eliminada')
+    return redirect('detalle_pedido', pedido_id=pedido_id)
