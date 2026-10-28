@@ -72,19 +72,19 @@
 <ul class="nav nav-tabs mb-3">
     <li class="nav-item">
         <a class="nav-link {% if not tipo_filtro %}active{% endif %}" 
-           href="?{% if ver_anuladas %}ver_anuladas=1&{% endif %}{% if buscar_filtro %}buscar={{ buscar_filtro }}{% endif %}">
+           href="?{% if ver_anuladas %}ver_anuladas=1&{% endif %}{% if buscar_filtro %}buscar={{ buscar_filtro }}&{% endif %}{% if categoria_filtro %}categoria={{ categoria_filtro }}{% endif %}">
             📋 Todas
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if tipo_filtro == 'INGRESO' %}active{% endif %}" 
-           href="?tipo=INGRESO{% if ver_anuladas %}&ver_anuladas=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}">
+           href="?tipo=INGRESO{% if ver_anuladas %}&ver_anuladas=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}">
             📥 Ingresos
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if tipo_filtro == 'GASTO' %}active{% endif %}" 
-           href="?tipo=GASTO{% if ver_anuladas %}&ver_anuladas=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}">
+           href="?tipo=GASTO{% if ver_anuladas %}&ver_anuladas=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}">
             📤 Gastos
         </a>
     </li>
