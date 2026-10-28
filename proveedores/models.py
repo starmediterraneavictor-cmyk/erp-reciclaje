@@ -3,11 +3,14 @@ from django.db import models
 
 class Proveedor(models.Model):
     TIPO_PROVEEDOR = [
-        ('MATERIAL', 'Material'),
-        ('SERVICIO', 'Servicio'),
-        ('SUMINISTRO', 'Suministro'),
-        ('IMPUESTO', 'Impuesto / Administración'),
-        ('OTRO', 'Otro'),
+        ('COMERCIO_MATERIALES', 'Comercio de Materiales'),
+        ('SERVICIOS_PROFESIONALES', 'Servicios Profesionales'),
+        ('SUMINISTROS', 'Suministros'),
+        ('RENTA_PARKING', 'Renta Parking'),
+        ('TRANSPORTE', 'Transporte'),
+        ('MANTENIMIENTO', 'Mantenimiento'),
+        ('IMPUESTOS', 'Impuestos'),
+        ('OTROS', 'Otros'),
     ]
     
     ESTADO_CHOICES = [
@@ -24,7 +27,7 @@ class Proveedor(models.Model):
     codigo_nima = models.CharField(max_length=50, blank=True,verbose_name="Código NIMA")
     numero_gestor = models.CharField(max_length=50, blank=True,verbose_name="Nº Gestor de Residuos")
     
-    tipo = models.CharField(max_length=20, choices=TIPO_PROVEEDOR, default='MATERIAL')
+    tipo = models.CharField(max_length=80, choices=TIPO_PROVEEDOR, default='MATERIAL')
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='ACTIVO')
     
     iban = models.CharField(max_length=50, blank=True)

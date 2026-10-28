@@ -153,92 +153,77 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // 1. LÓGICA PARA MOSTRAR/OCULTAR CLIENTE O PROVEEDOR
     const selectTipo = document.getElementById('id_tipo');
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
     const bloqueArchivo = document.getElementById('bloque-archivo-factura');
+    const tipoCuenta = document.getElementById('tipo-cuenta'); // Solo en nueva_factura
+    const textoCuenta = document.getElementById('texto-cuenta'); // Solo en nueva_factura
 
     function actualizarBloques() {
+        if (!selectTipo) return;
         const tipo = selectTipo.value;
         if (tipo === 'INGRESO') {
             bloqueCliente.classList.remove('d-none');
             bloqueProveedor.classList.add('d-none');
-            bloqueArchivo.classList.add('d-none');
+            if (bloqueArchivo) bloqueArchivo.classList.add('d-none');
+            if (tipoCuenta) tipoCuenta.textContent = 'cobrar';
+            if (textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por cobrar con los datos de esta factura.';
         } else {
             bloqueCliente.classList.add('d-none');
             bloqueProveedor.classList.remove('d-none');
-            bloqueArchivo.classList.remove('d-none');
+            if (bloqueArchivo) bloqueArchivo.classList.remove('d-none');
+            if (tipoCuenta) tipoCuenta.textContent = 'pagar';
+            if (textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por pagar con los datos de esta factura.';
         }
     }
 
-    selectTipo.addEventListener('change', actualizarBloques);
-    actualizarBloques();
+    if (selectTipo) {
+        selectTipo.addEventListener('change', actualizarBloques);
+        actualizarBloques();
+    }
+
+    // 2. FILTRO DE PROVEEDORES POR CATEGORÍA
+    const proveedoresJson = {{ proveedores_json|safe }};
+    const selectCategoria = document.querySelector('select[name="categoria"]');
+    const selectProveedor = document.querySelector('select[name="proveedor"]');
+
+    function filtrarProveedores() {
+        if (!selectCategoria || !selectProveedor) return;
+        
+        const categoria = selectCategoria.value;
+        const valorActual = selectProveedor.value; // Para no perder el seleccionado al editar
+        
+        selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
+
+        // Si no hay categoría, mostramos todos
+        if (!categoria) {
+            proveedoresJson.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = `${p.nombre} (${p.tipo})`;
+                if (p.id == valorActual) option.selected = true;
+                selectProveedor.appendChild(option);
+            });
+            return;
+        }
+
+        // Si hay categoría, solo mostramos los que coincidan
+        proveedoresJson.forEach(p => {
+            if (p.tipo === categoria) {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = `${p.nombre} (${p.tipo})`;
+                if (p.id == valorActual) option.selected = true;
+                selectProveedor.appendChild(option);
+            }
+        });
+    }
+
+    if (selectCategoria && selectProveedor) {
+        selectCategoria.addEventListener('change', filtrarProveedores);
+        filtrarProveedores(); // Ejecutar al cargar
+    }
 });
-
-// 🆕 Datos de proveedores desde Django
-const proveedoresJson = {{ proveedores_json|safe }};
-const selectCategoria = document.querySelector('select[name="categoria"]');
-const selectProveedor = document.querySelector('select[name="proveedor"]');
-
-// Función para filtrar proveedores según la categoría
-function filtrarProveedores() {
-    const categoria = selectCategoria.value;
-    let tiposPermitidos = [];
-
-    // Mapeamos la categoría de la factura a los tipos de proveedor válidos
-    switch (categoria) {
-        case 'COMERCIO_MATERIALES':
-            tiposPermitidos = ['MATERIAL'];
-            break;
-        case 'TRANSPORTE':
-            tiposPermitidos = ['SERVICIO', 'OTRO']; // Un transportista suele ser SERVICIO
-            break;
-        case 'SERVICIOS_PROFESIONALES':
-            tiposPermitidos = ['SERVICIO'];
-            break;
-        case 'SUMINISTROS':
-            tiposPermitidos = ['SUMINISTRO'];
-            break;
-        case 'IMPUESTOS':
-            tiposPermitidos = ['IMPUESTO'];
-            break;
-        case 'MANTENIMIENTO':
-            tiposPermitidos = ['SERVICIO', 'OTRO'];
-            break;
-        case 'RENTA_PARKING':
-            tiposPermitidos = ['SERVICIO', 'OTRO'];
-            break;
-        case 'OTROS':
-            tiposPermitidos = ['OTRO', 'SERVICIO', 'MATERIAL']; // Si es otros, dejamos ver casi todo
-            break;
-        default:
-            // Si no hay categoría seleccionada, mostrar todos
-            tiposPermitidos = ['MATERIAL', 'SERVICIO', 'SUMINISTRO', 'IMPUESTO', 'OTRO'];
-            break;
-    }
-
-    // Guardamos el valor actual para intentar mantenerlo si sigue siendo válido
-    const valorActual = selectProveedor.value;
-    selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
-
-    // Rellenar solo con los que coincidan con los tipos permitidos
-    proveedoresJson.forEach(p => {
-        if (tiposPermitidos.includes(p.tipo)) {
-            const option = document.createElement('option');
-            option.value = p.id;
-            // Añadimos el tipo entre paréntesis para que sepas de qué es
-            option.textContent = `${p.nombre} (${p.tipo})`;
-            if (p.id == valorActual) option.selected = true;
-            selectProveedor.appendChild(option);
-        }
-    });
-}
-
-// Escuchar cambios en la categoría
-selectCategoria.addEventListener('change', filtrarProveedores);
-
-// Ejecutar al cargar la página para que empiece filtrado
-document.addEventListener('DOMContentLoaded', filtrarProveedores);
-
 </script>
-{% endblock %}
