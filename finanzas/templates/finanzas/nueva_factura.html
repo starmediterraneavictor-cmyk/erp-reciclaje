@@ -21,7 +21,6 @@
                     <label class="form-label">Nº Factura <span class="text-danger">*</span></label>
                     <input type="text" name="numero_factura" class="form-control" required placeholder="2026001">
                 </div>
-                <!-- 🆕 AÑADIMOS AQUÍ EL ALBARÁN -->
                 <div class="col-md-3 mb-3">
                     <label class="form-label">Nº Albarán</label>
                     <input type="text" name="numero_albaran" class="form-control" placeholder="Ej: ALB-2026-001">
@@ -70,7 +69,7 @@
                     <label class="form-label">Proveedor <span class="text-danger">*</span></label>
                     <select name="proveedor" class="form-select">
                         <option value="">-- Seleccionar proveedor --</option>
-                        <!-- El JavaScript se encarga de rellenar esto -->
+                        <!-- Se llena vía JS -->
                     </select>
                     <small class="text-muted">Para facturas de GASTO (compras)</small>
                 </div>
@@ -85,12 +84,11 @@
                 </div>
             </div>
 
-            <!-- NUEVO: Archivo de factura del proveedor (solo para GASTOS) -->
             <div class="row d-none" id="bloque-archivo-factura">
                 <div class="col-md-12 mb-3">
                     <label class="form-label">📎 Factura del proveedor (PDF/imagen)</label>
                     <input type="file" name="archivo_factura" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
-                    <small class="text-muted">Sube la factura que te ha enviado el proveedor. Se guardará adjunta para consultas futuras.</small>
+                    <small class="text-muted">Sube la factura que te ha enviado el proveedor.</small>
                 </div>
             </div>
         </div>
@@ -121,18 +119,14 @@
                 <label class="form-label">Notas</label>
                 <textarea name="notas" class="form-control" rows="3"></textarea>
             </div>
-            <!-- Checkbox para crear cuenta asociada -->
             <div class="form-check mt-3 p-3 bg-light rounded">
-                <input class="form-check-input" type="checkbox" name="crear_cuenta" 
-                       id="id_crear_cuenta" checked>
+                <input class="form-check-input" type="checkbox" name="crear_cuenta" id="id_crear_cuenta" checked>
                 <label class="form-check-label" for="id_crear_cuenta">
                     📋 Crear cuenta por <strong id="tipo-cuenta">cobrar</strong> automáticamente
                 </label>
                 <br>
                 <small class="text-muted">
-                    <span id="texto-cuenta">
-                        Se creará una cuenta por cobrar con los datos de esta factura.
-                    </span>
+                    <span id="texto-cuenta">Se creará una cuenta por cobrar con los datos de esta factura.</span>
                 </small>
             </div>
         </div>
@@ -150,18 +144,16 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. LÓGICA PARA MOSTRAR/OCULTAR CLIENTE O PROVEEDOR
     const selectTipo = document.getElementById('id_tipo');
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
     const bloqueArchivo = document.getElementById('bloque-archivo-factura');
-    const tipoCuenta = document.getElementById('tipo-cuenta'); // Solo en nueva_factura
-    const textoCuenta = document.getElementById('texto-cuenta'); // Solo en nueva_factura
+    const tipoCuenta = document.getElementById('tipo-cuenta');
+    const textoCuenta = document.getElementById('texto-cuenta');
 
     function actualizarBloques() {
         if (!selectTipo) return;
-        const tipo = selectTipo.value;
-        if (tipo === 'INGRESO') {
+        if (selectTipo.value === 'INGRESO') {
             bloqueCliente.classList.remove('d-none');
             bloqueProveedor.classList.add('d-none');
             if (bloqueArchivo) bloqueArchivo.classList.add('d-none');
@@ -175,40 +167,23 @@ document.addEventListener('DOMContentLoaded', function() {
             if (textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por pagar con los datos de esta factura.';
         }
     }
-
     if (selectTipo) {
         selectTipo.addEventListener('change', actualizarBloques);
         actualizarBloques();
     }
 
-    // 2. FILTRO DE PROVEEDORES POR CATEGORÍA
     const proveedoresJson = {{ proveedores_json|safe }};
     const selectCategoria = document.querySelector('select[name="categoria"]');
     const selectProveedor = document.querySelector('select[name="proveedor"]');
 
     function filtrarProveedores() {
         if (!selectCategoria || !selectProveedor) return;
-        
         const categoria = selectCategoria.value;
-        const valorActual = selectProveedor.value; // Para no perder el seleccionado al editar
-        
+        const valorActual = selectProveedor.value;
         selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
-
-        // Si no hay categoría, mostramos todos
-        if (!categoria) {
-            proveedoresJson.forEach(p => {
-                const option = document.createElement('option');
-                option.value = p.id;
-                option.textContent = `${p.nombre} (${p.tipo})`;
-                if (p.id == valorActual) option.selected = true;
-                selectProveedor.appendChild(option);
-            });
-            return;
-        }
-
-        // Si hay categoría, solo mostramos los que coincidan
+        
         proveedoresJson.forEach(p => {
-            if (p.tipo === categoria) {
+            if (!categoria || p.tipo === categoria) {
                 const option = document.createElement('option');
                 option.value = p.id;
                 option.textContent = `${p.nombre} (${p.tipo})`;
@@ -217,10 +192,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
     if (selectCategoria && selectProveedor) {
         selectCategoria.addEventListener('change', filtrarProveedores);
-        filtrarProveedores(); // Ejecutar al cargar
+        filtrarProveedores();
     }
 });
 </script>
+{% endblock %}

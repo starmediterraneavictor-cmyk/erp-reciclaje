@@ -22,10 +22,9 @@
                     <label class="form-label">Nº Factura</label>
                     <input type="text" name="numero_factura" class="form-control" value="{{ factura.numero_factura }}" required>
                 </div>
-                <!-- 🆕 AÑADIMOS AQUÍ EL ALBARÁN -->
                 <div class="col-md-3 mb-3">
                     <label class="form-label">Nº Albarán</label>
-                    <input type="text" name="numero_albaran" class="form-control" value="{{ factura.numero_albaran|default:'' }}" placeholder="Ej: ALB-2026-001">
+                    <input type="text" name="numero_albaran" class="form-control" value="{{ factura.numero_albaran|default:'' }}">
                 </div>
                 <div class="col-md-3 mb-3">
                     <label class="form-label">Tipo</label>
@@ -52,8 +51,7 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Fecha vencimiento</label>
-                    <input type="date" name="fecha_vencimiento" class="form-control" 
-                           value="{{ factura.fecha_vencimiento|date:'Y-m-d'|default:'' }}">
+                    <input type="date" name="fecha_vencimiento" class="form-control" value="{{ factura.fecha_vencimiento|date:'Y-m-d'|default:'' }}">
                 </div>
             </div>
 
@@ -63,50 +61,38 @@
                     <select name="cliente" class="form-select">
                         <option value="">-- Seleccionar cliente --</option>
                         {% for c in clientes %}
-                        <option value="{{ c.id }}" {% if factura.cliente and factura.cliente.id == c.id %}selected{% endif %}>
-                            {{ c.nombre }}
-                        </option>
+                        <option value="{{ c.id }}" {% if factura.cliente and factura.cliente.id == c.id %}selected{% endif %}>{{ c.nombre }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-6 mb-3 d-none" id="bloque-proveedor">
-                    <label class="form-label">Proveedor <span class="text-danger">*</span></label>
+                    <label class="form-label">Proveedor</label>
                     <select name="proveedor" class="form-select">
                         <option value="">-- Seleccionar proveedor --</option>
-                        <!-- El JavaScript se encarga de rellenar esto -->
+                        <!-- Se llena vía JS -->
                     </select>
-                    <small class="text-muted">Para facturas de GASTO (compras)</small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Pedido asociado</label>
                     <select name="pedido" class="form-select">
                         <option value="">-- Sin pedido --</option>
                         {% for p in pedidos %}
-                        <option value="{{ p.id }}" {% if factura.pedido and factura.pedido.id == p.id %}selected{% endif %}>
-                            {{ p.numero_pedido }} - {{ p.cliente.nombre }}
-                        </option>
+                        <option value="{{ p.id }}" {% if factura.pedido and factura.pedido.id == p.id %}selected{% endif %}>{{ p.numero_pedido }} - {{ p.cliente.nombre }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
 
-            <!-- NUEVO: Archivo de factura del proveedor (solo para GASTOS) -->
             <div class="row d-none" id="bloque-archivo-factura">
                 <div class="col-md-12 mb-3">
                     <label class="form-label">📎 Factura del proveedor (PDF/imagen)</label>
-                    
                     {% if factura.archivo_factura %}
                     <div class="alert alert-info mb-2">
                         <strong>Archivo actual:</strong>
-                        <a href="{{ factura.archivo_factura.url }}" target="_blank" class="ms-2">
-                            <i class="bi bi-file-earmark-pdf"></i> Ver archivo
-                        </a>
-                        <small class="text-muted d-block mt-1">{{ factura.archivo_factura.name }}</small>
+                        <a href="{{ factura.archivo_factura.url }}" target="_blank" class="ms-2"><i class="bi bi-file-earmark-pdf"></i> Ver archivo</a>
                     </div>
                     {% endif %}
-                    
                     <input type="file" name="archivo_factura" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
-                    <small class="text-muted">Sube un archivo nuevo para reemplazar el actual (opcional).</small>
                 </div>
             </div>
         </div>
@@ -119,7 +105,6 @@
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Base (€)</label>
                     <input type="number" step="0.01" name="base" class="form-control" value="{{ factura.base|unlocalize }}" required>
-                    <small class="text-muted">Se guardará: {{ factura.base|formato_es }} €</small>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">IVA (%)</label>
@@ -142,88 +127,60 @@
     </div>
 
     <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary btn-lg">
-            <i class="bi bi-check-circle"></i> Guardar cambios
-        </button>
-        <a href="{% if request.GET.return_url %}{% url 'lista_facturas' %}?{{ request.GET.return_url }}{% else %}{% url 'lista_facturas' %}{% endif %}" class="btn btn-secondary btn-lg">
-            <i class="bi bi-x-circle"></i> Cancelar
-        </a>
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle"></i> Guardar cambios</button>
+        <a href="{% if request.GET.return_url %}{% url 'lista_facturas' %}?{{ request.GET.return_url }}{% else %}{% url 'lista_facturas' %}{% endif %}" class="btn btn-secondary btn-lg"><i class="bi bi-x-circle"></i> Cancelar</a>
     </div>
 </form>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. LÓGICA PARA MOSTRAR/OCULTAR CLIENTE O PROVEEDOR
     const selectTipo = document.getElementById('id_tipo');
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
     const bloqueArchivo = document.getElementById('bloque-archivo-factura');
-    const tipoCuenta = document.getElementById('tipo-cuenta'); // Solo en nueva_factura
-    const textoCuenta = document.getElementById('texto-cuenta'); // Solo en nueva_factura
 
     function actualizarBloques() {
         if (!selectTipo) return;
-        const tipo = selectTipo.value;
-        if (tipo === 'INGRESO') {
+        if (selectTipo.value === 'INGRESO') {
             bloqueCliente.classList.remove('d-none');
             bloqueProveedor.classList.add('d-none');
             if (bloqueArchivo) bloqueArchivo.classList.add('d-none');
-            if (tipoCuenta) tipoCuenta.textContent = 'cobrar';
-            if (textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por cobrar con los datos de esta factura.';
         } else {
             bloqueCliente.classList.add('d-none');
             bloqueProveedor.classList.remove('d-none');
             if (bloqueArchivo) bloqueArchivo.classList.remove('d-none');
-            if (tipoCuenta) tipoCuenta.textContent = 'pagar';
-            if (textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por pagar con los datos de esta factura.';
         }
     }
-
     if (selectTipo) {
         selectTipo.addEventListener('change', actualizarBloques);
         actualizarBloques();
     }
 
-    // 2. FILTRO DE PROVEEDORES POR CATEGORÍA
     const proveedoresJson = {{ proveedores_json|safe }};
     const selectCategoria = document.querySelector('select[name="categoria"]');
     const selectProveedor = document.querySelector('select[name="proveedor"]');
+    // Guardamos el proveedor actual para que no se pierda al cargar
+    const proveedorActualId = "{{ factura.proveedor.id|default:'' }}";
 
     function filtrarProveedores() {
         if (!selectCategoria || !selectProveedor) return;
-        
         const categoria = selectCategoria.value;
-        const valorActual = selectProveedor.value; // Para no perder el seleccionado al editar
-        
         selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
-
-        // Si no hay categoría, mostramos todos
-        if (!categoria) {
-            proveedoresJson.forEach(p => {
-                const option = document.createElement('option');
-                option.value = p.id;
-                option.textContent = `${p.nombre} (${p.tipo})`;
-                if (p.id == valorActual) option.selected = true;
-                selectProveedor.appendChild(option);
-            });
-            return;
-        }
-
-        // Si hay categoría, solo mostramos los que coincidan
+        
         proveedoresJson.forEach(p => {
-            if (p.tipo === categoria) {
+            if (!categoria || p.tipo === categoria) {
                 const option = document.createElement('option');
                 option.value = p.id;
                 option.textContent = `${p.nombre} (${p.tipo})`;
-                if (p.id == valorActual) option.selected = true;
+                if (p.id == proveedorActualId) option.selected = true;
                 selectProveedor.appendChild(option);
             }
         });
     }
-
     if (selectCategoria && selectProveedor) {
         selectCategoria.addEventListener('change', filtrarProveedores);
-        filtrarProveedores(); // Ejecutar al cargar
+        filtrarProveedores();
     }
 });
 </script>
+{% endblock %}
