@@ -100,16 +100,16 @@
             <input type="hidden" name="ver_anuladas" value="1">
             {% endif %}
 
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                     <input type="text" name="buscar" class="form-control" 
-                           placeholder="Buscar por Nº Factura, Nº Albarán, Cliente o Proveedor..." 
+                           placeholder="Buscar por Nº Factura, Cliente..." 
                            value="{{ buscar_filtro }}">
                 </div>
             </div>
             
-            <!-- 🆕 SELECTOR DE CATEGORÍA -->
+            <!-- SELECTOR DE CATEGORÍA -->
             <div class="col-md-3">
                 <select name="categoria" class="form-select">
                     <option value="">Todas las categorías</option>
@@ -118,10 +118,21 @@
                     {% endfor %}
                 </select>
             </div>
-            
-            <div class="col-md-4 d-flex gap-2">
+
+            <!-- SELECTOR DE ESTADO -->
+            <div class="col-md-2">
+                <select name="estado" class="form-select">
+                    <option value="">Todos los estados</option>
+                    {% for key, value in estados %}
+                    <option value="{{ key }}" {% if estado_filtro == key %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="col-md-3 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Buscar</button>
-                {% if buscar_filtro or tipo_filtro or categoria_filtro %}
+                {% if buscar_filtro or tipo_filtro or categoria_filtro or estado_filtro %}
                 <a href="{% url 'lista_facturas' %}{% if ver_anuladas %}?ver_anuladas=1{% endif %}" class="btn btn-outline-secondary">
                     <i class="bi bi-x-circle"></i> Limpiar
                 </a>

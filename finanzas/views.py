@@ -75,12 +75,12 @@ def _crear_cuenta_para_factura(factura):
 
 @login_required
 def lista_facturas(request):
-    # Ver anuladas: por defecto NO
     ver_anuladas = request.GET.get('ver_anuladas', '') == '1'
     
-    # 🆕 Filtros
+    # Filtros
     categoria = request.GET.get('categoria', '')
     tipo = request.GET.get('tipo', '')
+    estado = request.GET.get('estado', '') # 🆕
     buscar = request.GET.get('buscar', '').strip()
 
     if ver_anuladas:
@@ -88,11 +88,12 @@ def lista_facturas(request):
     else:
         facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
 
-    # 🆕 Aplicar filtros
     if tipo:
         facturas = facturas.filter(tipo=tipo)
     if categoria:
         facturas = facturas.filter(categoria=categoria)
+    if estado: # 🆕 Filtro por estado
+        facturas = facturas.filter(estado_pago=estado)
     if buscar:
         facturas = facturas.filter(
             Q(numero_factura__icontains=buscar) |
@@ -116,7 +117,9 @@ def lista_facturas(request):
         'beneficio': beneficio,
         'ver_anuladas': ver_anuladas,
         'categorias': Factura.CATEGORIAS,
+        'estados': Factura.ESTADO_PAGO, # 🆕 Pasamos los estados
         'categoria_filtro': categoria,
+        'estado_filtro': estado, # 🆕
         'tipo_filtro': tipo,
         'buscar_filtro': buscar,
     }
@@ -325,7 +328,7 @@ def cuentas_por_pagar(request):
         'vencidas': vencidas,
         'total_pendiente': total_pendiente,
         'total_vencido': total_vencido,
-        'categorias': CuentaPorPagar.CATEGORIA_CHOICES,
+        'categorias': Factura.CATEGORIAS
         'estados': CuentaPorPagar.ESTADO_CHOICES,
         'categoria_filtro': categoria,
         'estado_filtro': estado,
