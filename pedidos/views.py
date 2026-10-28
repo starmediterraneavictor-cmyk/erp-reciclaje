@@ -11,7 +11,8 @@ from finanzas.models import CuentaPorPagar, CuentaPorCobrar, Factura
 
 from .models import (
     Pedido, DetallePedido,
-    PedidoInternacional, PagoInternacional, CondicionPago
+    PedidoInternacional, PagoInternacional, CondicionPago,
+    Comercial, Comision  # 🆕 Añadimos los nuevos modelos
 )
 from clientes.models import Cliente
 from inventario.models import Material, Inventario
