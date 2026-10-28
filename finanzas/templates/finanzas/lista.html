@@ -144,103 +144,106 @@
 
 <!-- TABLA -->
 <div class="card card-custom">
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Nº Factura</th>
-                    <th>Tipo</th>
-                    <th>Entidad</th>
-                    <th>Fecha</th>
-                    <th>Total</th>
-                    <th>Estado</th>
-                    <th class="text-center">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for f in facturas %}
-                <tr {% if f.estado_pago == 'ANULADO' %}class="table-secondary text-muted"{% endif %}>
-                    <td>
-                        <strong>{{ f.numero_factura }}</strong>
-                        {% if f.numero_albaran %}
-                            <br><small class="text-muted">Alb: {{ f.numero_albaran }}</small>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if f.tipo == 'INGRESO' %}
-                        <span class="badge bg-success">Ingreso</span>
-                        {% else %}
-                        <span class="badge bg-danger">Gasto</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ f.entidad.nombre }}</td>
-                    <td>{{ f.fecha|date:"d/m/Y" }}</td>
-                    <td><strong>{{ f.total|formato_es }} €</strong></td>
-                    <td>
-                        {% if f.estado_pago == 'ANULADO' %}
-                        <span class="badge bg-secondary">❌ Anulada</span>
-                        {% elif f.estado_pago == 'PAGADO' %}
-                        <span class="badge bg-success">Pagado</span>
-                        {% elif f.estado_pago == 'PENDIENTE' %}
-                        <span class="badge bg-warning">Pendiente</span>
-                        {% else %}
-                        <span class="badge bg-secondary">{{ f.get_estado_pago_display }}</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">
-                        <a href="{% url 'registrar_cobro_pago_factura' f.id %}" class="btn btn-outline-success btn-sm" title="Registrar cobro/pago">
-                            <i class="bi bi-cash"></i>
-                        </a>
-                        {% if f.tipo == 'INGRESO' %}
-                            <a href="{% url 'factura_pdf' f.id %}" class="btn btn-outline-success btn-sm" title="Ver PDF" target="_blank">
-                                <i class="bi bi-file-pdf"></i>
-                            </a>
-                        {% else %}
-                            {% if f.archivo_justificante %}
-                                <a href="{{ f.archivo_justificante.url }}" class="btn btn-outline-primary btn-sm" title="Ver factura del proveedor" target="_blank">
-                                    <i class="bi bi-file-earmark-pdf"></i>
-                                </a>
-                            {% else %}
-                                <span class="text-muted small">—</span>
+    <div class="card-body p-0"> <!-- p-0 para quitar margen interno -->
+        <div class="table-responsive"> <!-- 🆕 Scroll horizontal en móvil -->
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 15%;">Nº Factura</th>
+                        <th style="width: 10%;">Tipo</th>
+                        <th style="width: 10%;">Categoría</th> <!-- 🆕 Nueva columna -->
+                        <th style="width: 25%;">Entidad</th>
+                        <th style="width: 10%;">Fecha</th>
+                        <th class="text-end" style="width: 10%;">Total</th>
+                        <th style="width: 10%;">Estado</th>
+                        <th class="text-center" style="width: 10%;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in facturas %}
+                    <tr {% if f.estado_pago == 'ANULADO' %}class="table-secondary text-muted"{% endif %}>
+                        <td>
+                            <strong>{{ f.numero_factura }}</strong>
+                            {% if f.numero_albaran %}
+                                <br><small class="text-muted" style="font-size: 0.75em;">Alb: {{ f.numero_albaran }}</small>
                             {% endif %}
-                        {% endif %}
-
-                        <!-- 🆕 BOTÓN EDITAR CON FILTROS -->
-                        <a href="{% url 'editar_factura' f.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-outline-primary btn-sm" title="Editar">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-
-                        {% if f.estado_pago != 'ANULADO' %}
-                        <!-- Botón Anular (solo si NO está anulada) -->
-                        <form method="POST" action="{% url 'anular_factura' f.id %}" style="display:inline;"
-                            onsubmit="return confirm('¿Seguro que quieres anular esta factura? No se puede deshacer.');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-warning btn-sm" title="Anular">
-                                <i class="bi bi-x-circle"></i>
-                            </button>
-                        </form>
-                        {% else %}
-                        <!-- 🆕 Botón Eliminar definitivamente (solo si está ANULADA) -->
-                        <form method="POST" action="{% url 'eliminar_factura' f.id %}" style="display:inline;"
-                            onsubmit="return confirm('¿Eliminar DEFINITIVAMENTE la factura {{ f.numero_factura }}?\n\nSe borrarán también sus cuentas y cobros/pagos asociados.\n\nEsta acción no se puede deshacer.');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar definitivamente">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </form>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="text-center py-4 text-muted">
-                        <h5>No se encontraron facturas</h5>
-                        <p class="mb-0">Prueba con otros términos de búsqueda o limpia los filtros.</p>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        </td>
+                        <td>
+                            {% if f.tipo == 'INGRESO' %}
+                            <span class="badge bg-success">Ingreso</span>
+                            {% else %}
+                            <span class="badge bg-danger">Gasto</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ f.get_categoria_display }}</span>
+                        </td>
+                        <td class="text-wrap">{{ f.entidad.nombre }}</td>
+                        <td>{{ f.fecha|date:"d/m/Y" }}</td>
+                        <td class="text-end"><strong>{{ f.total|formato_es }} €</strong></td>
+                        <td>
+                            {% if f.estado_pago == 'ANULADO' %}
+                            <span class="badge bg-secondary">❌ Anulada</span>
+                            {% elif f.estado_pago == 'PAGADO' %}
+                            <span class="badge bg-success">Pagado</span>
+                            {% elif f.estado_pago == 'PENDIENTE' %}
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ f.get_estado_pago_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                <a href="{% url 'registrar_cobro_pago_factura' f.id %}" class="btn btn-outline-success btn-sm" title="Registrar cobro/pago">
+                                    <i class="bi bi-cash"></i>
+                                </a>
+                                {% if f.tipo == 'INGRESO' %}
+                                    <a href="{% url 'factura_pdf' f.id %}" class="btn btn-outline-success btn-sm" title="Ver PDF" target="_blank">
+                                        <i class="bi bi-file-pdf"></i>
+                                    </a>
+                                {% else %}
+                                    {% if f.archivo_justificante %}
+                                        <a href="{{ f.archivo_justificante.url }}" class="btn btn-outline-primary btn-sm" title="Ver factura" target="_blank">
+                                            <i class="bi bi-file-earmark-pdf"></i>
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+        
+                                <a href="{% url 'editar_factura' f.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-outline-primary btn-sm" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+        
+                                {% if f.estado_pago != 'ANULADO' %}
+                                <form method="POST" action="{% url 'anular_factura' f.id %}" style="display:inline;"
+                                    onsubmit="return confirm('¿Seguro que quieres anular esta factura?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-warning btn-sm" title="Anular">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{% url 'eliminar_factura' f.id %}" style="display:inline;"
+                                    onsubmit="return confirm('¿Eliminar DEFINITIVAMENTE la factura?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar definitivamente">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            <h5>No se encontraron facturas</h5>
+                            <p class="mb-0">Prueba con otros términos de búsqueda o limpia los filtros.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}
