@@ -43,20 +43,25 @@
             </div>
         </div>
     </div>
-        <div class="col-md-4">
+    
+    <!-- 🆕 TARJETA INTELIGENTE -->
+    <div class="col-md-4">
         <div class="card card-custom">
             <div class="card-body">
-                <h6 class="text-primary">
-                    {% if tipo_filtro == 'GASTO' or tipo_filtro == 'INGRESO' %}
-                        📊 Total Gastos Filtrados
-                    {% else %}
-                        📊 Beneficio
-                    {% endif %}
-                </h6>
-                {% if tipo_filtro == 'GASTO' or tipo_filtro == 'INGRESO' %}
-                    <h3 class="text-danger">{{ total_ingresos|formato_es }} €</h3>
+                {% if total_ingresos > 0 %}
+                    <!-- Si hay ingresos, mostramos Beneficio -->
+                    <h6 class="text-primary">📊 Beneficio</h6>
+                    <h3 class="{% if beneficio >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                        {{ beneficio|formato_es }} €
+                    </h3>
+                {% elif total_gastos > 0 %}
+                    <!-- Si NO hay ingresos pero SÍ gastos, mostramos Total Gastos Filtrados -->
+                    <h6 class="text-danger">📊 Total Gastos Filtrados</h6>
+                    <h3 class="text-danger">{{ total_gastos|formato_es }} €</h3>
                 {% else %}
-                    <h3 class="text-primary">{{ beneficio|formato_es }} €</h3>
+                    <!-- Si no hay nada -->
+                    <h6 class="text-muted">📊 Sin datos</h6>
+                    <h3 class="text-muted">0,00 €</h3>
                 {% endif %}
             </div>
         </div>
