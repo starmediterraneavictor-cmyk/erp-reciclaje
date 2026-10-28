@@ -70,9 +70,7 @@
                     <label class="form-label">Proveedor <span class="text-danger">*</span></label>
                     <select name="proveedor" class="form-select">
                         <option value="">-- Seleccionar proveedor --</option>
-                        {% for p in proveedores %}
-                        <option value="{{ p.id }}">{{ p.nombre }}</option>
-                        {% endfor %}
+                        <!-- El JavaScript se encarga de rellenar esto -->
                     </select>
                     <small class="text-muted">Para facturas de GASTO (compras)</small>
                 </div>
@@ -187,31 +185,54 @@ const proveedoresJson = {{ proveedores_json|safe }};
 const selectCategoria = document.querySelector('select[name="categoria"]');
 const selectProveedor = document.querySelector('select[name="proveedor"]');
 
-// Función para filtrar proveedores
+// Función para filtrar proveedores según la categoría
 function filtrarProveedores() {
     const categoria = selectCategoria.value;
-    let tipoProveedorBuscado = '';
+    let tiposPermitidos = [];
 
-    // Mapeamos la categoría de la factura al tipo de proveedor
-    if (categoria === 'COMERCIO_MATERIALES') tipoProveedorBuscado = 'MATERIAL';
-    else if (categoria === 'TRANSPORTE') tipoProveedorBuscado = 'SERVICIO';
-    else if (categoria === 'SERVICIOS_PROFESIONALES') tipoProveedorBuscado = 'SERVICIO';
-    else if (categoria === 'SUMINISTROS') tipoProveedorBuscado = 'SUMINISTRO';
-    else if (categoria === 'IMPUESTOS') tipoProveedorBuscado = 'IMPUESTO';
-    else if (categoria === 'OTROS') tipoProveedorBuscado = 'OTRO';
+    // Mapeamos la categoría de la factura a los tipos de proveedor válidos
+    switch (categoria) {
+        case 'COMERCIO_MATERIALES':
+            tiposPermitidos = ['MATERIAL'];
+            break;
+        case 'TRANSPORTE':
+            tiposPermitidos = ['SERVICIO', 'OTRO']; // Un transportista suele ser SERVICIO
+            break;
+        case 'SERVICIOS_PROFESIONALES':
+            tiposPermitidos = ['SERVICIO'];
+            break;
+        case 'SUMINISTROS':
+            tiposPermitidos = ['SUMINISTRO'];
+            break;
+        case 'IMPUESTOS':
+            tiposPermitidos = ['IMPUESTO'];
+            break;
+        case 'MANTENIMIENTO':
+            tiposPermitidos = ['SERVICIO', 'OTRO'];
+            break;
+        case 'RENTA_PARKING':
+            tiposPermitidos = ['SERVICIO', 'OTRO'];
+            break;
+        case 'OTROS':
+            tiposPermitidos = ['OTRO', 'SERVICIO', 'MATERIAL']; // Si es otros, dejamos ver casi todo
+            break;
+        default:
+            // Si no hay categoría seleccionada, mostrar todos
+            tiposPermitidos = ['MATERIAL', 'SERVICIO', 'SUMINISTRO', 'IMPUESTO', 'OTRO'];
+            break;
+    }
 
-    // Guardar el valor actual (para no perderlo si ya estaba seleccionado y sigue siendo válido)
+    // Guardamos el valor actual para intentar mantenerlo si sigue siendo válido
     const valorActual = selectProveedor.value;
-
-    // Limpiar el desplegable de proveedores
     selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
 
-    // Rellenar solo con los que coincidan con el tipo
+    // Rellenar solo con los que coincidan con los tipos permitidos
     proveedoresJson.forEach(p => {
-        if (p.tipo === tipoProveedorBuscado) {
+        if (tiposPermitidos.includes(p.tipo)) {
             const option = document.createElement('option');
             option.value = p.id;
-            option.textContent = p.nombre;
+            // Añadimos el tipo entre paréntesis para que sepas de qué es
+            option.textContent = `${p.nombre} (${p.tipo})`;
             if (p.id == valorActual) option.selected = true;
             selectProveedor.appendChild(option);
         }
@@ -221,6 +242,8 @@ function filtrarProveedores() {
 // Escuchar cambios en la categoría
 selectCategoria.addEventListener('change', filtrarProveedores);
 
+// Ejecutar al cargar la página para que empiece filtrado
+document.addEventListener('DOMContentLoaded', filtrarProveedores);
 
 </script>
 
