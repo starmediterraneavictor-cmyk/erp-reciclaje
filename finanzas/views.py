@@ -117,9 +117,9 @@ def lista_facturas(request):
         'beneficio': beneficio,
         'ver_anuladas': ver_anuladas,
         'categorias': Factura.CATEGORIAS,
-        'estados': Factura.ESTADO_PAGO, # 🆕 Pasamos los estados
+        'estados': Factura.ESTADO_PAGO,
         'categoria_filtro': categoria,
-        'estado_filtro': estado, # 🆕
+        'estado_filtro': estado, 
         'tipo_filtro': tipo,
         'buscar_filtro': buscar,
     }
@@ -328,7 +328,7 @@ def cuentas_por_pagar(request):
         'vencidas': vencidas,
         'total_pendiente': total_pendiente,
         'total_vencido': total_vencido,
-        'categorias': Factura.CATEGORIAS
+        'categorias': Factura.CATEGORIAS,
         'estados': CuentaPorPagar.ESTADO_CHOICES,
         'categoria_filtro': categoria,
         'estado_filtro': estado,
