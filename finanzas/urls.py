@@ -45,6 +45,9 @@ urlpatterns = [
     path('libro/', views.libro_gastos_ingresos, name='libro_gastos_ingresos'),
     path('libro/exportar/', views.exportar_libro_excel, name='exportar_libro_excel'),
 
+    # Comisiones
+    path('comisiones/', views.lista_comisiones, name='lista_comisiones'),
+
     
 
 ]

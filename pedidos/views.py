@@ -165,7 +165,7 @@ def detalle_pedido(request, pedido_id):
         'total_importe': pedido.total_importe,
         'comerciales': Comercial.objects.filter(activo=True),
         'comisiones': pedido.comisiones.all(),
-        'total_comisiones': sum((c.importe_comision for c in pedido.comisiones.all()), Decimal('0')),
+        'total_comisiones': pedido.total_comisiones,
         'url_retorno': url_retorno,
     }
     return render(request, 'pedidos/detalle_pedido.html', context)

@@ -326,6 +326,24 @@ class Pedido(models.Model):
         tn_vendidas = sum(o.cantidad_tn for o in self.ventas_asociadas.all())
         return self.total_kg - tn_vendidas
 
+    @property
+    def total_comisiones(self):
+        """Suma de todas las comisiones del pedido"""
+        return sum((c.importe_comision for c in self.comisiones.all()), Decimal('0'))
+
+    @property
+    def beneficio_real_total(self):
+        """Beneficio total restando las comisiones"""
+        if self.beneficio_total is None:
+            return None
+        return self.beneficio_total - self.total_comisiones
+
+    @property
+    def beneficio_real_tn(self):
+        """Beneficio €/TN restando las comisiones"""
+        if self.total_kg == 0 or self.beneficio_real_total is None:
+            return None
+        return self.beneficio_real_total / self.total_kg
 
     
     
@@ -614,11 +632,12 @@ class Comision(models.Model):
     TIPO_CHOICES = [
         ('PORCENTAJE', 'Porcentaje (%)'),
         ('FIJO', 'Importe Fijo (€)'),
+        ('TN', 'Euros por Tonelada (€/tn)'),
     ]
     
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='comisiones')
     comercial = models.ForeignKey(Comercial, on_delete=models.PROTECT)
-    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='PORCENTAJE')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='TN')
     valor = models.DecimalField(max_digits=10, decimal_places=2, help_text="Porcentaje (ej: 5) o importe fijo en €")
     notas = models.TextField(blank=True)
 
@@ -630,6 +649,8 @@ class Comision(models.Model):
         """Calcula el importe real de la comisión"""
         if self.tipo == 'PORCENTAJE':
             return self.pedido.total_importe * (self.valor / 100)
+        elif self.tipo == 'TN':
+            return self.pedido.total_kg * self.valor # 🆕 Multiplicamos las toneladas por el valor
         return self.valor
 
     class Meta:

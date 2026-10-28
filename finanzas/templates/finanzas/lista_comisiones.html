@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+{% block title %}Comisiones - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>💼 Comisiones de Comerciales</h2>
+</div>
+
+<div class="row">
+    {% for d in datos_comerciales %}
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">👤 {{ d.comercial.nombre }}</h5>
+                <span class="badge bg-primary fs-6">{{ d.total_comision|formato_es }} €</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Total en {{ d.num_pedidos }} pedidos</p>
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Pedido</th>
+                            <th>Material / Cliente</th>
+                            <th class="text-end">Comisión</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in d.comisiones %}
+                        <tr>
+                            <td><a href="{% url 'detalle_pedido' c.pedido.id %}">{{ c.pedido.numero_pedido }}</a></td>
+                            <td>
+                                {{ c.pedido.entidad_nombre|truncatechars:20 }}<br>
+                                <small class="text-muted">{{ c.pedido.tipos_materiales|join:", " }}</small>
+                            </td>
+                            <td class="text-end text-success fw-bold">{{ c.importe_comision|formato_es }} €</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <h4 class="text-muted">No hay comisiones registradas.</h4>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

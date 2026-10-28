@@ -184,12 +184,13 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card border-0 {% if pedido.beneficio_tn >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+                <div class="card border-0 {% if pedido.beneficio_real_tn >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
                     <div class="card-body text-center">
-                        <h6 class="mb-1">€/TN Beneficio</h6>
+                        <h6 class="mb-1">€/TN Beneficio Real</h6>
                         <h3 class="mb-0">
-                            {% if pedido.beneficio_tn >= 0 %}+{% endif %}{{ pedido.beneficio_tn|formato_es }} €
+                            {% if pedido.beneficio_real_tn >= 0 %}+{% endif %}{{ pedido.beneficio_real_tn|formato_es }} €
                         </h3>
+                        <small>(-{{ total_comisiones|formato_es }} € en comisiones)</small>
                     </div>
                 </div>
             </div>

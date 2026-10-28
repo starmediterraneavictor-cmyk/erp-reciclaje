@@ -17,6 +17,10 @@ from pedidos.models import Pedido
 from core.models import DatosEmpresa
 from django.db import transaction
 from decimal import Decimal
+from pedidos.models import Comercial, Comision
+from django.db.models import Sum
+
+
 
 # ============================================
 # FUNCIÓN AUXILIAR: Crear cuenta para factura
@@ -868,3 +872,28 @@ def anular_factura(request, factura_id):
         return redirect('lista_facturas')
 
     return redirect('lista_facturas')
+
+@login_required
+def lista_comisiones(request):
+    """Lista todas las comisiones agrupadas por comercial"""
+    comerciales = Comercial.objects.filter(activo=True).prefetch_related('comision_set')
+    
+    datos_comerciales = []
+    for com in comerciales:
+        comisiones = com.comision_set.all().select_related('pedido')
+        total_comision = sum(c.importe_comision for c in comisiones)
+        
+        datos_comerciales.append({
+            'comercial': com,
+            'comisiones': comisiones,
+            'total_comision': total_comision,
+            'num_pedidos': len(comisiones),
+        })
+        
+    # Ordenar por el que más ha ganado
+    datos_comerciales = sorted(datos_comerciales, key=lambda x: x['total_comision'], reverse=True)
+
+    context = {
+        'datos_comerciales': datos_comerciales,
+    }
+    return render(request, 'finanzas/lista_comisiones.html', context)
