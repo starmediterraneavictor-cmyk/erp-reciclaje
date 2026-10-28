@@ -28,7 +28,6 @@ def lista_pedidos(request):
     OrigenVenta.objects.filter(pedido_compra__isnull=True).delete()
     # ---------------------------------------------
 
-    
     # Base queryset
     pedidos = Pedido.objects.all().order_by('-fecha')
 
@@ -57,10 +56,8 @@ def lista_pedidos(request):
         )
 
     if material_tipo:
-        # Filtramos pedidos que tengan al menos un detalle con ese tipo de material
         pedidos = pedidos.filter(detalles__material__tipo=material_tipo).distinct()
     
-
     # Contadores
     base_para_contadores = Pedido.objects.all()
     if estado:
@@ -96,7 +93,6 @@ def lista_pedidos(request):
         p.tiene_cuenta_pagada = concepto in conceptos_pagados
         p.tiene_cuenta_pendiente = concepto in conceptos_pendientes
         
-        # 🆕 Saber a qué pedido de venta está asociado (si es compra)
         if p.tipo == 'COMPRA_MAT':
             venta_asociada = p.ventas_asociadas.first()
             p.venta_asociada = venta_asociada.pedido_venta if venta_asociada else None
@@ -106,19 +102,14 @@ def lista_pedidos(request):
     total_pedidos = pedidos.count()
     total_importe = sum((p.total_importe for p in pedidos), Decimal('0'))
 
-    # 🆕 Obtener los tipos únicos de material (ID y Nombre) sin duplicados
+    # 🆕 Obtener los tipos únicos de material
     from inventario.models import Material, TipoMaterial
-    
-    # Traemos todos los materiales que tienen tipo asignado
     materiales_con_tipo = Material.objects.exclude(tipo__isnull=True).select_related('tipo')
-    
-    # Usamos un diccionario para guardar los tipos únicos por su ID
     tipos_dict = {}
     for mat in materiales_con_tipo:
         if mat.tipo and mat.tipo.id not in tipos_dict:
             tipos_dict[mat.tipo.id] = mat.tipo.nombre
-            
-    # Convertimos a lista y ordenamos
+    
     tipos_materiales = [{'id': k, 'nombre': v} for k, v in tipos_dict.items()]
     tipos_materiales = sorted(tipos_materiales, key=lambda x: x['nombre'])
 
@@ -134,8 +125,8 @@ def lista_pedidos(request):
         'hasta_filtro': hasta,
         'buscar_filtro': buscar,
         'contadores': contadores,
-        'material_tipo_filtro': material_tipo,  # 🆕
-        'tipos_materiales': tipos_materiales,    # 🆕
+        'material_tipo_filtro': material_tipo,
+        'tipos_materiales': tipos_materiales,
     }
     return render(request, 'pedidos/lista.html', context)
 
@@ -145,7 +136,6 @@ def detalle_pedido(request, pedido_id):
     """Ver detalle completo de un pedido"""
     pedido = get_object_or_404(Pedido, id=pedido_id)
 
-    # 🆕 Guardar el peso real si viene por POST desde el propio detalle
     if request.method == 'POST' and 'peso_real_tn' in request.POST:
         peso_str = request.POST.get('peso_real_tn')
         try:
@@ -236,16 +226,11 @@ def nuevo_pedido(request):
                         )
 
                         if pedido.tipo == 'VENTA_MAT':
-                            if inventario.cantidad < cantidad:
-                                raise ValueError(
-                                    f"Stock insuficiente de {detalle.material.nombre}. "
-                                    f"Disponible: {inventario.cantidad}, solicitado: {cantidad}"
-                                )
-                            inventario.cantidad -= cantidad
+                            # 🆕 Para ventas, NO comprobamos el stock aquí (se valida con los orígenes luego)
+                            pass
                         else:
                             inventario.cantidad += cantidad
-
-                        inventario.save()
+                            inventario.save()
 
                 if pedido.es_internacional:
                     PedidoInternacional.objects.create(
@@ -276,8 +261,16 @@ def nuevo_pedido(request):
                             except (InvalidOperation, ValueError, TypeError):
                                 pass
 
+                # 🆕 VALIDACIÓN: Comprobar que los orígenes cubren la venta
+                if pedido.tipo == 'VENTA_MAT' and pedido.estado != 'PREVISION':
+                    total_origenes = sum(o.cantidad_tn for o in pedido.origenes_venta.all())
+                    total_venta = pedido.total_kg
+                    if total_origenes < total_venta:
+                        raise ValueError(
+                            f"❌ No puedes vender {total_venta} tn si solo has asignado {total_origenes} tn en los orígenes de compra. "
+                            f"Faltan {total_venta - total_origenes} tn por asignar."
+                        )
 
-                
                 messages.success(request, f'✅ Pedido {pedido.numero_pedido} creado correctamente')
 
                 # 🆕 Recalcular stock de los materiales afectados
@@ -303,7 +296,7 @@ def nuevo_pedido(request):
         'tipos': Pedido.TIPO_OPERACION,
         'estados': Pedido.ESTADO_PEDIDO,
         'incoterms': Pedido.INCOTERM_CHOICES,
-        'pedidos_compra': pedidos_disponibles, # 🆕 Aquí pasamos la lista filtrada
+        'pedidos_compra': pedidos_disponibles,
         'fecha_actual': datetime.now().strftime('%Y-%m-%d'),
     }
     return render(request, 'pedidos/nuevo_pedido.html', context)
@@ -314,11 +307,9 @@ def editar_pedido(request, pedido_id):
     """Formulario para editar un pedido existente (cabecera + detalles + inventario)"""
     pedido = get_object_or_404(Pedido, id=pedido_id)
 
-    # 🆕 Capturamos la URL de origen para volver a ella después de guardar
     url_retorno = request.GET.get('return_url', '')
     
     if request.method == 'POST':
-        # 🆕 Recuperamos la url_retorno del POST
         url_retorno = request.POST.get('return_url', '')
 
         # Comprobar si hay cobros registrados
@@ -347,14 +338,11 @@ def editar_pedido(request, pedido_id):
                 estado_antiguo = pedido.estado
                 tipo_antiguo = pedido.tipo
 
-                # 1. Revertir inventario
-                if estado_antiguo != 'PREVISION':
+                # 1. Revertir inventario (SOLO COMPRAS, las ventas no tocan el stock aquí)
+                if estado_antiguo != 'PREVISION' and tipo_antiguo in ['COMPRA_MAT', 'MAQUILA']:
                     for detalle_antiguo in pedido.detalles.all():
                         inventario, _ = Inventario.objects.get_or_create(material=detalle_antiguo.material)
-                        if tipo_antiguo == 'VENTA_MAT':
-                            inventario.cantidad += detalle_antiguo.cantidad
-                        else:
-                            inventario.cantidad -= detalle_antiguo.cantidad
+                        inventario.cantidad -= detalle_antiguo.cantidad
                         inventario.save()
 
                 # 2. Actualizar cabecera
@@ -409,13 +397,11 @@ def editar_pedido(request, pedido_id):
                         inventario, _ = Inventario.objects.get_or_create(material=detalle.material)
 
                         if pedido.tipo == 'VENTA_MAT':
-                            if inventario.cantidad < cantidad:
-                                raise ValueError(f"Stock insuficiente de {detalle.material.nombre}. Disponible: {inventario.cantidad}, solicitado: {cantidad}")
-                            inventario.cantidad -= cantidad
+                            # 🆕 Para ventas, NO comprobamos el stock aquí (se valida con los orígenes luego)
+                            pass
                         else:
                             inventario.cantidad += cantidad
-
-                        inventario.save()
+                            inventario.save()
 
                 # 5. Seguimiento internacional
                 if pedido.es_internacional and not hasattr(pedido, 'internacional'):
@@ -458,6 +444,16 @@ def editar_pedido(request, pedido_id):
                             except (InvalidOperation, ValueError, TypeError):
                                 pass
 
+                # 🆕 VALIDACIÓN: Comprobar que los orígenes cubren la venta
+                if pedido.tipo == 'VENTA_MAT' and pedido.estado != 'PREVISION':
+                    total_origenes = sum(o.cantidad_tn for o in pedido.origenes_venta.all())
+                    total_venta = pedido.total_kg
+                    if total_origenes < total_venta:
+                        raise ValueError(
+                            f"❌ No puedes vender {total_venta} tn si solo has asignado {total_origenes} tn en los orígenes de compra. "
+                            f"Faltan {total_venta - total_origenes} tn por asignar."
+                        )
+
                 # 7. Sincronizar la factura
                 factura_asociada = pedido.facturas.first()
                 if factura_asociada:
@@ -480,20 +476,16 @@ def editar_pedido(request, pedido_id):
                     pedido.internacional.peso_total_kg = pedido.total_kg
                     pedido.internacional.save()
 
-                # 🆕 Recalcular stock (tanto del pedido actual como de los orígenes que se hayan podido modificar)
+                # 🆕 Recalcular stock
                 from .models import recalcular_stock_material
-                # Recalcular los materiales del pedido actual
                 for detalle in pedido.detalles.all():
                     recalcular_stock_material(detalle.material)
-                # Recalcular los materiales de los pedidos de compra que se han usado como origen
                 for origen in pedido.origenes_venta.all():
                     for detalle in origen.pedido_compra.detalles.all():
                         recalcular_stock_material(detalle.material)
                 
-                
                 messages.success(request, f'✅ Pedido {pedido.numero_pedido} actualizado')
                 
-                # 🆕 Redirigir a la URL de retorno si existe, si no a la lista
                 if url_retorno:
                     return redirect(f"/pedidos/?{url_retorno}")
                 return redirect('lista_pedidos')
@@ -505,30 +497,21 @@ def editar_pedido(request, pedido_id):
     # GET: cargar datos para el formulario
     # ============================================
     
-    # 1. Obtener todos los pedidos de compra
     todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').exclude(id=pedido.id).exclude(estado='PREVISION').order_by('-fecha')
     
-    # 2. Obtener los orígenes que ya tiene ESTE pedido para no restarlos dos veces
     origenes_este_pedido = pedido.origenes_venta.all()
     cantidades_este_pedido = {o.pedido_compra_id: o.cantidad_tn for o in origenes_este_pedido}
     
     pedidos_disponibles = []
     for pc in todos_compra:
-        # Cuánto se ha vendido de este pedido de compra en OTROS pedidos
         tn_vendidas_otros = sum(o.cantidad_tn for o in pc.ventas_asociadas.exclude(pedido_venta=pedido))
-        
-        # Cuánto tiene asignado este pedido actualmente
         tn_asignadas_actual = cantidades_este_pedido.get(pc.id, Decimal('0'))
-        
-        # Cuánto queda libre realmente
         tn_libres = pc.total_kg - tn_vendidas_otros - tn_asignadas_actual
         
-        # Si queda algo libre, lo añadimos a la lista
         if tn_libres > Decimal('0'):
             pc.tn_libres_calculadas = tn_libres 
             pedidos_disponibles.append(pc)
 
-    # 🆕 AQUÍ DEFINIMOS EL CONTEXT
     context = {
         'pedido': pedido,
         'clientes': Cliente.objects.filter(estado='ACTIVO').order_by('nombre'),
@@ -542,7 +525,6 @@ def editar_pedido(request, pedido_id):
     }
         
     return render(request, 'pedidos/editar_pedido.html', context)
-
 
 
 @login_required
@@ -562,20 +544,14 @@ def eliminar_pedido(request, pedido_id):
 
         try:
             with transaction.atomic():
-                # 🆕 LIBERAR ORÍGENES (TANTO DE COMPRA COMO DE VENTA)
                 from .models import OrigenVenta
                 
-                # Si es un pedido de COMPRA, borramos las relaciones de venta que lo usan
                 if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
                     OrigenVenta.objects.filter(pedido_compra=pedido).delete()
                 
-                # Si es un pedido de VENTA, borramos sus orígenes para liberar las toneladas
                 if pedido.tipo == 'VENTA_MAT':
                     pedido.origenes_venta.all().delete()
-                
-                # ---------------------------------------------
 
-                # Revertir inventario (solo si no estaba en PREVISIÓN)
                 if pedido.estado != 'PREVISION':
                     for detalle in pedido.detalles.all():
                         inventario, created = Inventario.objects.get_or_create(
@@ -587,21 +563,16 @@ def eliminar_pedido(request, pedido_id):
                             inventario.cantidad -= detalle.cantidad
                         inventario.save()
 
-                # 🆕 Recalcular stock de los materiales que se van a liberar
                 from .models import recalcular_stock_material
                 materiales_afectados = [d.material for d in pedido.detalles.all()]
-                # Si es compra, también los materiales de sus ventas asociadas
                 if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
                     for origen in pedido.ventas_asociadas.all():
                         materiales_afectados.extend([d.material for d in origen.pedido_venta.detalles.all()])
                 
-                # Limpiar duplicados
                 materiales_afectados = list(set(materiales_afectados))
                 
-                # Borrar pedido
                 pedido.delete()
                 
-                # Recalcular
                 for mat in materiales_afectados:
                     recalcular_stock_material(mat)
 
@@ -625,7 +596,6 @@ def generar_factura_desde_pedido(request, pedido_id):
         messages.warning(request, f'⚠️ Este pedido ya tiene la factura {factura_existente.numero_factura}')
         return redirect('detalle_pedido', pedido_id=pedido.id)
 
-    # Solo se pueden generar facturas de pedidos de VENTA
     if pedido.tipo != 'VENTA_MAT':
         messages.error(request, '❌ No se puede generar factura de un pedido de compra. El proveedor te emite la factura a ti.')
         return redirect('detalle_pedido', pedido_id=pedido.id)
@@ -661,7 +631,7 @@ def generar_factura_desde_pedido(request, pedido_id):
                 iva_porcentaje=iva_porcentaje,
                 estado_pago='PENDIENTE',
                 notas=f'Generada automáticamente desde el pedido {pedido.numero_pedido}',
-                numero_albaran=request.POST.get('numero_albaran', ''), # 🆕
+                numero_albaran=request.POST.get('numero_albaran', ''),
             )
 
             from finanzas.views import _crear_cuenta_para_factura
@@ -707,7 +677,6 @@ def seguimiento_internacional(request):
     abiertos = list(pedidos.exclude(estado__in=['CERRADO', 'ENTREGADO']))
     cerrados = pedidos.filter(estado__in=['CERRADO', 'ENTREGADO'])
 
-    # Excluir pedidos cuya cuenta por cobrar esté ANULADA
     from finanzas.models import CuentaPorCobrar
     numeros_cuentas_anuladas = set(
         CuentaPorCobrar.objects.filter(estado='ANULADO').values_list('numero_factura', flat=True)
@@ -717,7 +686,7 @@ def seguimiento_internacional(request):
     for p in abiertos:
         factura = p.pedido.facturas.first()
         if factura and factura.numero_factura in numeros_cuentas_anuladas:
-            continue  # Saltar los pedidos con cuenta anulada
+            continue
         abiertos_filtrados.append(p)
 
     abiertos = abiertos_filtrados
@@ -882,7 +851,6 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
             with transaction.atomic():
                 numero_factura = request.POST.get('numero_factura', '')
 
-                # 1. Crear la Factura de Gasto
                 factura = Factura.objects.create(
                     numero_factura=numero_factura or f"G-{pedido.numero_pedido}",
                     numero_albaran=request.POST.get('numero_albaran', ''),
@@ -893,13 +861,12 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
                     pedido=pedido,
                     categoria='COMERCIO_MATERIALES',
                     base=pedido.total_importe,
-                    iva_porcentaje=0,  # Reciclaje → IVA 0%
+                    iva_porcentaje=0,
                     estado_pago='PENDIENTE',
                     notas=request.POST.get('notas', '') or f'Generada desde pedido {pedido.numero_pedido}',
                     archivo_justificante=request.FILES.get('archivo_factura') or None,
                 )
 
-                # 2. Crear la CuentaPorPagar asociada
                 cuenta = CuentaPorPagar.objects.create(
                     concepto=concepto,
                     categoria='PROVEEDOR',
@@ -955,9 +922,7 @@ def generar_ajuste_peso(request, pedido_id):
                 importe_absoluto = abs(ajuste)
                 hoy = datetime.now().date()
                 
-                # 1. CREAR LA CUENTA CONTABLE
                 if ajuste < 0:
-                    # El proveedor nos debe dinero (pesó menos de lo facturado)
                     CuentaPorCobrar.objects.create(
                         concepto=f"Ajuste peso Pedido {pedido.numero_pedido}",
                         proveedor=pedido.proveedor,
@@ -968,7 +933,6 @@ def generar_ajuste_peso(request, pedido_id):
                     )
                     messages.success(request, f'✅ Creada Cuenta por Cobrar por {importe_absoluto} € al proveedor.')
                 else:
-                    # Nosotros le debemos al proveedor (pesó más de lo facturado)
                     CuentaPorPagar.objects.create(
                         concepto=f"Ajuste peso Pedido {pedido.numero_pedido}",
                         categoria='PROVEEDOR',
@@ -980,25 +944,21 @@ def generar_ajuste_peso(request, pedido_id):
                     )
                     messages.success(request, f'✅ Creada Cuenta por Pagar por {importe_absoluto} €.')
 
-                # 2. ACTUALIZAR LAS TONELADAS DEL PEDIDO
                 if pedido.detalles.exists():
                     diferencia_tn = pedido.diferencia_peso_tn
                     
                     if diferencia_tn != 0:
                         detalle = pedido.detalles.first()
                         
-                        # Guardamos el peso original en las notas para no perder la referencia
                         peso_original = pedido.total_kg
                         nota_auditoria = f"[Auditoría {hoy.strftime('%d/%m/%Y')}] Peso original: {peso_original} tn. Peso real: {pedido.peso_real_tn} tn."
                         pedido.notas = f"{pedido.notas}\n{nota_auditoria}".strip()
                         
-                        # Si el pedido ya afectó al inventario, ajustamos el stock
                         if pedido.estado != 'PREVISION':
                             inventario, _ = Inventario.objects.get_or_create(material=detalle.material)
                             inventario.cantidad += diferencia_tn 
                             inventario.save()
                         
-                        # Modificamos la línea del pedido al peso real
                         detalle.cantidad = pedido.peso_real_tn
                         detalle.save()
                         
