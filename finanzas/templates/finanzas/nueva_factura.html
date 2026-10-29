@@ -35,9 +35,11 @@
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Categoría</label>
-                    <select name="categoria" class="form-select">
+                    <select name="categoria" id="id_categoria" class="form-select">
                         {% for key, value in categorias %}
-                        <option value="{{ key }}">{{ value }}</option>
+                        <option value="{{ key }}" data-tipo="{% if key == 'COMERCIO_MATERIALES' or key == 'SUMINISTROS' or key == 'TRANSPORTE' or key == 'IMPUESTOS' or key == 'MANTENIMIENTO' %}GASTO{% else %}INGRESO{% endif %}">
+                            {{ value }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
@@ -145,64 +147,93 @@
 <script>
 window.addEventListener('load', function() {
     const selectTipo = document.getElementById('id_tipo');
+    const selectCategoria = document.getElementById('id_categoria');
+    const selectProveedor = document.getElementById('id_proveedor');
+    
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
     const bloqueArchivo = document.getElementById('bloque-archivo-factura');
-    const tipoCuenta = document.getElementById('tipo-cuenta');
-    const textoCuenta = document.getElementById('texto-cuenta');
+    
+    // Función 1: Filtrar Categorías según Ingreso/Gasto
+    function filtrarCategorias() {
+        if (!selectTipo || !selectCategoria) return;
+        const tipo = selectTipo.value;
+        const opciones = selectCategoria.querySelectorAll('option');
+        
+        opciones.forEach(opt => {
+            const tipoCat = opt.getAttribute('data-tipo');
+            if (tipo === 'INGRESO' && tipoCat === 'GASTO') {
+                opt.style.display = 'none';
+                opt.disabled = true;
+            } else if (tipo === 'GASTO' && tipoCat === 'INGRESO' && opt.value !== 'OTROS') {
+                opt.style.display = 'none';
+                opt.disabled = true;
+            } else {
+                opt.style.display = '';
+                opt.disabled = false;
+            }
+        });
+        
+        // Si la opción seleccionada se ha ocultado, reseteamos
+        if (selectCategoria.options[selectCategoria.selectedIndex]?.style.display === 'none') {
+            selectCategoria.value = ''; // O el valor por defecto que quieras
+        }
+        
+        // Forzamos filtro de proveedores
+        filtrarProveedores();
+    }
 
+    // Función 2: Mostrar/ocultar bloques de Cliente/Proveedor
     function actualizarBloques() {
         if (!selectTipo) return;
         if (selectTipo.value === 'INGRESO') {
             if(bloqueCliente) bloqueCliente.classList.remove('d-none');
             if(bloqueProveedor) bloqueProveedor.classList.add('d-none');
             if(bloqueArchivo) bloqueArchivo.classList.add('d-none');
-            if(tipoCuenta) tipoCuenta.textContent = 'cobrar';
-            if(textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por cobrar con los datos de esta factura.';
         } else {
             if(bloqueCliente) bloqueCliente.classList.add('d-none');
             if(bloqueProveedor) bloqueProveedor.classList.remove('d-none');
             if(bloqueArchivo) bloqueArchivo.classList.remove('d-none');
-            if(tipoCuenta) tipoCuenta.textContent = 'pagar';
-            if(textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por pagar con los datos de esta factura.';
+        }
+        filtrarCategorias();
+    }
+
+    // Función 3: Filtrar Proveedores según Categoría
+    function filtrarProveedores() {
+        if (!selectCategoria || !selectProveedor) return;
+        
+        const categoria = selectCategoria.value;
+        const opciones = selectProveedor.querySelectorAll('.opcion-proveedor');
+        
+        let permitidos = [categoria];
+        if (categoria === 'RENTA_PARKING') permitidos.push('TRANSPORTE');
+        if (categoria === 'TRANSPORTE') permitidos.push('RENTA_PARKING');
+
+        opciones.forEach(opt => {
+            const tipo = opt.getAttribute('data-tipo');
+            if (!categoria || permitidos.includes(tipo)) {
+                opt.style.display = '';
+                opt.disabled = false;
+            } else {
+                opt.style.display = 'none';
+                opt.disabled = true;
+            }
+        });
+        
+        if (selectProveedor.options[selectProveedor.selectedIndex]?.style.display === 'none') {
+            selectProveedor.value = '';
         }
     }
 
     if (selectTipo) {
         selectTipo.addEventListener('change', actualizarBloques);
-        actualizarBloques();
     }
-
-    const proveedoresJson = {{ proveedores_json|safe }};
-    const selectCategoria = document.querySelector('select[name="categoria"]');
-    const selectProveedor = document.querySelector('select[name="proveedor"]');
-
-    function filtrarProveedores() {
-        if (!selectCategoria || !selectProveedor) return;
-        const categoria = selectCategoria.value;
-        const valorActual = selectProveedor.value;
-        
-        let categoriasPermitidas = [categoria];
-        if (categoria === 'RENTA_PARKING') categoriasPermitidas.push('TRANSPORTE');
-        if (categoria === 'TRANSPORTE') categoriasPermitidas.push('RENTA_PARKING');
-        
-        selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
-        
-        proveedoresJson.forEach(p => {
-            if (!categoria || categoriasPermitidas.includes(p.tipo)) {
-                const option = document.createElement('option');
-                option.value = p.id;
-                option.textContent = `${p.nombre} (${p.tipo})`;
-                if (p.id == valorActual) option.selected = true;
-                selectProveedor.appendChild(option);
-            }
-        });
-    }
-
-    if (selectCategoria && selectProveedor) {
+    if (selectCategoria) {
         selectCategoria.addEventListener('change', filtrarProveedores);
-        filtrarProveedores();
     }
+
+    // Ejecutar al cargar
+    actualizarBloques();
 });
 </script>
 {% endblock %}
