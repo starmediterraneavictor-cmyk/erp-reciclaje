@@ -143,74 +143,85 @@
 </form>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+<script>
+// Usamos setTimeout para asegurar que el DOM esté listo al 100%
+window.addEventListener('load', function() {
     const selectTipo = document.getElementById('id_tipo');
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
     const bloqueArchivo = document.getElementById('bloque-archivo-factura');
+    
+    // Elementos de la nueva factura (pueden no existir en editar)
     const tipoCuenta = document.getElementById('tipo-cuenta');
     const textoCuenta = document.getElementById('texto-cuenta');
 
     function actualizarBloques() {
         if (!selectTipo) return;
         if (selectTipo.value === 'INGRESO') {
-            bloqueCliente.classList.remove('d-none');
-            bloqueProveedor.classList.add('d-none');
-            if (bloqueArchivo) bloqueArchivo.classList.add('d-none');
-            if (tipoCuenta) tipoCuenta.textContent = 'cobrar';
-            if (textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por cobrar con los datos de esta factura.';
+            if(bloqueCliente) bloqueCliente.classList.remove('d-none');
+            if(bloqueProveedor) bloqueProveedor.classList.add('d-none');
+            if(bloqueArchivo) bloqueArchivo.classList.add('d-none');
+            if(tipoCuenta) tipoCuenta.textContent = 'cobrar';
+            if(textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por cobrar con los datos de esta factura.';
         } else {
-            bloqueCliente.classList.add('d-none');
-            bloqueProveedor.classList.remove('d-none');
-            if (bloqueArchivo) bloqueArchivo.classList.remove('d-none');
-            if (tipoCuenta) tipoCuenta.textContent = 'pagar';
-            if (textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por pagar con los datos de esta factura.';
+            if(bloqueCliente) bloqueCliente.classList.add('d-none');
+            if(bloqueProveedor) bloqueProveedor.classList.remove('d-none');
+            if(bloqueArchivo) bloqueArchivo.classList.remove('d-none');
+            if(tipoCuenta) tipoCuenta.textContent = 'pagar';
+            if(textoCuenta) textoCuenta.textContent = 'Se creará una cuenta por pagar con los datos de esta factura.';
         }
     }
+
     if (selectTipo) {
         selectTipo.addEventListener('change', actualizarBloques);
         actualizarBloques();
     }
 
+    // --- LÓGICA DE FILTRADO DE PROVEEDORES ---
     const proveedoresJson = {{ proveedores_json|safe }};
     const selectCategoria = document.querySelector('select[name="categoria"]');
     const selectProveedor = document.querySelector('select[name="proveedor"]');
+    
+    // En editar_factura, necesitamos guardar el ID actual para que no se pierda
+    const proveedorActualId = "{{ factura.proveedor.id|default:'' }}"; 
 
     function filtrarProveedores() {
-    if (!selectCategoria || !selectProveedor) return;
-    const categoria = selectCategoria.value;
-    const valorActual = selectProveedor.value;
-
-    // 🆕 Diccionario de compatibilidades
-    // Si la categoría es "Renta Parking", mostramos proveedores de Transporte (y viceversa)
-    let categoriasPermitidas = [categoria];
-    
-    if (categoria === 'RENTA_PARKING') {
-        categoriasPermitidas.push('TRANSPORTE');
+        if (!selectCategoria || !selectProveedor) return;
+        
+        const categoria = selectCategoria.value;
+        
+        // 1. Definimos la compatibilidad de categorías
+        let categoriasPermitidas = [categoria];
+        if (categoria === 'RENTA_PARKING') categoriasPermitidas.push('TRANSPORTE');
+        if (categoria === 'TRANSPORTE') categoriasPermitidas.push('RENTA_PARKING');
+        if (categoria === 'MANTENIMIENTO') categoriasPermitidas.push('SERVICIOS_PROFESIONALES');
+        
+        // 2. Limpiamos el desplegable
+        selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
+        
+        // 3. Rellenamos con los proveedores compatibles
+        proveedoresJson.forEach(p => {
+            // Si no hay categoría, mostramos todos
+            // Si hay categoría, comprobamos si el tipo está en las permitidas
+            if (!categoria || categoriasPermitidas.includes(p.tipo)) {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = `${p.nombre} (${p.tipo})`;
+                // Marcamos el seleccionado si estamos editando
+                if (p.id == proveedorActualId) {
+                    option.selected = true;
+                }
+                selectProveedor.appendChild(option);
+            }
+        });
     }
-    if (categoria === 'TRANSPORTE') {
-        categoriasPermitidas.push('RENTA_PARKING');
-    }
-    // Añade aquí más combinaciones si las necesitas (ej: Mantenimiento y Suministros)
 
-    // Limpiar el select
-    selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
-
-    // Rellenar con los que coincidan con cualquier categoría permitida
-    proveedoresJson.forEach(p => {
-        // Si no hay categoría seleccionada, o el tipo del proveedor está en las permitidas
-        if (!categoria || categoriasPermitidas.includes(p.tipo)) {
-            const option = document.createElement('option');
-            option.value = p.id;
-            option.textContent = `${p.nombre} (${p.tipo})`;
-            if (p.id == valorActual) option.selected = true;
-            selectProveedor.appendChild(option);
-        }
-        if (selectCategoria && selectProveedor) {
+    // Lanzamos el filtro cuando cambie la categoría
+    if (selectCategoria && selectProveedor) {
         selectCategoria.addEventListener('change', filtrarProveedores);
-        filtrarProveedores(); // Ejecutar al cargar la página
+        // Lo lanzamos también al cargar la página
+        filtrarProveedores();
     }
 });
-
 </script>
 {% endblock %}
