@@ -206,7 +206,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (p.id == valorActual) option.selected = true;
             selectProveedor.appendChild(option);
         }
-    });
-}
+        if (selectCategoria && selectProveedor) {
+        selectCategoria.addEventListener('change', filtrarProveedores);
+        filtrarProveedores(); // Ejecutar al cargar la página
+    }
+});
+
 </script>
 {% endblock %}
