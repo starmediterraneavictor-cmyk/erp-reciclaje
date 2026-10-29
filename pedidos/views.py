@@ -295,7 +295,7 @@ def nuevo_pedido(request):
 
     context = {
         'clientes': Cliente.objects.filter(estado='ACTIVO').order_by('nombre'),
-        'proveedores': Proveedor.objects.filter(estado='ACTIVO', tipo='MATERIAL').order_by('nombre'),
+        'proveedores': Proveedor.objects.filter(estado='ACTIVO', tipo='COMERCIO_MATERIALES').order_by('nombre'),
         'materiales': Material.objects.all().order_by('nombre'),
         'tipos': Pedido.TIPO_OPERACION,
         'estados': Pedido.ESTADO_PEDIDO,
@@ -519,7 +519,7 @@ def editar_pedido(request, pedido_id):
     context = {
         'pedido': pedido,
         'clientes': Cliente.objects.filter(estado='ACTIVO').order_by('nombre'),
-        'proveedores': Proveedor.objects.filter(estado='ACTIVO', tipo='MATERIAL').order_by('nombre'),
+        'proveedores': Proveedor.objects.filter(estado='ACTIVO', tipo='COMERCIO_MATERIALES').order_by('nombre'),
         'materiales': Material.objects.all().order_by('nombre'),
         'tipos': Pedido.TIPO_OPERACION,
         'estados': Pedido.ESTADO_PEDIDO,
