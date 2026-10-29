@@ -163,24 +163,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const proveedorActualId = "{{ factura.proveedor.id|default:'' }}";
 
     function filtrarProveedores() {
-        if (!selectCategoria || !selectProveedor) return;
-        const categoria = selectCategoria.value;
-        selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
-        
-        proveedoresJson.forEach(p => {
-            if (!categoria || p.tipo === categoria) {
-                const option = document.createElement('option');
-                option.value = p.id;
-                option.textContent = `${p.nombre} (${p.tipo})`;
-                if (p.id == proveedorActualId) option.selected = true;
-                selectProveedor.appendChild(option);
-            }
-        });
+    if (!selectCategoria || !selectProveedor) return;
+    const categoria = selectCategoria.value;
+    const valorActual = selectProveedor.value;
+
+    // 🆕 Diccionario de compatibilidades
+    // Si la categoría es "Renta Parking", mostramos proveedores de Transporte (y viceversa)
+    let categoriasPermitidas = [categoria];
+    
+    if (categoria === 'RENTA_PARKING') {
+        categoriasPermitidas.push('TRANSPORTE');
     }
-    if (selectCategoria && selectProveedor) {
-        selectCategoria.addEventListener('change', filtrarProveedores);
-        filtrarProveedores();
+    if (categoria === 'TRANSPORTE') {
+        categoriasPermitidas.push('RENTA_PARKING');
     }
-});
+    // Añade aquí más combinaciones si las necesitas (ej: Mantenimiento y Suministros)
+
+    // Limpiar el select
+    selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
+
+    // Rellenar con los que coincidan con cualquier categoría permitida
+    proveedoresJson.forEach(p => {
+        // Si no hay categoría seleccionada, o el tipo del proveedor está en las permitidas
+        if (!categoria || categoriasPermitidas.includes(p.tipo)) {
+            const option = document.createElement('option');
+            option.value = p.id;
+            option.textContent = `${p.nombre} (${p.tipo})`;
+            if (p.id == valorActual) option.selected = true;
+            selectProveedor.appendChild(option);
+        }
+    });
+}
 </script>
 {% endblock %}
