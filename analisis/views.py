@@ -1,16 +1,15 @@
 from django.shortcuts import render
-from django.db.models import Sum, Count, Avg
+from django.db.models import Sum, Count
 from django.utils import timezone
-from datetime import timedelta
-from pedidos.models import Pedido, DetallePedido
-from finanzas.models import Factura, CuentaPorPagar, CuentaPorCobrar
-from inventario.models import Material, Inventario
-from clientes.models import Cliente
 from datetime import date, timedelta
 from decimal import Decimal
 from collections import defaultdict
 from django.contrib.auth.decorators import login_required
-from pedidos.models import Comision
+
+from pedidos.models import Pedido, DetallePedido, Comision
+from finanzas.models import Factura, CuentaPorPagar, CuentaPorCobrar
+from inventario.models import Material, Inventario
+from clientes.models import Cliente
 
 
 @login_required
@@ -229,46 +228,50 @@ def dashboard_analisis(request):
     inventario_analisis.sort(key=lambda x: x['cantidad'], reverse=True)
 
     # ============================================
-    # BLOQUE 4: ANÁLISIS INTERNACIONAL
+    # BLOQUE 4: ANÁLISIS NACIONAL E INTERNACIONAL
     # ============================================
     demanda_internacional = []
 
-    paises = Cliente.objects.filter(tipo='RECICLAJE').values('pais').annotate(
-        total_clientes=Count('id')
-    ).order_by('-total_clientes')
+    # Todos los clientes, sin filtrar por tipo, agrupados por país
+    paises = (
+        Cliente.objects
+        .exclude(pais__isnull=True)
+        .exclude(pais='')
+        .values('pais')
+        .annotate(total_clientes=Count('id'))
+        .order_by('-total_clientes')
+    )
 
     for p in paises[:6]:
         pais = p['pais']
-        if pais:
-            pedidos_pais = Pedido.objects.filter(
-                cliente__pais=pais,
-                cliente__tipo='RECICLAJE',
-                fecha__date__gte=fecha_inicio,
-                fecha__date__lte=fecha_fin
-            )
 
-            total_kg = 0
-            for pedido in pedidos_pais:
-                total_kg += pedido.total_kg
+        pedidos_pais = Pedido.objects.filter(
+            cliente__pais=pais,
+            tipo='VENTA_MAT',
+            fecha__date__gte=fecha_inicio,
+            fecha__date__lte=fecha_fin,
+        )
 
-            if pedidos_pais.count() > 3:
-                interes = '🔥 Alto'
-                color_interes = 'danger'
-            elif pedidos_pais.count() > 0:
-                interes = '⚡ Medio'
-                color_interes = 'warning'
-            else:
-                interes = '💤 Bajo'
-                color_interes = 'secondary'
+        total_kg = sum((ped.total_kg for ped in pedidos_pais), Decimal('0'))
 
-            demanda_internacional.append({
-                'pais': pais,
-                'clientes': p['total_clientes'],
-                'pedidos': pedidos_pais.count(),
-                'kg': float(total_kg),
-                'interes': interes,
-                'color': color_interes,
-            })
+        if pedidos_pais.count() > 3:
+            interes = '🔥 Alto'
+            color_interes = 'danger'
+        elif pedidos_pais.count() > 0:
+            interes = '⚡ Medio'
+            color_interes = 'warning'
+        else:
+            interes = '💤 Bajo'
+            color_interes = 'secondary'
+
+        demanda_internacional.append({
+            'pais': pais,
+            'clientes': p['total_clientes'],
+            'pedidos': pedidos_pais.count(),
+            'kg': float(total_kg),
+            'interes': interes,
+            'color': color_interes,
+        })
 
     # ============================================
     # BLOQUE 5: PEDIDOS

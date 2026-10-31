@@ -1,14 +1,13 @@
 from django.shortcuts import render
 from django.db.models import Sum, Count
 from datetime import datetime
-from pedidos.models import Pedido
+from decimal import Decimal
+
+from pedidos.models import Pedido, DetallePedido
 from finanzas.models import Factura
 from clientes.models import Cliente
 from inventario.models import Material, Inventario
 from django.contrib.auth.decorators import login_required
-from inventario.models import Inventario, Material
-from pedidos.models import DetallePedido, OrigenVenta
-from decimal import Decimal
 
 
 @login_required
@@ -24,7 +23,7 @@ def dashboard(request):
     total_clientes = Cliente.objects.count()
     total_materiales = Material.objects.count()
     
-        # ============================================
+    # ============================================
     # INGRESOS (MES ACTUAL Y TOTAL HISTÓRICO)
     # ============================================
     ingresos_mes = Factura.objects.filter(
@@ -85,20 +84,29 @@ def dashboard(request):
                 'stock': float(total_disponible),
             })
     # ============================================
-    # DEMANDA INTERNACIONAL
+    # DEMANDA NACIONAL / INTERNACIONAL (por país)
     # ============================================
-    paises = Cliente.objects.values('pais').annotate(
-        total=Count('id')
-    ).order_by('-total')[:3]
-    
+    # Contamos clientes agrupados por país, SIN filtrar por tipo,
+    # para que coincida con el dashboard de análisis.
+    paises = (
+        Cliente.objects
+        .exclude(pais__isnull=True)
+        .exclude(pais='')
+        .values('pais')
+        .annotate(total=Count('id'))
+        .order_by('-total')[:3]
+    )
+
     demanda = []
     for p in paises:
-        if p['pais']:
-            pedidos_pais = Pedido.objects.filter(cliente__pais=p['pais']).count()
-            demanda.append({
-                'pais': p['pais'],
-                'pedidos': pedidos_pais,
-            })
+        pedidos_pais = Pedido.objects.filter(
+            cliente__pais=p['pais'],
+            tipo='VENTA_MAT',   # solo ventas, no compras
+        ).count()
+        demanda.append({
+            'pais': p['pais'],
+            'pedidos': pedidos_pais,
+        })
     
     # ============================================
     # CONTEXTO
