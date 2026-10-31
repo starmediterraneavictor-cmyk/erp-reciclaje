@@ -60,6 +60,7 @@ class Factura(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
     estado_pago = models.CharField(max_length=20, choices=ESTADO_PAGO, default='PENDIENTE')
+    numero_proforma = models.CharField(max_length=50, blank=True, verbose_name="Nº Proforma")
     notas = models.TextField(blank=True)
 
     archivo_justificante = models.FileField(
@@ -162,6 +163,7 @@ class CuentaPorPagar(models.Model):
     
     # Referencias
     numero_factura = models.CharField(max_length=50, blank=True)
+    numero_proforma = models.CharField(max_length=50, blank=True, verbose_name="Nº Proforma")
     notas = models.TextField(blank=True)
     
     # Factura del proveedor

@@ -880,6 +880,7 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
                     fecha_vencimiento=request.POST.get('fecha_vencimiento'),
                     periodicidad='UNICO',
                     numero_factura=factura.numero_factura,
+                    numero_proforma=request.POST.get('numero_proforma', ''),
                     notas=request.POST.get('notas', '') or f'Generada desde pedido {pedido.numero_pedido}',
                     archivo_factura=request.FILES.get('archivo_factura') or None,
                 )
