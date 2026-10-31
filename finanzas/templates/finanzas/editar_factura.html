@@ -67,13 +67,15 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-6 mb-3 d-none" id="bloque-proveedor">
-                    <label class="form-label">Proveedor</label>
-                    <select name="proveedor" class="form-select">
-                        <option value="">-- Seleccionar proveedor --</option>
-                        <!-- Se llena vía JS -->
-                    </select>
-                </div>
+                <select name="proveedor" class="form-select" id="id_proveedor_edit">
+                    <option value="">-- Seleccionar proveedor --</option>
+                    {% for p in proveedores %}
+                    <option value="{{ p.id }}" data-tipo="{{ p.tipo }}" class="opcion-proveedor"
+                            {% if factura.proveedor and factura.proveedor.id == p.id %}selected{% endif %}>
+                        {{ p.nombre }} ({{ p.tipo }})
+                    </option>
+                    {% endfor %}
+                </select>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Pedido asociado</label>
                     <select name="pedido" class="form-select">

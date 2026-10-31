@@ -178,7 +178,15 @@
                         <td>
                             <span class="badge bg-light text-dark border">{{ f.get_categoria_display }}</span>
                         </td>
-                        <td class="text-wrap">{{ f.entidad.nombre }}</td>
+                        <td class="text-wrap">
+                            {% if f.cliente %}
+                                {{ f.cliente.nombre }}
+                            {% elif f.proveedor %}
+                                {{ f.proveedor.nombre }}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
                         <td>{{ f.fecha|date:"d/m/Y" }}</td>
                         <td class="text-end"><strong>{{ f.total|formato_es }} €</strong></td>
                         <td>
