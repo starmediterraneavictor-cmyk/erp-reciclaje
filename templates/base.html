@@ -69,6 +69,12 @@
                     <li class="nav-item">
                         <a class="nav-link {% if '/proveedores/' in request.path %}active{% endif %}" href="{% url 'lista_proveedores' %}">🏭 Proveedores</a>
                     </li>
+                    
+                    <!-- NUEVO ENLACE AL CRM AQUÍ -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/crm/' in request.path %}active{% endif %}" href="/crm/">🗂️ CRM</a>
+                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link {% if '/inventario/' in request.path %}active{% endif %}" href="/inventario/">📦 Inventario</a>
                     </li>

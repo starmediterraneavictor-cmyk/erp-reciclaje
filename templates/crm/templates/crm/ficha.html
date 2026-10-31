@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+{% block title %}{{ contacto.nombre }} - CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'lista_contactos' %}" class="btn btn-sm btn-outline-secondary mb-2"><i class="bi bi-arrow-left"></i> Volver</a>
+        <h2 class="mb-0">{{ contacto.nombre }}</h2>
+        <p class="text-muted mb-0">
+            {{ contacto.get_tipo_display }} · {{ contacto.pais }}
+            {% if contacto.sector %} · <span class="badge bg-light text-dark border">{{ contacto.sector.nombre }}</span>{% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if not contacto.proveedor %}
+        <a href="{% url 'convertir_contacto' contacto.id %}?target=proveedor" class="btn btn-outline-dark" onclick="return confirm('¿Crear ficha de Proveedor con estos datos?')">
+            🏭 Convertir en Proveedor
+        </a>
+        {% endif %}
+        {% if not contacto.cliente %}
+        <a href="{% url 'convertir_contacto' contacto.id %}?target=cliente" class="btn btn-outline-dark" onclick="return confirm('¿Crear ficha de Cliente con estos datos?')">
+            👤 Convertir en Cliente
+        </a>
+        {% endif %}
+        <a href="{% url 'editar_contacto' contacto.id %}" class="btn btn-primary"><i class="bi bi-pencil"></i> Editar</a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Columna Izquierda: Info y Materiales -->
+    <div class="col-md-5">
+        
+        <!-- Panel de Alerta -->
+        <div class="card card-custom mb-4 {% if contacto.nivel_alerta == 'urgente' %}border-danger{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Último contacto</h6>
+                        <h5 class="mb-0">{{ contacto.ultima_fecha_contacto|date:"d/m/Y"|default:"Nunca" }}</h5>
+                        {% if contacto.alerta %}
+                            <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle"></i> TOCA LLAMAR</span>
+                        {% endif %}
+                    </div>
+                    <button class="btn btn-success" data-bs-toggle="collapse" data-bs-target="#formInteraccion">
+                        <i class="bi bi-telephone-plus"></i> Registrar acción
+                    </button>
+                </div>
+                
+                <!-- Formulario rápido de interacción -->
+                <div class="collapse mt-3" id="formInteraccion">
+                    <div class="bg-light p-3 rounded">
+                        <form method="POST" action="{% url 'nueva_interaccion' contacto.id %}">
+                            {% csrf_token %}
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <select name="tipo" class="form-select form-select-sm">
+                                        <option value="LLAMADA">📞 Llamada</option>
+                                        <option value="EMAIL">✉️ Email</option>
+                                        <option value="WHATSAPP">💬 WhatsApp</option>
+                                        <option value="VISITA">🤝 Visita</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="date" name="fecha" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
+                                </div>
+                                <div class="col-md-12 mt-2">
+                                    <textarea name="resumen" class="form-control form-control-sm" rows="2" placeholder="¿Qué se habló?" required></textarea>
+                                </div>
+                                <div class="col-12 text-end mt-2">
+                                    <button type="submit" class="btn btn-primary btn-sm">Guardar interacción</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Datos de contacto -->
+        <div class="card card-custom mb-4">
+            <div class="card-header bg-white"><h6 class="mb-0">📞 Datos de contacto</h6></div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr><td class="text-muted" style="width: 100px;">Persona:</td><td>{{ contacto.persona_contacto|default:"—" }}</td></tr>
+                    <tr><td class="text-muted">Email:</td><td>{{ contacto.email|default:"—" }}</td></tr>
+                    <tr><td class="text-muted">Teléfono:</td><td>{{ contacto.telefono|default:"—" }}</td></tr>
+                    <tr><td class="text-muted">Móvil:</td><td>{{ contacto.movil|default:"—" }}</td></tr>
+                    <tr><td class="text-muted">Web:</td><td>{% if contacto.web %}<a href="{{ contacto.web }}" target="_blank">Ir a web</a>{% else %}—{% endif %}</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Intereses Material -->
+        <div class="card card-custom mb-4 border-success">
+            <div class="card-header bg-white"><h6 class="mb-0">📦 Intereses de material</h6></div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr><th>Material</th><th>Acción</th><th>Detalle</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for i in intereses_compra %}
+                        <tr>
+                            <td><strong>{{ i.tipo_material }}</strong></td>
+                            <td><span class="badge bg-success">Compra</span></td>
+                            <td><small>{{ i.detalle }}</small></td>
+                        </tr>
+                        {% endfor %}
+                        {% for i in intereses_venta %}
+                        <tr>
+                            <td><strong>{{ i.tipo_material }}</strong></td>
+                            <td><span class="badge bg-primary">Vende</span></td>
+                            <td><small>{{ i.detalle }}</small></td>
+                        </tr>
+                        {% endfor %}
+                        {% if not intereses_compra and not intereses_venta %}
+                        <tr><td colspan="3" class="text-muted text-center py-3">Sin intereses registrados</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                <div class="text-end mt-2">
+                    <small class="text-muted">Añade intereses desde el panel de Admin</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna Derecha: Histórico y Notas -->
+    <div class="col-md-7">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">🕓 Histórico de interacciones</h6>
+            </div>
+            <div class="card-body">
+                
+                {% if contacto.notas %}
+                <div class="alert alert-warning">
+                    <h6 class="alert-heading"><i class="bi bi-sticky"></i> Notas generales</h6>
+                    {{ contacto.notas|linebreaks }}
+                </div>
+                {% endif %}
+
+                <div class="timeline mt-4">
+                    {% for i in interacciones %}
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ i.get_tipo_display }}</strong>
+                            <span class="text-muted small">{{ i.fecha|date:"d/m/Y" }}</span>
+                        </div>
+                        <p class="mb-0 mt-1">{{ i.resumen }}</p>
+                        <small class="text-muted">Por: {{ i.autor.username|default:"Sistema" }}</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center py-4">No hay interacciones registradas todavía.</p>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

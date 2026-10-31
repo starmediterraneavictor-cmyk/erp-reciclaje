@@ -14,6 +14,7 @@ urlpatterns = [
     path('inventario/', include('inventario.urls')),
     path('finanzas/', include('finanzas.urls')),
     path('analisis/', include('analisis.urls')),
+    path('crm/', include('crm.urls')),
     path('logout/', auth_views.LogoutView.as_view(next_page='/admin/login/'), name='logout'),
 
 ]

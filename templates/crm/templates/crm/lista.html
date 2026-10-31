@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block title %}CRM · Contactos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>👥 CRM · Contactos <small class="text-muted">({{ total }})</small></h2>
+    <a href="{% url 'nuevo_contacto' %}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Nuevo Contacto
+    </a>
+</div>
+
+<!-- Pestañas rápidas -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if not alerta_filtro %}active{% endif %}" href="?">📋 Todos</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link text-danger fw-bold {% if alerta_filtro == '1' %}active{% endif %}" href="?alerta=1">
+            🚨 A Llamar ({{ num_alertas }})
+        </a>
+    </li>
+</ul>
+
+<!-- Filtros -->
+<div class="card card-custom mb-4">
+    <div class="card-body py-3">
+        <form method="GET" class="row g-2 align-items-center">
+            {% if alerta_filtro %}<input type="hidden" name="alerta" value="1">{% endif %}
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="buscar" class="form-control" placeholder="Buscar por nombre, email, notas..." value="{{ buscar_filtro }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="sector" class="form-select">
+                    <option value="">Todos los sectores</option>
+                    {% for s in sectores %}
+                    <option value="{{ s.id }}" {% if sector_filtro == s.id|stringformat:"s" %}selected{% endif %}>{{ s.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="estado" class="form-select">
+                    <option value="">Todos los estados</option>
+                    {% for e in estados %}
+                    <option value="{{ e.id }}" {% if estado_filtro == e.id|stringformat:"s" %}selected{% endif %}>{{ e.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card card-custom">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 60px;">Alerta</th>
+                        <th>Empresa</th>
+                        <th>Sector</th>
+                        <th>Estado</th>
+                        <th>Últ. Contacto</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in contactos %}
+                    <tr>
+                        <td class="text-center">
+                            {% if c.nivel_alerta == 'urgente' %}
+                                <span class="badge bg-danger" title="Toca llamar">🔴</span>
+                            {% elif c.nivel_alerta == 'pronto' %}
+                                <span class="badge bg-warning text-dark" title="Pronto tocará">🟠</span>
+                            {% elif c.nivel_alerta == 'ok' %}
+                                <span class="badge bg-success" title="Al día">🟢</span>
+                            {% else %}
+                                <span class="text-muted" title="Sin seguimiento">⚪</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ c.nombre }}</strong>
+                            {% if c.tipo != 'PROSPECTO' %}
+                                <span class="badge bg-primary ms-1" style="font-size: 0.7em;">{{ c.get_tipo_display }}</span>
+                            {% endif %}
+                            <br><small class="text-muted">{{ c.pais }}{% if c.localidad %} · {{ c.localidad }}{% endif %}</small>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ c.sector.nombre|default:"—" }}</span></td>
+                        <td>
+                            {% if c.estado %}
+                                <span class="badge bg-{{ c.estado.color }}">{{ c.estado.nombre }}</span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if c.ultima_fecha_contacto %}
+                                {{ c.ultima_fecha_contacto|date:"d/m/Y" }}
+                                <br><small class="text-muted">Hace {{ c.dias_sin_contacto }} días</small>
+                            {% else %}
+                                <span class="text-muted">Nunca</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'detalle_contacto' c.id %}" class="btn btn-outline-primary btn-sm" title="Ver ficha">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <h5>No hay contactos</h5>
+                            <p>Prueba a limpiar los filtros o crea uno nuevo.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

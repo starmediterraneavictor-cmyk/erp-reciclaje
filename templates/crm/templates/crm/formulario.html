@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}{% if contacto %}Editar{% else %}Nuevo{% endif %} Contacto{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>{% if contacto %}✏️ Editar{% else %}➕ Nuevo{% endif %} Contacto CRM</h2>
+    <a href="{% if contacto %}{% url 'detalle_contacto' contacto.id %}{% else %}{% url 'lista_contactos' %}{% endif %}" class="btn btn-secondary">Volver</a>
+</div>
+
+<form method="POST">
+    {% csrf_token %}
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Nombre de la empresa / contacto <span class="text-danger">*</span></label>
+                    <input type="text" name="nombre" class="form-control" value="{{ contacto.nombre|default:'' }}" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        {% for k, v in tipos %}
+                        <option value="{{ k }}" {% if contacto.tipo == k %}selected{% endif %}>{{ v }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Sector</label>
+                    <select name="sector" class="form-select">
+                        <option value="">-- Sin sector --</option>
+                        {% for s in sectores %}
+                        <option value="{{ s.id }}" {% if contacto.sector_id == s.id %}selected{% endif %}>{{ s.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        <option value="">-- Sin estado --</option>
+                        {% for e in estados %}
+                        <option value="{{ e.id }}" {% if contacto.estado_id == e.id %}selected{% endif %}>{{ e.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Días para alerta</label>
+                    <input type="number" name="dias_alerta" class="form-control" value="{{ contacto.dias_alerta|default:9 }}">
+                </div>
+            </div>
+            
+            <hr>
+            <h6 class="mb-3">Datos de ubicación</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">País</label>
+                    <input type="text" name="pais" class="form-control" value="{{ contacto.pais|default:'España' }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Provincia</label>
+                    <input type="text" name="provincia" class="form-control" value="{{ contacto.provincia|default:'' }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Localidad</label>
+                    <input type="text" name="localidad" class="form-control" value="{{ contacto.localidad|default:'' }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Ubicación (Nave, etc)</label>
+                    <input type="text" name="ubicacion" class="form-control" value="{{ contacto.ubicacion|default:'' }}">
+                </div>
+            </div>
+
+            <hr>
+            <h6 class="mb-3">Persona de contacto y vías</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Persona</label>
+                    <input type="text" name="persona_contacto" class="form-control" value="{{ contacto.persona_contacto|default:'' }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" value="{{ contacto.email|default:'' }}">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Teléfono</label>
+                    <input type="text" name="telefono" class="form-control" value="{{ contacto.telefono|default:'' }}">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Móvil</label>
+                    <input type="text" name="movil" class="form-control" value="{{ contacto.movil|default:'' }}">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Web</label>
+                    <input type="url" name="web" class="form-control" value="{{ contacto.web|default:'' }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Notas generales (visibles en la ficha)</label>
+                <textarea name="notas" class="form-control" rows="3">{{ contacto.notas|default:'' }}</textarea>
+            </div>
+            
+        </div>
+    </div>
+    
+    <button type="submit" class="btn btn-primary btn-lg">Guardar Contacto</button>
+</form>
+{% endblock %}
