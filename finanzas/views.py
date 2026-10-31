@@ -733,10 +733,6 @@ def libro_gastos_ingresos(request):
     categoria = request.GET.get('categoria', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
-    paginator_ing = Paginator(facturas_ingresos, 15)
-    paginator_gas = Paginator(facturas_gastos, 15)
-    page_ing = paginator_ing.get_page(request.GET.get('page_ing'))
-    page_gas = paginator_gas.get_page(request.GET.get('page_gas'))
 
     if categoria:
         facturas = facturas.filter(categoria=categoria)
@@ -745,23 +741,27 @@ def libro_gastos_ingresos(request):
     if hasta:
         facturas = facturas.filter(fecha__lte=hasta)
 
-    # Separar en dos listas
+    # Separar en dos listas (ANTES de paginar)
     facturas_ingresos = facturas.filter(tipo='INGRESO')
     facturas_gastos = facturas.filter(tipo='GASTO')
 
-    # Totales
+    # 🆕 PAGINACIÓN (DESPUÉS de separar)
+    paginator_ing = Paginator(facturas_ingresos, 15)
+    paginator_gas = Paginator(facturas_gastos, 15)
+    page_ing = paginator_ing.get_page(request.GET.get('page_ing'))
+    page_gas = paginator_gas.get_page(request.GET.get('page_gas'))
+
+    # Totales (del queryset completo, no solo de la página)
     total_ingresos = facturas_ingresos.aggregate(t=Sum('total'))['t'] or Decimal('0')
     total_gastos = facturas_gastos.aggregate(t=Sum('total'))['t'] or Decimal('0')
     beneficio = total_ingresos - total_gastos
     num_facturas = facturas.count()
 
     context = {
-        'facturas_ingresos': page_ing,
-        'facturas_gastos': page_gas,
+        'facturas_ingresos': page_ing,  # 🆕 Enviamos la página
+        'facturas_gastos': page_gas,    # 🆕 Enviamos la página
         'page_ing': page_ing,
         'page_gas': page_gas,
-        'facturas_ingresos': facturas_ingresos,
-        'facturas_gastos': facturas_gastos,
         'total_ingresos': total_ingresos,
         'total_gastos': total_gastos,
         'beneficio': beneficio,
