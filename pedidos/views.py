@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation
 from proveedores.models import Proveedor
 from django.db.models import Q
 from finanzas.models import CuentaPorPagar, CuentaPorCobrar, Factura
-
+from django.core.paginator import Paginator
 
 from .models import (
     Pedido, DetallePedido,
@@ -27,7 +27,6 @@ def lista_pedidos(request):
     # 🆕 LIMPIEZA AUTOMÁTICA DE ORÍGENES HUÉRFANOS
     from .models import OrigenVenta
     OrigenVenta.objects.filter(pedido_compra__isnull=True).delete()
-    # ---------------------------------------------
 
     # Base queryset
     pedidos = Pedido.objects.all().order_by('-fecha')
@@ -58,7 +57,12 @@ def lista_pedidos(request):
 
     if material_tipo:
         pedidos = pedidos.filter(detalles__material__tipo=material_tipo).distinct()
-    
+
+    # 🆕 PAGINACIÓN (DESPUÉS de los filtros)
+    paginator = Paginator(pedidos, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     # Contadores
     base_para_contadores = Pedido.objects.all()
     if estado:
@@ -89,7 +93,7 @@ def lista_pedidos(request):
         CuentaPorPagar.objects.filter(estado__in=['PENDIENTE', 'PARCIAL']).values_list('concepto', flat=True)
     )
 
-    for p in pedidos:
+    for p in page_obj: # 🆕 Iteramos sobre page_obj
         concepto = f"Pedido {p.numero_pedido}"
         p.tiene_cuenta_pagada = concepto in conceptos_pagados
         p.tiene_cuenta_pendiente = concepto in conceptos_pendientes
@@ -100,6 +104,7 @@ def lista_pedidos(request):
         else:
             p.venta_asociada = None
 
+    # Totales (del queryset filtrado completo, no solo la página)
     total_pedidos = pedidos.count()
     total_importe = sum((p.total_importe for p in pedidos), Decimal('0'))
 
@@ -115,7 +120,8 @@ def lista_pedidos(request):
     tipos_materiales = sorted(tipos_materiales, key=lambda x: x['nombre'])
 
     context = {
-        'pedidos': pedidos,
+        'pedidos': page_obj, # 🆕 Solo la página
+        'page_obj': page_obj,
         'total_pedidos': total_pedidos,
         'total_importe': total_importe,
         'tipos': Pedido.TIPO_OPERACION,

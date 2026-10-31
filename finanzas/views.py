@@ -19,6 +19,7 @@ from django.db import transaction
 from decimal import Decimal
 from pedidos.models import Comercial, Comision
 from django.db.models import Sum
+from django.core.paginator import Paginator
 
 
 
@@ -77,10 +78,9 @@ def _crear_cuenta_para_factura(factura):
 def lista_facturas(request):
     ver_anuladas = request.GET.get('ver_anuladas', '') == '1'
     
-    # Filtros
     categoria = request.GET.get('categoria', '')
     tipo = request.GET.get('tipo', '')
-    estado = request.GET.get('estado', '') # 🆕
+    estado = request.GET.get('estado', '')
     buscar = request.GET.get('buscar', '').strip()
 
     if ver_anuladas:
@@ -92,7 +92,7 @@ def lista_facturas(request):
         facturas = facturas.filter(tipo=tipo)
     if categoria:
         facturas = facturas.filter(categoria=categoria)
-    if estado: # 🆕 Filtro por estado
+    if estado:
         facturas = facturas.filter(estado_pago=estado)
     if buscar:
         facturas = facturas.filter(
@@ -101,6 +101,11 @@ def lista_facturas(request):
             Q(cliente__nombre__icontains=buscar) |
             Q(proveedor__nombre__icontains=buscar)
         )
+
+    # 🆕 Paginación (DESPUÉS de los filtros)
+    paginator = Paginator(facturas, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     totales = facturas.aggregate(
         ingresos=Sum('total', filter=Q(tipo='INGRESO')),
@@ -111,7 +116,8 @@ def lista_facturas(request):
     beneficio = total_ingresos - total_gastos
 
     context = {
-        'facturas': facturas,
+        'facturas': page_obj, # 🆕 Solo la página
+        'page_obj': page_obj,
         'total_ingresos': total_ingresos,
         'total_gastos': total_gastos,
         'beneficio': beneficio,
@@ -124,7 +130,6 @@ def lista_facturas(request):
         'buscar_filtro': buscar,
     }
     return render(request, 'finanzas/lista.html', context)
-
 
 @login_required
 def nueva_factura(request):
@@ -728,6 +733,10 @@ def libro_gastos_ingresos(request):
     categoria = request.GET.get('categoria', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
+    paginator_ing = Paginator(facturas_ingresos, 15)
+    paginator_gas = Paginator(facturas_gastos, 15)
+    page_ing = paginator_ing.get_page(request.GET.get('page_ing'))
+    page_gas = paginator_gas.get_page(request.GET.get('page_gas'))
 
     if categoria:
         facturas = facturas.filter(categoria=categoria)
@@ -747,6 +756,10 @@ def libro_gastos_ingresos(request):
     num_facturas = facturas.count()
 
     context = {
+        'facturas_ingresos': page_ing,
+        'facturas_gastos': page_gas,
+        'page_ing': page_ing,
+        'page_gas': page_gas,
         'facturas_ingresos': facturas_ingresos,
         'facturas_gastos': facturas_gastos,
         'total_ingresos': total_ingresos,
