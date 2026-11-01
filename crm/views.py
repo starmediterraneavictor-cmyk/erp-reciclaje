@@ -170,3 +170,36 @@ def convertir_contacto(request, contacto_id):
         messages.success(request, f'Creado Cliente: {nuevo_cli.nombre}')
 
     return redirect('detalle_contacto', contacto_id=contacto.id)
+
+@login_required
+def matriz_materiales(request):
+    # Filtro por material (opcional)
+    material_filtro = request.GET.get('material', '')
+    accion_filtro = request.GET.get('accion', '')
+
+    # Obtenemos todos los intereses
+    intereses = InteresMaterial.objects.select_related('contacto').all()
+
+    if material_filtro:
+        intereses = intereses.filter(tipo_material__iexact=material_filtro)
+    if accion_filtro:
+        intereses = intereses.filter(accion=accion_filtro)
+
+    # Agrupamos por contacto para pintar la tabla
+    contactos_dict = {}
+    for i in intereses:
+        if i.contacto not in contactos_dict:
+            contactos_dict[i.contacto] = []
+        contactos_dict[i.contacto].append(i)
+
+    # Obtener la lista única de materiales para las cabeceras
+    materiales_unicos = InteresMaterial.objects.values_list('tipo_material', flat=True).distinct().order_by('tipo_material')
+    materiales_unicos = [m for m in materiales_unicos if m]
+
+    context = {
+        'contactos_dict': contactos_dict.items(),
+        'materiales_unicos': materiales_unicos,
+        'material_filtro': material_filtro,
+        'accion_filtro': accion_filtro,
+    }
+    return render(request, 'crm/matriz.html', context)

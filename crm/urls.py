@@ -8,4 +8,5 @@ urlpatterns = [
     path('<int:contacto_id>/editar/', views.editar_contacto, name='editar_contacto'),
     path('<int:contacto_id>/interaccion/', views.nueva_interaccion, name='nueva_interaccion'),
     path('<int:contacto_id>/convertir/', views.convertir_contacto, name='convertir_contacto'),
+    path('matriz/', views.matriz_materiales, name='matriz_materiales'),
 ]

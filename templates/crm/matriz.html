@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Matriz de Materiales - CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>🗺️ Matriz de Materiales</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'lista_contactos' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-people"></i> Volver a Contactos
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card card-custom mb-4">
+    <div class="card-body py-3">
+        <form method="GET" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <select name="material" class="form-select">
+                    <option value="">Todos los materiales</option>
+                    {% for m in materiales_unicos %}
+                    <option value="{{ m }}" {% if material_filtro == m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select name="accion" class="form-select">
+                    <option value="">Compra y Venta</option>
+                    <option value="COMPRO" {% if accion_filtro == 'COMPRO' %}selected{% endif %}>Solo Compra (🟢)</option>
+                    <option value="VENDEMOS" {% if accion_filtro == 'VENDEMOS' %}selected{% endif %}>Solo Venta (🔵)</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">Filtrar Matriz</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla Matriz -->
+<div class="card card-custom">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="min-width: 200px;">Empresa</th>
+                        {% for m in materiales_unicos %}
+                        <th class="text-center" style="min-width: 80px;">{{ m }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contacto, items in contactos_dict %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'detalle_contacto' contacto.id %}"><strong>{{ contacto.nombre }}</strong></a>
+                        </td>
+                        {% for m in materiales_unicos %}
+                            <td class="text-center">
+                                {% for item in items %}
+                                    {% if item.tipo_material == m %}
+                                        {% if item.accion == 'COMPRO' %}
+                                            <span class="badge bg-success" title="{{ item.detalle }}">🟢 Compra</span>
+                                        {% else %}
+                                            <span class="badge bg-primary" title="{{ item.detalle }}">🔵 Vende</span>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{{ materiales_unicos|length|add:1 }}" class="text-center py-5 text-muted">
+                            No hay intereses de materiales registrados.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,9 +4,14 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>👥 CRM · Contactos <small class="text-muted">({{ total }})</small></h2>
-    <a href="{% url 'nuevo_contacto' %}" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Nuevo Contacto
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'matriz_materiales' %}" class="btn btn-outline-primary">
+            <i class="bi bi-grid-3x3-gap"></i> Matriz de Materiales
+        </a>
+        <a href="{% url 'nuevo_contacto' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nuevo Contacto
+        </a>
+    </div>
 </div>
 
 <!-- Pestañas rápidas -->
