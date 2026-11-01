@@ -14,23 +14,40 @@
     </div>
 </div>
 
-<!-- Pestañas rápidas -->
+<!-- Pestañas principales -->
 <ul class="nav nav-tabs mb-3">
     <li class="nav-item">
-        <a class="nav-link {% if not alerta_filtro %}active{% endif %}" href="?">📋 Todos</a>
+        <a class="nav-link {% if not alerta_filtro %}active{% endif %}" href="?{% if tipo_filtro %}tipo={{ tipo_filtro }}{% endif %}">📋 Todos</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link text-danger fw-bold {% if alerta_filtro == '1' %}active{% endif %}" href="?alerta=1">
+        <a class="nav-link text-danger fw-bold {% if alerta_filtro == '1' %}active{% endif %}" href="?alerta=1{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}">
             🚨 A Llamar ({{ num_alertas }})
         </a>
     </li>
 </ul>
+
+<!-- NUEVOS BOTONES DE TIPO (Proveedores / Clientes / Prospectos) -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <a href="?{% if alerta_filtro %}alerta=1&{% endif %}buscar={{ buscar_filtro }}" class="btn {% if not tipo_filtro %}btn-secondary{% else %}btn-outline-secondary{% endif %} btn-sm">
+        Todos los tipos
+    </a>
+    <a href="?tipo=PROVEEDOR{% if alerta_filtro %}&alerta=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}" class="btn {% if tipo_filtro == 'PROVEEDOR' %}btn-dark{% else %}btn-outline-dark{% endif %} btn-sm">
+        🏭 Proveedores
+    </a>
+    <a href="?tipo=CLIENTE{% if alerta_filtro %}&alerta=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}" class="btn {% if tipo_filtro == 'CLIENTE' %}btn-primary{% else %}btn-outline-primary{% endif %} btn-sm">
+        👤 Clientes
+    </a>
+    <a href="?tipo=PROSPECTO{% if alerta_filtro %}&alerta=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}" class="btn {% if tipo_filtro == 'PROSPECTO' %}btn-info{% else %}btn-outline-info{% endif %} btn-sm">
+        🔍 Prospectos
+    </a>
+</div>
 
 <!-- Filtros -->
 <div class="card card-custom mb-4">
     <div class="card-body py-3">
         <form method="GET" class="row g-2 align-items-center">
             {% if alerta_filtro %}<input type="hidden" name="alerta" value="1">{% endif %}
+            {% if tipo_filtro %}<input type="hidden" name="tipo" value="{{ tipo_filtro }}">{% endif %}
             <div class="col-md-4">
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
@@ -69,6 +86,7 @@
                     <tr>
                         <th style="width: 60px;">Alerta</th>
                         <th>Empresa</th>
+                        <th>Tipo</th>
                         <th>Sector</th>
                         <th>Estado</th>
                         <th>Últ. Contacto</th>
@@ -91,10 +109,13 @@
                         </td>
                         <td>
                             <strong>{{ c.nombre }}</strong>
-                            {% if c.tipo != 'PROSPECTO' %}
-                                <span class="badge bg-primary ms-1" style="font-size: 0.7em;">{{ c.get_tipo_display }}</span>
-                            {% endif %}
                             <br><small class="text-muted">{{ c.pais }}{% if c.localidad %} · {{ c.localidad }}{% endif %}</small>
+                        </td>
+                        <td>
+                            {% if c.tipo == 'PROVEEDOR' %}<span class="badge bg-dark">Proveedor</span>
+                            {% elif c.tipo == 'CLIENTE' %}<span class="badge bg-primary">Cliente</span>
+                            {% elif c.tipo == 'AMBOS' %}<span class="badge bg-secondary">Ambos</span>
+                            {% else %}<span class="badge bg-info text-dark">Prospecto</span>{% endif %}
                         </td>
                         <td><span class="badge bg-light text-dark border">{{ c.sector.nombre|default:"—" }}</span></td>
                         <td>
@@ -120,7 +141,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
+                        <td colspan="7" class="text-center py-5 text-muted">
                             <h5>No hay contactos</h5>
                             <p>Prueba a limpiar los filtros o crea uno nuevo.</p>
                         </td>
@@ -131,4 +152,34 @@
         </div>
     </div>
 </div>
-{% endblock %}
+
+<!-- PAGINACIÓN -->
+{% if page_obj.has_other_pages %}
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Navegación de contactos">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                    &laquo; Anterior
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo; Anterior</span></li>
+            {% endif %}
+
+            <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                    Siguiente &raquo;
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Siguiente &raquo;</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}

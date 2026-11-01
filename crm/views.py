@@ -7,6 +7,7 @@ from datetime import date
 from .models import Contacto, Interaccion, SectorContacto, EstadoContacto, InteresMaterial
 from clientes.models import Cliente
 from proveedores.models import Proveedor
+from django.core.paginator import Paginator
 
 @login_required
 def lista_contactos(request):
@@ -15,6 +16,7 @@ def lista_contactos(request):
     buscar = request.GET.get('buscar', '').strip()
     sector_id = request.GET.get('sector', '')
     estado_id = request.GET.get('estado', '')
+    tipo_filtro = request.GET.get('tipo', '') # <-- NUEVO FILTRO
 
     contactos = Contacto.objects.all()
 
@@ -28,30 +30,41 @@ def lista_contactos(request):
         contactos = contactos.filter(sector_id=sector_id)
     if estado_id:
         contactos = contactos.filter(estado_id=estado_id)
+    if tipo_filtro:
+        if tipo_filtro == 'PROVEEDOR':
+            contactos = contactos.filter(tipo__in=['PROVEEDOR', 'AMBOS'])
+        elif tipo_filtro == 'CLIENTE':
+            contactos = contactos.filter(tipo__in=['CLIENTE', 'AMBOS'])
+        else:
+            contactos = contactos.filter(tipo=tipo_filtro)
     
     # Filtro especial de alerta
     if alerta == '1':
-        # No podemos filtrar directamente por @property en la DB, 
-        # así que lo hacemos en Python
         contactos = [c for c in contactos if c.alerta]
     else:
         contactos = list(contactos)
 
-    # Ordenar: Primero los que tienen alerta urgente, luego por nombre
+    # Ordenar
     def orden_alerta(c):
         niveles = {'urgente': 1, 'pronto': 2, 'ok': 3, None: 4}
         return (niveles.get(c.nivel_alerta, 5), c.nombre)
-    
     contactos.sort(key=orden_alerta)
 
+    # Paginación
+    paginator = Paginator(contactos, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        'contactos': contactos,
+        'contactos': page_obj,
+        'page_obj': page_obj,
         'sectores': SectorContacto.objects.filter(activo=True),
         'estados': EstadoContacto.objects.filter(activo=True),
         'alerta_filtro': alerta,
         'buscar_filtro': buscar,
         'sector_filtro': sector_id,
         'estado_filtro': estado_id,
+        'tipo_filtro': tipo_filtro, # <-- Lo pasamos al HTML
         'total': len(contactos),
         'num_alertas': len([c for c in contactos if c.alerta])
     }
