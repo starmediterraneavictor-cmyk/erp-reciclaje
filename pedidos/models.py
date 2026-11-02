@@ -51,7 +51,6 @@ class Pedido(models.Model):
         blank=True, default='', verbose_name="Incoterm"
     )
 
-    # NUEVO: enlace al pedido de compra origen (solo para ventas)
     pedido_origen = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,
@@ -61,14 +60,12 @@ class Pedido(models.Model):
         verbose_name="Pedido de compra origen"
     )
 
-    # NUEVO: Peso real para ajustes
     peso_real_tn = models.DecimalField(
         max_digits=12, decimal_places=2, 
         null=True, blank=True, 
         verbose_name="Peso real en báscula (tn)"
     )
 
-    
     notas = models.TextField(blank=True)
     
     def __str__(self):
@@ -76,7 +73,6 @@ class Pedido(models.Model):
     
     @property
     def es_internacional(self):
-        """Es internacional si el cliente o proveedor NO es de España"""
         pais = 'España'
         if self.cliente:
             pais = self.cliente.pais
@@ -86,7 +82,6 @@ class Pedido(models.Model):
     
     @property
     def entidad(self):
-        """Devuelve el cliente o el proveedor según tipo"""
         if self.tipo == 'VENTA_MAT':
             return self.cliente
         else:
@@ -94,7 +89,6 @@ class Pedido(models.Model):
     
     @property
     def entidad_nombre(self):
-        """Nombre de la entidad o '—' si no hay"""
         ent = self.entidad
         return ent.nombre if ent else '—'
     
@@ -127,14 +121,10 @@ class Pedido(models.Model):
 
     @property
     def tipos_materiales(self):
-        """Devuelve una lista con los tipos de material únicos del pedido"""
         tipos = set()
         for detalle in self.detalles.all():
-            # Intentamos leer el campo 'tipo' o 'categoria' directamente
             tipo_mat = getattr(detalle.material, 'tipo', None) or getattr(detalle.material, 'categoria', None)
-            
             if tipo_mat:
-                # Si es un objeto (ForeignKey), sacamos su nombre. Si es texto, lo usamos tal cual.
                 if hasattr(tipo_mat, 'nombre'):
                     tipos.add(str(tipo_mat.nombre))
                 else:
@@ -150,21 +140,18 @@ class Pedido(models.Model):
 
     @property
     def precio_venta_tn(self):
-        """€/TN de venta (importe total / cantidad total)"""
         if self.total_kg == 0:
             return Decimal('0')
         return self.total_importe / self.total_kg
     
     @property
     def precio_compra_tn(self):
-        """€/TN del pedido (para compras)"""
         if self.total_kg == 0:
             return Decimal('0')
         return self.total_importe / self.total_kg
     
     @property
     def coste_compra_tn(self):
-        """€/TN de compra calculado con los orígenes (solo ventas)"""
         if not self.origenes_venta.exists():
             return None
         tn_total = Decimal('0')
@@ -179,7 +166,6 @@ class Pedido(models.Model):
     
     @property
     def transporte_total(self):
-        """Suma total de transporte del pedido"""
         total = Decimal('0')
         for d in self.detalles.all():
             total += Decimal(str(d.transporte))
@@ -187,14 +173,12 @@ class Pedido(models.Model):
     
     @property
     def coste_transporte_tn(self):
-        """€/TN de transporte real (propio + el de los orígenes de compra)"""
         total_tn = self.total_kg
         if total_tn == 0:
             return Decimal('0')
         
-        total_transporte = self.transporte_total # Transporte del pedido de venta
+        total_transporte = self.transporte_total
         
-        # Sumamos el transporte de los pedidos de compra origen, ponderado por los TN
         for origen in self.origenes_venta.all():
             if origen.pedido_compra.total_kg > 0:
                 proporcion = Decimal(str(origen.cantidad_tn)) / origen.pedido_compra.total_kg
@@ -204,7 +188,6 @@ class Pedido(models.Model):
     
     @property
     def beneficio_tn(self):
-        """€/TN de beneficio (solo ventas con orígenes)"""
         if not self.origenes_venta.exists():
             return None
         coste_compra = self.coste_compra_tn
@@ -216,7 +199,6 @@ class Pedido(models.Model):
     
     @property
     def beneficio_total(self):
-        """Beneficio total del pedido (solo ventas con orígenes)"""
         if not self.origenes_venta.exists():
             return None
         if self.beneficio_tn is None:
@@ -225,7 +207,6 @@ class Pedido(models.Model):
     
     @property
     def margen_pct(self):
-        """Margen % (solo ventas con orígenes)"""
         if not self.origenes_venta.exists() or self.precio_venta_tn == 0:
             return None
         if self.beneficio_tn is None:
@@ -234,41 +215,30 @@ class Pedido(models.Model):
 
     @property
     def total_cobrado(self):
-        """Suma de los cobros de la cuenta por cobrar asociada al pedido"""
         from finanzas.models import CuentaPorCobrar
-        # Buscar la cuenta por cobrar del pedido
         cuenta = CuentaPorCobrar.objects.filter(
             concepto__icontains=self.numero_pedido
         ).first()
-
-        # Si la cuenta está anulada, devolver 0
         if cuenta and cuenta.estado == 'ANULADO':
             return Decimal('0')
-
         if cuenta:
             return sum((c.importe for c in cuenta.cobros.all()), Decimal('0'))
         return Decimal('0')
     
     @property
     def saldo_pendiente_cobro(self):
-        """Diferencia entre el importe total del pedido y lo cobrado"""
         return self.total_importe - self.total_cobrado
 
-    
-    
     @property
     def tiene_factura_activa(self):
-        """Comprueba si el pedido tiene una factura NO anulada"""
         return self.facturas.exclude(estado_pago='ANULADO').exists()
 
     @property
     def factura_activa(self):
-        """Devuelve la factura NO anulada asociada al pedido (o None)"""
         return self.facturas.exclude(estado_pago='ANULADO').first()
 
     @property
     def tiene_cobros(self):
-        """Comprueba si el pedido tiene cobros registrados (ignora facturas anuladas)"""
         from finanzas.models import CuentaPorCobrar
         factura = self.facturas.exclude(estado_pago='ANULADO').first()
         if not factura:
@@ -280,7 +250,6 @@ class Pedido(models.Model):
 
     @property
     def total_pendiente_cobro(self):
-        """Importe pendiente de cobro (0 si la cuenta está anulada)"""
         from finanzas.models import CuentaPorCobrar
         cuenta = CuentaPorCobrar.objects.filter(
             concepto__icontains=self.numero_pedido
@@ -293,59 +262,47 @@ class Pedido(models.Model):
 
     @property
     def peso_original_notas(self):
-        """Extrae el peso original de las notas de auditoría, si existe"""
         import re
         if self.notas:
             match = re.search(r'Peso original:\s*([\d\.]+)', self.notas)
             if match:
                 return Decimal(match.group(1))
-        return self.total_kg # Si no encuentra nada, devuelve el peso actual
-    
-    
+        return self.total_kg
     
     @property
     def diferencia_peso_tn(self):
-        """Calcula la diferencia entre el peso original y el real"""
         if self.peso_real_tn is None:
             return Decimal('0')
         return self.peso_real_tn - self.peso_original_notas
 
     @property
     def importe_ajuste(self):
-        """Calcula el dinero a favor o en contra basado en el precio de compra"""
         if self.peso_real_tn is None:
             return Decimal('0')
         return self.diferencia_peso_tn * self.precio_compra_tn
 
     @property
     def tn_disponibles(self):
-        """Devuelve los TN libres de un pedido de compra"""
         if self.tipo != 'COMPRA_MAT':
             return self.total_kg
-        # Sumamos lo que se ha vendido en OrigenVenta
         tn_vendidas = sum(o.cantidad_tn for o in self.ventas_asociadas.all())
         return self.total_kg - tn_vendidas
 
     @property
     def total_comisiones(self):
-        """Suma de todas las comisiones del pedido"""
         return sum((c.importe_comision for c in self.comisiones.all()), Decimal('0'))
 
     @property
     def beneficio_real_total(self):
-        """Beneficio total restando las comisiones"""
         if self.beneficio_total is None:
             return None
         return self.beneficio_total - self.total_comisiones
 
     @property
     def beneficio_real_tn(self):
-        """Beneficio €/TN restando las comisiones"""
         if self.total_kg == 0 or self.beneficio_real_total is None:
             return None
         return self.beneficio_real_total / self.total_kg
-
-    
     
     class Meta:
         verbose_name = "Pedido"
@@ -378,7 +335,6 @@ class DetallePedido(models.Model):
 
     @property
     def transporte_tn(self):
-        """€/TN de transporte para esta línea"""
         if self.cantidad and self.cantidad > 0:
             return self.transporte / self.cantidad
         return 0
@@ -389,7 +345,6 @@ class DetallePedido(models.Model):
 
 
 class CondicionPago(models.Model):
-    """Condiciones de pago configurables para pedidos internacionales"""
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField(blank=True)
     porcentaje_anticipo = models.DecimalField(max_digits=5, decimal_places=2, default=0)
@@ -405,8 +360,6 @@ class CondicionPago(models.Model):
 
 
 class PedidoInternacional(models.Model):
-    """Seguimiento de pedidos internacionales"""
-    
     AMBITO_CHOICES = [
         ('NACIONAL', 'Nacional'),
         ('INTERNACIONAL', 'Internacional'),
@@ -502,8 +455,6 @@ class PedidoInternacional(models.Model):
 
 
 class PagoInternacional(models.Model):
-    """Registro de pagos recibidos de pedidos internacionales"""
-    
     TIPO_PAGO = [
         ('ANTICIPO', 'Anticipo'),
         ('SALDO', 'Saldo final'),
@@ -525,15 +476,14 @@ class PagoInternacional(models.Model):
     
     def __str__(self):
         return f"{self.pedido_internacional.pedido.numero_pedido} - {self.tipo}: {self.cantidad}€"
-
         
     class Meta:
         verbose_name = "Pago internacional"
         verbose_name_plural = "Pagos internacionales"
         ordering = ['-fecha']
 
+
 class OrigenVenta(models.Model):
-    """Relaciona un pedido de venta con los pedidos de compra de los que proviene el material"""
     pedido_venta = models.ForeignKey(
         Pedido, on_delete=models.CASCADE,
         related_name='origenes_venta',
@@ -556,14 +506,12 @@ class OrigenVenta(models.Model):
 
     @property
     def precio_compra_tn(self):
-        """Precio €/tn del pedido de compra origen"""
         if self.pedido_compra.total_kg > 0:
             return self.pedido_compra.total_importe / self.pedido_compra.total_kg
         return Decimal('0')
 
     @property
     def coste_total(self):
-        """Coste total de este origen (cantidad × precio_compra_tn)"""
         return self.cantidad_tn * self.precio_compra_tn
 
     class Meta:
@@ -573,14 +521,9 @@ class OrigenVenta(models.Model):
 
 
 def recalcular_stock_material(material):
-    """
-    Calcula el stock disponible real de un material sumando las toneladas
-    libres (no asignadas a ventas) de todos los pedidos de compra/maquila.
-    """
     from inventario.models import Inventario
     from decimal import Decimal
     
-    # 1. Buscar todos los pedidos de compra/maquila que tengan este material y no estén cancelados
     detalles_compra = DetallePedido.objects.filter(
         material=material,
         pedido__tipo__in=['COMPRA_MAT', 'MAQUILA']
@@ -590,29 +533,21 @@ def recalcular_stock_material(material):
     
     for detalle in detalles_compra:
         pedido = detalle.pedido
-        
-        # Cuánto se ha comprado en esta línea del pedido
         tn_compradas_linea = detalle.cantidad
-        
-        # Cuánto se ha asignado a ventas DESDE ESTE PEDIDO
-        # (Sumamos todas las OrigenVenta que apunten a este pedido de compra)
         tn_asignadas = sum(o.cantidad_tn for o in pedido.ventas_asociadas.all())
-        
-        # Lo que queda libre en este pedido
         libre = tn_compradas_linea - tn_asignadas
         
         if libre > 0:
             total_disponible += libre
 
-    # 2. Actualizar el inventario con el total disponible
     inventario, _ = Inventario.objects.get_or_create(material=material)
     inventario.cantidad = total_disponible
     inventario.save()
     
     return total_disponible
 
+
 class Comercial(models.Model):
-    """Datos del comercial o agente"""
     nombre = models.CharField(max_length=200)
     telefono = models.CharField(max_length=50, blank=True)
     email = models.EmailField(blank=True)
@@ -628,7 +563,6 @@ class Comercial(models.Model):
 
 
 class Comision(models.Model):
-    """Comisión asociada a un pedido y a un comercial"""
     TIPO_CHOICES = [
         ('PORCENTAJE', 'Porcentaje (%)'),
         ('FIJO', 'Importe Fijo (€)'),
@@ -646,13 +580,44 @@ class Comision(models.Model):
 
     @property
     def importe_comision(self):
-        """Calcula el importe real de la comisión"""
         if self.tipo == 'PORCENTAJE':
             return self.pedido.total_importe * (self.valor / 100)
         elif self.tipo == 'TN':
-            return self.pedido.total_kg * self.valor # 🆕 Multiplicamos las toneladas por el valor
+            return self.pedido.total_kg * self.valor
         return self.valor
 
     class Meta:
         verbose_name = "Comisión"
         verbose_name_plural = "Comisiones"
+
+
+# ============================================
+# NUEVO MODELO: PESADAS DE CAMIÓN
+# ============================================
+class PesadaCamion(models.Model):
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='pesadas')
+    fecha = models.DateField(default=timezone.now)
+    matricula = models.CharField(max_length=20, blank=True, verbose_name="Matrícula / Camión")
+    peso_previsto_tn = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Peso Previsto (tn)")
+    peso_real_tn = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Peso Real (tn)")
+    notas = models.TextField(blank=True)
+    ajuste_generado = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.pedido.numero_pedido} - {self.matricula} ({self.peso_real_tn} tn)"
+
+    @property
+    def diferencia_tn(self):
+        return self.peso_real_tn - self.peso_previsto_tn
+
+    @property
+    def impacto_economico(self):
+        if self.pedido.total_kg == 0:
+            return 0
+        precio_tn = self.pedido.total_importe / self.pedido.total_kg
+        return self.diferencia_tn * precio_tn
+
+    class Meta:
+        verbose_name = "Pesada de camión"
+        verbose_name_plural = "Pesadas de camiones"
+        ordering = ['-fecha']

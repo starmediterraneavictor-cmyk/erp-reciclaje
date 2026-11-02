@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
+from django.utils import timezone
 from proveedores.models import Proveedor
 from django.db.models import Q
 from finanzas.models import CuentaPorPagar, CuentaPorCobrar, Factura
@@ -12,7 +13,8 @@ from django.core.paginator import Paginator
 from .models import (
     Pedido, DetallePedido,
     PedidoInternacional, PagoInternacional, CondicionPago,
-    Comercial, Comision  # 🆕 Añadimos los nuevos modelos
+    Comercial, Comision, OrigenVenta,
+    PesadaCamion
 )
 from clientes.models import Cliente
 from inventario.models import Material, Inventario
@@ -1023,3 +1025,79 @@ def eliminar_comision(request, comision_id):
     comision.delete()
     messages.success(request, '✅ Comisión eliminada')
     return redirect('detalle_pedido', pedido_id=pedido_id)
+
+@login_required
+def nueva_pesada(request, pedido_id):
+    pedido = get_object_or_404(Pedido, id=pedido_id)
+    if request.method == 'POST':
+        try:
+            peso_previsto = Decimal(request.POST.get('peso_previsto_tn'))
+            peso_real = Decimal(request.POST.get('peso_real_tn'))
+            
+            PesadaCamion.objects.create(
+                pedido=pedido,
+                fecha=request.POST.get('fecha') or timezone.now().date(),
+                matricula=request.POST.get('matricula', ''),
+                peso_previsto_tn=peso_previsto,
+                peso_real_tn=peso_real
+            )
+            messages.success(request, '✅ Pesada de camión registrada.')
+        except Exception as e:
+            messages.error(request, f'❌ Error: {str(e)}')
+    return redirect('detalle_pedido', pedido_id=pedido.id)
+
+
+@login_required
+def generar_ajuste_pesada(request, pesada_id):
+    pesada = get_object_or_404(PesadaCamion, id=pesada_id)
+    pedido = pesada.pedido
+    
+    if pesada.ajuste_generado:
+        messages.warning(request, '⚠️ Este ajuste ya se ha generado.')
+        return redirect('detalle_pedido', pedido_id=pedido.id)
+
+    try:
+        with transaction.atomic():
+            ajuste = pesada.impacto_economico
+            hoy = timezone.now().date()
+            importe_absoluto = abs(ajuste)
+            
+            if ajuste < 0:
+                CuentaPorCobrar.objects.create(
+                    concepto=f"Ajuste peso Camión {pesada.matricula} - Pedido {pedido.numero_pedido}",
+                    proveedor=pedido.proveedor,
+                    importe_total=importe_absoluto,
+                    fecha_emision=hoy,
+                    fecha_vencimiento=hoy + timedelta(days=30),
+                    notas=f"Diferencia de {abs(pesada.diferencia_tn)} tn a favor.",
+                )
+                messages.success(request, f'✅ Creada Cuenta por Cobrar por {importe_absoluto} € al proveedor.')
+            elif ajuste > 0:
+                CuentaPorPagar.objects.create(
+                    concepto=f"Ajuste peso Camión {pesada.matricula} - Pedido {pedido.numero_pedido}",
+                    categoria='PROVEEDOR',
+                    proveedor=pedido.proveedor,
+                    importe_total=importe_absoluto,
+                    fecha_emision=hoy,
+                    fecha_vencimiento=hoy + timedelta(days=30),
+                    notas=f"Diferencia de {pesada.diferencia_tn} tn a pagar.",
+                )
+                messages.success(request, f'✅ Creada Cuenta por Pagar por {importe_absoluto} €.')
+
+            if pedido.estado != 'PREVISION' and pedido.detalles.exists():
+                detalle = pedido.detalles.first()
+                inv, _ = Inventario.objects.get_or_create(material=detalle.material)
+                inv.cantidad += pesada.diferencia_tn
+                inv.save()
+
+            pesada.ajuste_generado = True
+            pesada.save()
+            
+            total_real = sum(p.peso_real_tn for p in pedido.pesadas.filter(ajuste_generado=True))
+            pedido.peso_real_tn = total_real
+            pedido.save()
+
+    except Exception as e:
+        messages.error(request, f'❌ Error al generar ajuste: {str(e)}')
+        
+    return redirect('detalle_pedido', pedido_id=pedido.id)
