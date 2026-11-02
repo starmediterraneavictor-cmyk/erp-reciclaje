@@ -30,5 +30,9 @@ urlpatterns = [
     path('<int:pedido_id>/comision/nueva/', views.nueva_comision, name='nueva_comision'),
     path('comision/<int:comision_id>/eliminar/', views.eliminar_comision, name='eliminar_comision'),
 
+    # Rutas para las pesadas de camión
+    path('<int:pedido_id>/pesada/nueva/', views.nueva_pesada, name='nueva_pesada'),
+    path('pesada/<int:pesada_id>/ajuste/', views.generar_ajuste_pesada, name='generar_ajuste_pesada'),
+
 ]
 
