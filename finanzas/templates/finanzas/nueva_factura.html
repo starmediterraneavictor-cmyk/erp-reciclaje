@@ -69,7 +69,7 @@
                 </div>
                 <div class="col-md-6 mb-3 d-none" id="bloque-proveedor">
                     <label class="form-label">Proveedor <span class="text-danger">*</span></label>
-                    <select name="proveedor" class="form-select">
+                    <select name="proveedor" class="form-select" id="id_proveedor_edit">
                         <option value="">-- Seleccionar proveedor --</option>
                         <!-- Se llena vía JS -->
                     </select>
@@ -148,12 +148,41 @@
 window.addEventListener('load', function() {
     const selectTipo = document.getElementById('id_tipo');
     const selectCategoria = document.getElementById('id_categoria');
-    const selectProveedor = document.getElementById('id_proveedor');
+    
+    
+    const selectProveedor = document.getElementById('id_proveedor_edit'); 
     
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
     const bloqueArchivo = document.getElementById('bloque-archivo-factura');
+
+    // Los datos de los proveedores que nos manda Python
+    const listaProveedores = {{ proveedores_json|safe }};
     
+    // Función para rellenar el desplegable de proveedores
+    function cargarProveedores() {
+        if (!selectProveedor) return;
+        
+        // Guardamos el valor actual (por si estamos editando)
+        const valorActual = selectProveedor.value;
+        
+        // Limpiamos el select
+        selectProveedor.innerHTML = '<option value="">-- Seleccionar proveedor --</option>';
+        
+        listaProveedores.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.id;
+            option.textContent = `${p.nombre} (${p.tipo})`;
+            option.setAttribute('data-tipo', p.tipo);
+            selectProveedor.appendChild(option);
+        });
+        
+        // Restauramos el valor si existía
+        if (valorActual) {
+            selectProveedor.value = valorActual;
+        }
+    }
+
     // Función 1: Filtrar Categorías según Ingreso/Gasto
     function filtrarCategorias() {
         if (!selectTipo || !selectCategoria) return;
@@ -174,12 +203,10 @@ window.addEventListener('load', function() {
             }
         });
         
-        // Si la opción seleccionada se ha ocultado, reseteamos
         if (selectCategoria.options[selectCategoria.selectedIndex]?.style.display === 'none') {
-            selectCategoria.value = ''; // O el valor por defecto que quieras
+            selectCategoria.value = 'OTROS';
         }
         
-        // Forzamos filtro de proveedores
         filtrarProveedores();
     }
 
@@ -203,13 +230,14 @@ window.addEventListener('load', function() {
         if (!selectCategoria || !selectProveedor) return;
         
         const categoria = selectCategoria.value;
-        const opciones = selectProveedor.querySelectorAll('.opcion-proveedor');
+        const opciones = selectProveedor.querySelectorAll('option');
         
         let permitidos = [categoria];
         if (categoria === 'RENTA_PARKING') permitidos.push('TRANSPORTE');
         if (categoria === 'TRANSPORTE') permitidos.push('RENTA_PARKING');
 
         opciones.forEach(opt => {
+            if (!opt.value) return; // Saltar el "Seleccionar"
             const tipo = opt.getAttribute('data-tipo');
             if (!categoria || permitidos.includes(tipo)) {
                 opt.style.display = '';
@@ -225,14 +253,12 @@ window.addEventListener('load', function() {
         }
     }
 
-    if (selectTipo) {
-        selectTipo.addEventListener('change', actualizarBloques);
-    }
-    if (selectCategoria) {
-        selectCategoria.addEventListener('change', filtrarProveedores);
-    }
-
     // Ejecutar al cargar
+    cargarProveedores();
+    
+    if (selectTipo) selectTipo.addEventListener('change', actualizarBloques);
+    if (selectCategoria) selectCategoria.addEventListener('change', filtrarProveedores);
+
     actualizarBloques();
 });
 </script>
