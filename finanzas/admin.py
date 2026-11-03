@@ -30,6 +30,24 @@ class CuentaPorPagarAdmin(admin.ModelAdmin):
     date_hierarchy = 'fecha_vencimiento'
     readonly_fields = ('saldo_pendiente', 'dias_para_vencer', 'esta_vencida')
 
+    # 🆕 ACCIONES EN LOTE
+    actions = ['marcar_transporte', 'marcar_materiales', 'marcar_otros']
+
+    @admin.action(description='🚚 Marcar como Transporte')
+    def marcar_transporte(self, request, queryset):
+        count = queryset.update(categoria='TRANSPORTE')
+        self.message_user(request, f"✅ {count} cuentas actualizadas a Transporte.")
+
+    @admin.action(description='📦 Marcar como Comercio de Materiales')
+    def marcar_materiales(self, request, queryset):
+        count = queryset.update(categoria='COMERCIO_MATERIALES')
+        self.message_user(request, f"✅ {count} cuentas actualizadas a Comercio de Materiales.")
+
+    @admin.action(description='📋 Marcar como Otros')
+    def marcar_otros(self, request, queryset):
+        count = queryset.update(categoria='OTROS')
+        self.message_user(request, f"✅ {count} cuentas actualizadas a Otros.")
+
 
 class CobroInline(admin.TabularInline):
     model = CobroCuentaPorCobrar
