@@ -881,7 +881,7 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
 
                 cuenta = CuentaPorPagar.objects.create(
                     concepto=concepto,
-                    categoria='PROVEEDOR',
+                    categoria=pedido.proveedor.tipo if pedido.proveedor else 'OTROS',
                     proveedor=pedido.proveedor,
                     importe_total=pedido.total_importe,
                     fecha_emision=request.POST.get('fecha_emision') or datetime.now().date(),
@@ -948,7 +948,7 @@ def generar_ajuste_peso(request, pedido_id):
                 else:
                     CuentaPorPagar.objects.create(
                         concepto=f"Ajuste peso Pedido {pedido.numero_pedido}",
-                        categoria='PROVEEDOR',
+                        categoria=pedido.proveedor.tipo if pedido.proveedor else 'OTROS',
                         proveedor=pedido.proveedor,
                         importe_total=importe_absoluto,
                         fecha_emision=hoy,
@@ -1075,7 +1075,7 @@ def generar_ajuste_pesada(request, pesada_id):
             elif ajuste > 0:
                 CuentaPorPagar.objects.create(
                     concepto=f"Ajuste peso Camión {pesada.matricula} - Pedido {pedido.numero_pedido}",
-                    categoria='PROVEEDOR',
+                    categoria=pedido.proveedor.tipo if pedido.proveedor else 'OTROS',
                     proveedor=pedido.proveedor,
                     importe_total=importe_absoluto,
                     fecha_emision=hoy,

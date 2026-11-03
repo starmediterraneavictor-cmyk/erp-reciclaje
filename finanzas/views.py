@@ -59,7 +59,7 @@ def _crear_cuenta_para_factura(factura):
         
         return CuentaPorPagar.objects.create(
             concepto=f"Factura {factura.numero_factura}",
-            categoria=factura.categoria, # 🆕 AÑADIMOS ESTO
+            categoria=factura.categoria, # 🆕 Hereda la categoría de la factura
             proveedor=factura.proveedor,
             importe_total=factura.total,
             fecha_emision=factura.fecha,
@@ -336,7 +336,7 @@ def cuentas_por_pagar(request):
         'vencidas': vencidas,
         'total_pendiente': total_pendiente,
         'total_vencido': total_vencido,
-        'categorias': Factura.CATEGORIAS,
+        'categorias': CuentaPorPagar.CATEGORIA_CHOICES,
         'estados': CuentaPorPagar.ESTADO_CHOICES,
         'categoria_filtro': categoria,
         'estado_filtro': estado,

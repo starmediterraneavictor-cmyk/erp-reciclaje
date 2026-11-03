@@ -32,12 +32,11 @@ class Factura(models.Model):
     ]
     
     numero_factura = models.CharField(max_length=50, unique=True)
-    numero_albaran = models.CharField(max_length=50, blank=True, null=True, verbose_name="Nº Albarán") # 🆕 
+    numero_albaran = models.CharField(max_length=50, blank=True, null=True, verbose_name="Nº Albarán")
     tipo = models.CharField(max_length=10, choices=TIPO_FACTURA)
     fecha = models.DateField(default=timezone.now)
     fecha_vencimiento = models.DateField(null=True, blank=True)
     
-    # NUEVO: cliente para INGRESO, proveedor para GASTO
     cliente = models.ForeignKey(
         Cliente, on_delete=models.PROTECT,
         null=True, blank=True, related_name='facturas'
@@ -69,18 +68,16 @@ class Factura(models.Model):
         verbose_name="Justificante del pago (PDF/imagen)"
     )
 
-    
     def __str__(self):
         entidad = self.cliente.nombre if self.cliente else (self.proveedor.nombre if self.proveedor else '—')
         return f"{self.numero_factura} - {entidad} ({self.total}€)"
     
     @property
     def entidad(self):
-        """Devuelve el cliente o el proveedor según tipo"""
         return self.cliente if self.tipo == 'INGRESO' else self.proveedor
+
     @property
     def entidad_nombre(self):
-        """Nombre del cliente o proveedor según tipo"""
         if self.tipo == 'INGRESO':
             return self.cliente.nombre if self.cliente else '—'
         else:
@@ -88,10 +85,7 @@ class Factura(models.Model):
     
     def save(self, *args, **kwargs):
         if self.base:
-            # Forzar todo a Decimal (por si llega int, float o str)
             base = Decimal(str(self.base))
-            
-            # Si es COMERCIO_MATERIALES (reciclaje), IVA = 0
             if self.categoria == 'COMERCIO_MATERIALES':
                 self.iva_porcentaje = Decimal('0')
                 self.iva = Decimal('0')
@@ -111,18 +105,23 @@ class Factura(models.Model):
 class CuentaPorPagar(models.Model):
     """Deudas y pagos pendientes de la empresa"""
     
+    # 🆕 UNIFICAMOS CON LOS TIPOS DE PROVEEDOR
     CATEGORIA_CHOICES = [
-        ('PROVEEDOR', 'Proveedor'),
+        ('COMERCIO_MATERIALES', 'Comercio de Materiales'),
+        ('SERVICIOS_PROFESIONALES', 'Servicios Profesionales'),
+        ('SUMINISTROS', 'Suministros'),
+        ('RENTA_PARKING', 'Renta Parking'),
+        ('TRANSPORTE', 'Transporte'),
+        ('MANTENIMIENTO', 'Mantenimiento'),
+        ('IMPUESTOS', 'Impuestos'),
+        ('OTROS', 'Otros'),
+        # Opciones internas de gastos que no son proveedores
         ('SS', 'Seguridad Social'),
         ('HACIENDA', 'Hacienda / AEAT'),
         ('AUTONOMO', 'Cuota Autónomo'),
         ('NOMINA', 'Nómina empleado'),
         ('ALQUILER', 'Alquiler'),
-        ('SUMINISTRO', 'Suministros (luz, agua...)'),
         ('PRESTAMO', 'Préstamo'),
-        ('IMPUESTO', 'Impuestos'),
-        ('SERVICIO', 'Servicios profesionales'),
-        ('OTRO', 'Otro'),
     ]
     
     ESTADO_CHOICES = [
@@ -142,7 +141,8 @@ class CuentaPorPagar(models.Model):
     
     # Identificación
     concepto = models.CharField(max_length=200)
-    categoria = models.CharField(max_length=20, choices=CATEGORIA_CHOICES, default='PROVEEDOR')
+    # 🆕 max_length a 50 y default a OTROS para evitar errores
+    categoria = models.CharField(max_length=50, choices=CATEGORIA_CHOICES, default='OTROS')
     proveedor = models.ForeignKey(
         Proveedor, on_delete=models.SET_NULL,
         null=True, blank=True, related_name='cuentas_pagar'
@@ -173,7 +173,6 @@ class CuentaPorPagar(models.Model):
         verbose_name="Factura del proveedor (PDF)"
     )
 
-    
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -194,28 +193,16 @@ class CuentaPorPagar(models.Model):
     
     @property
     def alerta(self):
-        """Alerta si está vencida o vence en menos de 7 días"""
         if self.estado == 'PAGADO':
             return False
         return self.dias_para_vencer <= 7
 
     @property
     def tiene_factura(self):
-        """Comprueba si hay una factura con este número"""
-        from .models import Factura
         return Factura.objects.filter(numero_factura=self.numero_factura).exists() if self.numero_factura else False
 
     @property
     def factura_asociada(self):
-        """Devuelve la Factura asociada a esta cuenta (si existe)"""
-        from .models import Factura
-        return Factura.objects.filter(numero_factura=self.numero_factura).first() if self.numero_factura else None
-
-
-    @property
-    def factura_asociada(self):
-        """Devuelve la Factura asociada a esta cuenta (si existe)"""
-        from .models import Factura
         return Factura.objects.filter(numero_factura=self.numero_factura).first() if self.numero_factura else None
     
     class Meta:
@@ -245,7 +232,6 @@ class PagoCuentaPorPagar(models.Model):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Actualizar el importe pagado de la cuenta
         total_pagado = sum((p.importe for p in self.cuenta.pagos.all()), Decimal('0'))
         self.cuenta.importe_pagado = total_pagado
         
@@ -257,16 +243,10 @@ class PagoCuentaPorPagar(models.Model):
         
         self.cuenta.save()
         
-        # NUEVO: Sincronizar el estado con la Factura asociada
-        # Buscar por numero_factura Y por pedido (concepto)
-        from .models import Factura
         factura = None
-        
-        # 1. Intentar por numero_factura
         if self.cuenta.numero_factura:
             factura = Factura.objects.filter(numero_factura=self.cuenta.numero_factura).first()
         
-        # 2. Si no, intentar por el pedido del concepto
         if not factura and self.cuenta.concepto.startswith('Pedido '):
             from pedidos.models import Pedido
             num_pedido = self.cuenta.concepto.replace('Pedido ', '').strip()
@@ -274,7 +254,6 @@ class PagoCuentaPorPagar(models.Model):
             if pedido:
                 factura = Factura.objects.filter(pedido=pedido).first()
         
-        # 3. Actualizar el estado de la factura
         if factura:
             if self.cuenta.estado == 'PAGADO':
                 factura.estado_pago = 'PAGADO'
@@ -301,14 +280,12 @@ class CuentaPorCobrar(models.Model):
     
     concepto = models.CharField(max_length=200)
 
-    # 🆕 MODIFICADO: Cliente opcional (para que podamos usar proveedor)
     cliente = models.ForeignKey(
         Cliente, on_delete=models.PROTECT, 
         null=True, blank=True, 
         related_name='cuentas_cobrar'
     )
 
-    # 🆕 AÑADIDO: Campo proveedor para ajustes
     proveedor = models.ForeignKey(
         Proveedor, on_delete=models.PROTECT, 
         null=True, blank=True, 
@@ -349,8 +326,6 @@ class CuentaPorCobrar(models.Model):
 
     @property
     def tiene_factura(self):
-        """Comprueba si hay una factura con este número"""
-        from .models import Factura
         return Factura.objects.filter(numero_factura=self.numero_factura).exists() if self.numero_factura else False
 
     @property
@@ -359,8 +334,6 @@ class CuentaPorCobrar(models.Model):
             return False
         return self.dias_para_vencer < 0
 
-
-    
     class Meta:
         verbose_name = "Cuenta por cobrar"
         verbose_name_plural = "Cuentas por cobrar"
