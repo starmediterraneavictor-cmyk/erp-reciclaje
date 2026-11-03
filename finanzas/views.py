@@ -59,7 +59,7 @@ def _crear_cuenta_para_factura(factura):
         
         return CuentaPorPagar.objects.create(
             concepto=f"Factura {factura.numero_factura}",
-            categoria='PROVEEDOR',
+            categoria=factura.categoria, # 🆕 AÑADIMOS ESTO
             proveedor=factura.proveedor,
             importe_total=factura.total,
             fecha_emision=factura.fecha,
@@ -67,8 +67,6 @@ def _crear_cuenta_para_factura(factura):
             numero_factura=factura.numero_factura,
             notas=f"Generada desde factura {factura.numero_factura}",
         )
-    
-    return None
 
 # ============================================
 # FACTURAS
@@ -309,10 +307,10 @@ def factura_pdf(request, factura_id):
 @login_required
 def cuentas_por_pagar(request):
     """Lista de cuentas por pagar (deudas)"""
-    # 🆕 Ordenación
-    orden = request.GET.get('orden', '-fecha_vencimiento') # por defecto: más reciente a más antiguo
+    orden = request.GET.get('orden', '-fecha_vencimiento')
     categoria = request.GET.get('categoria', '')
     estado = request.GET.get('estado', '')
+    buscar = request.GET.get('buscar', '').strip() # 🆕
 
     cuentas = CuentaPorPagar.objects.exclude(estado='ANULADO').order_by(orden)
 
@@ -320,6 +318,11 @@ def cuentas_por_pagar(request):
         cuentas = cuentas.filter(categoria=categoria)
     if estado:
         cuentas = cuentas.filter(estado=estado)
+    if buscar: # 🆕
+        cuentas = cuentas.filter(
+            Q(concepto__icontains=buscar) | 
+            Q(proveedor__nombre__icontains=buscar)
+        )
 
     pendientes = cuentas.filter(estado__in=['PENDIENTE', 'PARCIAL'])
     vencidas = [c for c in pendientes if c.esta_vencida]
@@ -337,7 +340,8 @@ def cuentas_por_pagar(request):
         'estados': CuentaPorPagar.ESTADO_CHOICES,
         'categoria_filtro': categoria,
         'estado_filtro': estado,
-        'orden_filtro': orden, # 🆕
+        'orden_filtro': orden,
+        'buscar_filtro': buscar, # 🆕
     }
     return render(request, 'finanzas/cuentas_por_pagar.html', context)
 
@@ -546,13 +550,22 @@ def registrar_cobro_pago_factura(request, factura_id):
     else:
         cuenta_existente = CuentaPorPagar.objects.filter(numero_factura=factura.numero_factura).first()
 
+    # 🆕 SI YA EXISTE, NOS LLEVA DIRECTAMENTE A REGISTRAR EL PAGO/COBRO
     if cuenta_existente:
-        messages.warning(request, '⚠️ Esta factura ya tiene una cuenta asociada')
-        if factura.tipo == 'INGRESO':
-            return redirect('cuentas_por_cobrar')
-        else:
-            return redirect('cuentas_por_pagar')
+        if cuenta_existente.estado == 'PAGADO' or cuenta_existente.estado == 'COBRADO':
+            messages.info(request, 'ℹ️ Esta cuenta ya está pagada/cobrada en su totalidad.')
+            if factura.tipo == 'INGRESO':
+                return redirect('cuentas_por_cobrar')
+            else:
+                return redirect('cuentas_por_pagar')
 
+        messages.info(request, 'ℹ️ Redirigiendo a la pantalla de pago/cobro de la cuenta asociada.')
+        if factura.tipo == 'INGRESO':
+            return redirect('registrar_cobro_cuenta', cuenta_id=cuenta_existente.id)
+        else:
+            return redirect('registrar_pago_cuenta', cuenta_id=cuenta_existente.id)
+
+    # Si no existe, seguimos con el flujo normal de creación...
     if request.method == 'POST':
         try:
             fecha_vencimiento = request.POST.get('fecha_vencimiento')
@@ -572,7 +585,7 @@ def registrar_cobro_pago_factura(request, factura_id):
             else:
                 cuenta = CuentaPorPagar.objects.create(
                     concepto=f"Factura {factura.numero_factura}",
-                    categoria='PROVEEDOR',
+                    categoria=factura.categoria, # 🆕 COPIAMOS LA CATEGORÍA DE LA FACTURA
                     proveedor=factura.proveedor,
                     importe_total=factura.total,
                     fecha_emision=factura.fecha,
