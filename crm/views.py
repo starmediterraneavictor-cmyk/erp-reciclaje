@@ -44,11 +44,15 @@ def lista_contactos(request):
     else:
         contactos = list(contactos)
 
-    # Ordenar
-    def orden_alerta(c):
-        niveles = {'urgente': 1, 'pronto': 2, 'ok': 3, None: 4}
-        return (niveles.get(c.nivel_alerta, 5), c.nombre)
-    contactos.sort(key=orden_alerta)
+    # 🆕 ORDENAR POR FECHA DE ÚLTIMO CONTACTO (Más reciente primero)
+    # Usamos una fecha muy antigua (año 1900) para los que nunca han sido contactados,
+    # así se van al final de la lista.
+    fecha_minima = date(1900, 1, 1)
+    
+    contactos.sort(
+        key=lambda c: c.ultima_fecha_contacto if c.ultima_fecha_contacto else fecha_minima, 
+        reverse=True
+    )
 
     # Paginación
     paginator = Paginator(contactos, 50)
