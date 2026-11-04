@@ -336,12 +336,15 @@ def cuentas_por_pagar(request):
         'vencidas': vencidas,
         'total_pendiente': total_pendiente,
         'total_vencido': total_vencido,
-        'categorias': Proveedor.TIPO_PROVEEDOR, 
+        
+        # 🆕 VOLVEMOS A PONER LA LISTA LARGA AQUÍ
+        'categorias': CuentaPorPagar.CATEGORIA_CHOICES, 
+        
         'estados': CuentaPorPagar.ESTADO_CHOICES,
         'categoria_filtro': categoria,
         'estado_filtro': estado,
         'orden_filtro': orden,
-        'buscar_filtro': buscar, # 🆕
+        'buscar_filtro': buscar,
     }
     return render(request, 'finanzas/cuentas_por_pagar.html', context)
 
