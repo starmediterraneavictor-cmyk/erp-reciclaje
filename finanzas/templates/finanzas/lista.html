@@ -167,6 +167,14 @@
                             {% if f.numero_albaran %}
                                 <br><small class="text-muted" style="font-size: 0.75em;">Alb: {{ f.numero_albaran }}</small>
                             {% endif %}
+                            
+                            {# 🆕 Si tiene pedido asociado, mostramos el enlace debajo #}
+                            {% if f.pedido %}
+                                <br>
+                                <a href="{% url 'detalle_pedido' f.pedido.id %}" class="badge bg-light text-dark border text-decoration-none mt-1" title="Ver Pedido">
+                                    <i class="bi bi-box-seam"></i> Ped: {{ f.pedido.numero_pedido }}
+                                </a>
+                            {% endif %}
                         </td>
                         <td>
                             {% if f.tipo == 'INGRESO' %}

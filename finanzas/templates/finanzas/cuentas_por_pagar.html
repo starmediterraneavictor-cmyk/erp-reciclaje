@@ -116,7 +116,16 @@
             <tbody>
                 {% for c in cuentas %}
                 <tr {% if c.esta_vencida %}class="table-danger"{% elif c.alerta %}class="table-warning"{% endif %}>
-                    <td><strong>{{ c.concepto }}</strong></td>
+                    <td>
+                        <strong>{{ c.concepto }}</strong>
+                        {# 🆕 Si tiene factura asociada, mostramos el enlace debajo #}
+                        {% if c.factura_asociada %}
+                            <br>
+                            <a href="{% url 'editar_factura' c.factura_asociada.id %}" class="badge bg-success text-decoration-none mt-1" title="Ver Factura">
+                                <i class="bi bi-receipt"></i> Fact: {{ c.numero_factura }}
+                            </a>
+                        {% endif %}
+                    </td>
                     <td><span class="badge bg-secondary">{{ c.get_categoria_display }}</span></td>
                     <td>{{ c.proveedor.nombre|default:"-" }}</td>
                     <td>{{ c.importe_total|formato_es }} €</td>
