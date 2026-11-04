@@ -40,6 +40,54 @@
         </div>
     </div>
 </div>
+<!-- Filtros -->
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Buscar</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="buscar" class="form-control" placeholder="Concepto o cliente..." value="{{ buscar_filtro }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Estado</label>
+                <select name="estado" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    {% for key, value in estados %}
+                    <option value="{{ key }}" {% if estado_filtro == key %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Vence desde</label>
+                <input type="date" name="desde" class="form-control form-control-sm" value="{{ desde_filtro }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Vence hasta</label>
+                <input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta_filtro }}">
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-filter"></i> Filtrar
+                </button>
+                <a href="{% url 'cuentas_por_cobrar' %}" class="btn btn-outline-secondary btn-sm" title="Limpiar">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Ordenar por</label>
+                <select name="orden" class="form-select form-select-sm">
+                    <option value="fecha_vencimiento" {% if orden_filtro == 'fecha_vencimiento' %}selected{% endif %}>Vencimiento (más antiguo)</option>
+                    <option value="-fecha_vencimiento" {% if orden_filtro == '-fecha_vencimiento' %}selected{% endif %}>Vencimiento (más reciente)</option>
+                    <option value="-importe_total" {% if orden_filtro == '-importe_total' %}selected{% endif %}>Importe (mayor a menor)</option>
+                    <option value="importe_total" {% if orden_filtro == 'importe_total' %}selected{% endif %}>Importe (menor a mayor)</option>
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- Tabla -->
 <div class="card card-custom">

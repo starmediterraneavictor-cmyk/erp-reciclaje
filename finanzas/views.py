@@ -336,7 +336,7 @@ def cuentas_por_pagar(request):
         'vencidas': vencidas,
         'total_pendiente': total_pendiente,
         'total_vencido': total_vencido,
-        'categorias': CuentaPorPagar.CATEGORIA_CHOICES,
+        'categorias': Proveedor.TIPO_PROVEEDOR, 
         'estados': CuentaPorPagar.ESTADO_CHOICES,
         'categoria_filtro': categoria,
         'estado_filtro': estado,
@@ -409,13 +409,30 @@ def registrar_pago_cuenta(request, cuenta_id):
 # ============================================
 
 @login_required
+@login_required
 def cuentas_por_cobrar(request):
     """Lista de cuentas por cobrar"""
-    cuentas = CuentaPorCobrar.objects.exclude(estado='ANULADO').order_by('fecha_vencimiento')
-
+    orden = request.GET.get('orden', 'fecha_vencimiento')
     estado = request.GET.get('estado', '')
+    buscar = request.GET.get('buscar', '').strip()
+    desde = request.GET.get('desde', '')
+    hasta = request.GET.get('hasta', '')
+
+    # Base queryset
+    cuentas = CuentaPorCobrar.objects.exclude(estado='ANULADO').order_by(orden)
+
+    # Aplicar filtros
     if estado:
         cuentas = cuentas.filter(estado=estado)
+    if buscar:
+        cuentas = cuentas.filter(
+            Q(concepto__icontains=buscar) | 
+            Q(cliente__nombre__icontains=buscar)
+        )
+    if desde:
+        cuentas = cuentas.filter(fecha_vencimiento__gte=desde)
+    if hasta:
+        cuentas = cuentas.filter(fecha_vencimiento__lte=hasta)
 
     pendientes = cuentas.filter(estado__in=['PENDIENTE', 'PARCIAL'])
     vencidas = [c for c in pendientes if c.estado != 'COBRADO' and c.dias_para_vencer < 0]
@@ -431,6 +448,10 @@ def cuentas_por_cobrar(request):
         'total_vencido': total_vencido,
         'estados': CuentaPorCobrar.ESTADO_CHOICES,
         'estado_filtro': estado,
+        'buscar_filtro': buscar,
+        'desde_filtro': desde,
+        'hasta_filtro': hasta,
+        'orden_filtro': orden,
     }
     return render(request, 'finanzas/cuentas_por_cobrar.html', context)
 
