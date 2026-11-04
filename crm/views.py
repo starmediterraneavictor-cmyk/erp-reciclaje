@@ -16,7 +16,8 @@ def lista_contactos(request):
     buscar = request.GET.get('buscar', '').strip()
     sector_id = request.GET.get('sector', '')
     estado_id = request.GET.get('estado', '')
-    tipo_filtro = request.GET.get('tipo', '') # <-- NUEVO FILTRO
+    tipo_filtro = request.GET.get('tipo', '')
+    pais_filtro = request.GET.get('pais', '') # 🆕 NUEVO FILTRO
 
     contactos = Contacto.objects.all()
 
@@ -38,6 +39,10 @@ def lista_contactos(request):
         else:
             contactos = contactos.filter(tipo=tipo_filtro)
     
+    # 🆕 Filtro por país
+    if pais_filtro:
+        contactos = contactos.filter(pais=pais_filtro)
+
     # Filtro especial de alerta
     if alerta == '1':
         contactos = [c for c in contactos if c.alerta]
@@ -45,10 +50,8 @@ def lista_contactos(request):
         contactos = list(contactos)
 
     # 🆕 ORDENAR POR FECHA DE ÚLTIMO CONTACTO (Más reciente primero)
-    # Usamos una fecha muy antigua (año 1900) para los que nunca han sido contactados,
-    # así se van al final de la lista.
+    from datetime import date
     fecha_minima = date(1900, 1, 1)
-    
     contactos.sort(
         key=lambda c: c.ultima_fecha_contacto if c.ultima_fecha_contacto else fecha_minima, 
         reverse=True
@@ -59,6 +62,18 @@ def lista_contactos(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # 🆕 Datos para el agrupamiento por país
+    paises_disponibles = Contacto.objects.exclude(pais='').values_list('pais', flat=True).distinct().order_by('pais')
+    
+    # Contamos cuántos contactos hay por país (Top 6 para las tarjetas)
+    from django.db.models import Count
+    resumen_paises = (
+        Contacto.objects.exclude(pais='')
+        .values('pais')
+        .annotate(total=Count('id'))
+        .order_by('-total')[:6]
+    )
+
     context = {
         'contactos': page_obj,
         'page_obj': page_obj,
@@ -68,7 +83,10 @@ def lista_contactos(request):
         'buscar_filtro': buscar,
         'sector_filtro': sector_id,
         'estado_filtro': estado_id,
-        'tipo_filtro': tipo_filtro, # <-- Lo pasamos al HTML
+        'tipo_filtro': tipo_filtro,
+        'pais_filtro': pais_filtro, # 🆕 Pasamos el filtro
+        'paises_disponibles': paises_disponibles, # 🆕 Lista para el select
+        'resumen_paises': resumen_paises, # 🆕 Datos para las tarjetas
         'total': len(contactos),
         'num_alertas': len([c for c in contactos if c.alerta])
     }

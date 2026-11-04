@@ -14,30 +14,44 @@
     </div>
 </div>
 
+<!-- 🆕 Tarjetas de resumen por país -->
+<div class="row mb-4">
+    {% for p in resumen_paises %}
+    <div class="col-md-2 col-4 mb-2">
+        <a href="?pais={{ p.pais }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if alerta_filtro %}&alerta=1{% endif %}" class="text-decoration-none">
+            <div class="card card-custom text-center py-2 h-100 {% if pais_filtro == p.pais %}border-primary border-2{% endif %}">
+                <small class="text-muted text-uppercase" style="font-size: 0.75em;">{{ p.pais }}</small>
+                <h5 class="mb-0 fw-bold text-dark">{{ p.total }}</h5>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
 <!-- Pestañas principales -->
 <ul class="nav nav-tabs mb-3">
     <li class="nav-item">
-        <a class="nav-link {% if not alerta_filtro %}active{% endif %}" href="?{% if tipo_filtro %}tipo={{ tipo_filtro }}{% endif %}">📋 Todos</a>
+        <a class="nav-link {% if not alerta_filtro %}active{% endif %}" href="?{% if tipo_filtro %}tipo={{ tipo_filtro }}{% endif %}{% if pais_filtro %}&pais={{ pais_filtro }}{% endif %}">📋 Todos</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link text-danger fw-bold {% if alerta_filtro == '1' %}active{% endif %}" href="?alerta=1{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}">
+        <a class="nav-link text-danger fw-bold {% if alerta_filtro == '1' %}active{% endif %}" href="?alerta=1{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if pais_filtro %}&pais={{ pais_filtro }}{% endif %}">
             🚨 A Llamar ({{ num_alertas }})
         </a>
     </li>
 </ul>
 
-<!-- NUEVOS BOTONES DE TIPO (Proveedores / Clientes / Prospectos) -->
+<!-- Botones de tipo -->
 <div class="d-flex gap-2 mb-3 flex-wrap">
-    <a href="?{% if alerta_filtro %}alerta=1&{% endif %}buscar={{ buscar_filtro }}" class="btn {% if not tipo_filtro %}btn-secondary{% else %}btn-outline-secondary{% endif %} btn-sm">
+    <a href="?{% if alerta_filtro %}alerta=1&{% endif %}buscar={{ buscar_filtro }}{% if pais_filtro %}&pais={{ pais_filtro }}{% endif %}" class="btn {% if not tipo_filtro %}btn-secondary{% else %}btn-outline-secondary{% endif %} btn-sm">
         Todos los tipos
     </a>
-    <a href="?tipo=PROVEEDOR{% if alerta_filtro %}&alerta=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}" class="btn {% if tipo_filtro == 'PROVEEDOR' %}btn-dark{% else %}btn-outline-dark{% endif %} btn-sm">
+    <a href="?tipo=PROVEEDOR{% if alerta_filtro %}&alerta=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if pais_filtro %}&pais={{ pais_filtro }}{% endif %}" class="btn {% if tipo_filtro == 'PROVEEDOR' %}btn-dark{% else %}btn-outline-dark{% endif %} btn-sm">
         🏭 Proveedores
     </a>
-    <a href="?tipo=CLIENTE{% if alerta_filtro %}&alerta=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}" class="btn {% if tipo_filtro == 'CLIENTE' %}btn-primary{% else %}btn-outline-primary{% endif %} btn-sm">
+    <a href="?tipo=CLIENTE{% if alerta_filtro %}&alerta=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if pais_filtro %}&pais={{ pais_filtro }}{% endif %}" class="btn {% if tipo_filtro == 'CLIENTE' %}btn-primary{% else %}btn-outline-primary{% endif %} btn-sm">
         👤 Clientes
     </a>
-    <a href="?tipo=PROSPECTO{% if alerta_filtro %}&alerta=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}" class="btn {% if tipo_filtro == 'PROSPECTO' %}btn-info{% else %}btn-outline-info{% endif %} btn-sm">
+    <a href="?tipo=PROSPECTO{% if alerta_filtro %}&alerta=1{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if pais_filtro %}&pais={{ pais_filtro }}{% endif %}" class="btn {% if tipo_filtro == 'PROSPECTO' %}btn-info{% else %}btn-outline-info{% endif %} btn-sm">
         🔍 Prospectos
     </a>
 </div>
@@ -48,30 +62,45 @@
         <form method="GET" class="row g-2 align-items-center">
             {% if alerta_filtro %}<input type="hidden" name="alerta" value="1">{% endif %}
             {% if tipo_filtro %}<input type="hidden" name="tipo" value="{{ tipo_filtro }}">{% endif %}
-            <div class="col-md-4">
+            
+            <div class="col-md-3">
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                    <input type="text" name="buscar" class="form-control" placeholder="Buscar por nombre, email, notas..." value="{{ buscar_filtro }}">
+                    <input type="text" name="buscar" class="form-control" placeholder="Nombre, email, notas..." value="{{ buscar_filtro }}">
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <select name="sector" class="form-select">
-                    <option value="">Todos los sectores</option>
+                    <option value="">Sectores</option>
                     {% for s in sectores %}
                     <option value="{{ s.id }}" {% if sector_filtro == s.id|stringformat:"s" %}selected{% endif %}>{{ s.nombre }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <select name="estado" class="form-select">
-                    <option value="">Todos los estados</option>
+                    <option value="">Estados</option>
                     {% for e in estados %}
                     <option value="{{ e.id }}" {% if estado_filtro == e.id|stringformat:"s" %}selected{% endif %}>{{ e.nombre }}</option>
                     {% endfor %}
                 </select>
             </div>
+            
+            <!-- 🆕 SELECTOR DE PAÍS -->
             <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                <select name="pais" class="form-select">
+                    <option value="">Países</option>
+                    {% for p in paises_disponibles %}
+                    <option value="{{ p }}" {% if pais_filtro == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i></button>
+            </div>
+            <div class="col-md-1">
+                <a href="{% url 'lista_contactos' %}" class="btn btn-outline-secondary w-100" title="Limpiar filtros"><i class="bi bi-x-circle"></i></a>
             </div>
         </form>
     </div>
