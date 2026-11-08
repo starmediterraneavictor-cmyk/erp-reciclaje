@@ -37,7 +37,7 @@
                     <label class="form-label">Categoría</label>
                     <select name="categoria" id="id_categoria" class="form-select">
                         {% for key, value in categorias %}
-                        <option value="{{ key }}" data-tipo="{% if key == 'COMERCIO_MATERIALES' or key == 'SUMINISTROS' or key == 'TRANSPORTE' or key == 'IMPUESTOS' or key == 'MANTENIMIENTO' %}GASTO{% else %}INGRESO{% endif %}">
+                        <option value="{{ key }}" data-tipo="{% if key == 'COMERCIO_MATERIALES' or key == 'SUMINISTROS' or key == 'TRANSPORTE' or key == 'IMPUESTOS' or key == 'MANTENIMIENTO' or key == 'ATENCION_COMERCIAL' %}GASTO{% else %}INGRESO{% endif %}">
                             {{ value }}
                         </option>
                         {% endfor %}
@@ -188,6 +188,7 @@ window.addEventListener('load', function() {
         if (!selectTipo || !selectCategoria) return;
         const tipo = selectTipo.value;
         const opciones = selectCategoria.querySelectorAll('option');
+        const categoriasVenta = ['VENTA_MATERIALES', 'SERVICIOS']; 
         
         opciones.forEach(opt => {
             const tipoCat = opt.getAttribute('data-tipo');

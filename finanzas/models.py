@@ -20,6 +20,7 @@ class Factura(models.Model):
         ('TRANSPORTE', 'Transporte'),
         ('MANTENIMIENTO', 'Mantenimiento'),
         ('IMPUESTOS', 'Impuestos'),
+        ('ATENCION_COMERCIAL', 'Atención Comercial / Comidas'),
         ('OTROS', 'Otros'),
     ]
     
@@ -114,6 +115,7 @@ class CuentaPorPagar(models.Model):
         ('TRANSPORTE', 'Transporte'),
         ('MANTENIMIENTO', 'Mantenimiento'),
         ('IMPUESTOS', 'Impuestos'),
+        ('ATENCION_COMERCIAL', 'Atención Comercial / Comidas'),
         ('OTROS', 'Otros'),
         # Opciones internas de gastos que no son proveedores
         ('SS', 'Seguridad Social'),

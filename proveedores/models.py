@@ -10,6 +10,7 @@ class Proveedor(models.Model):
         ('TRANSPORTE', 'Transporte'),
         ('MANTENIMIENTO', 'Mantenimiento'),
         ('IMPUESTOS', 'Impuestos'),
+        ('ATENCION_COMERCIAL', 'Atención Comercial / Comidas'),
         ('OTROS', 'Otros'),
     ]
     
