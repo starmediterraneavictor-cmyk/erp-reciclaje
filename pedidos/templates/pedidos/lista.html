@@ -20,25 +20,25 @@
 <ul class="nav nav-tabs mb-4">
     <li class="nav-item">
         <a class="nav-link {% if tipo_filtro == 'COMPRA_MAT' %}active{% endif %}" 
-           href="?tipo=COMPRA_MAT{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}">
+           href="?tipo=COMPRA_MAT{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}{% if facturado_filtro %}&facturado={{ facturado_filtro }}{% endif %}">
             📥 Compras <span class="badge bg-secondary">{{ contadores.COMPRA_MAT }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if tipo_filtro == 'VENTA_MAT' %}active{% endif %}" 
-           href="?tipo=VENTA_MAT{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}">
+           href="?tipo=VENTA_MAT{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}{% if facturado_filtro %}&facturado={{ facturado_filtro }}{% endif %}">
             📤 Ventas <span class="badge bg-secondary">{{ contadores.VENTA_MAT }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if tipo_filtro == 'MAQUILA' %}active{% endif %}" 
-           href="?tipo=MAQUILA{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}">
+           href="?tipo=MAQUILA{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}{% if facturado_filtro %}&facturado={{ facturado_filtro }}{% endif %}">
             🔧 Maquilas <span class="badge bg-secondary">{{ contadores.MAQUILA }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if not tipo_filtro %}active{% endif %}" 
-           href="?{% if estado_filtro %}estado={{ estado_filtro }}&{% endif %}{% if desde_filtro %}desde={{ desde_filtro }}&{% endif %}{% if hasta_filtro %}hasta={{ hasta_filtro }}&{% endif %}{% if buscar_filtro %}buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}">
+           href="?{% if estado_filtro %}estado={{ estado_filtro }}&{% endif %}{% if desde_filtro %}desde={{ desde_filtro }}&{% endif %}{% if hasta_filtro %}hasta={{ hasta_filtro }}&{% endif %}{% if buscar_filtro %}buscar={{ buscar_filtro }}{% endif %}{% if material_tipo_filtro %}&material_tipo={{ material_tipo_filtro }}{% endif %}{% if facturado_filtro %}&facturado={{ facturado_filtro }}{% endif %}">
             📋 Todos <span class="badge bg-secondary">{{ contadores.TODOS }}</span>
         </a>
     </li>
@@ -75,21 +75,21 @@
                 <select name="material_tipo" class="form-select form-select-sm">
                     <option value="">Todos</option>
                     {% for tm in tipos_materiales %}
-                    <!-- 🆕 Enviamos el ID en el value, pero mostramos el nombre -->
                     <option value="{{ tm.id }}" {% if material_tipo_filtro == tm.id|stringformat:"s" %}selected{% endif %}>{{ tm.nombre }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2 d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel"></i> Filtrar</button>
-                <a href="{% url 'lista_pedidos' %}{% if tipo_filtro %}?tipo={{ tipo_filtro }}{% endif %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle"></i> Limpiar</a>
-            </div>
             <div class="col-md-2">
+                <label class="form-label small mb-1">Facturación</label>
                 <select name="facturado" class="form-select form-select-sm">
-                    <option value="">Facturación</option>
+                    <option value="">Todas</option>
                     <option value="SI" {% if facturado_filtro == 'SI' %}selected{% endif %}>Facturados</option>
                     <option value="NO" {% if facturado_filtro == 'NO' %}selected{% endif %}>Sin Factura</option>
                 </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+                <a href="{% url 'lista_pedidos' %}{% if tipo_filtro %}?tipo={{ tipo_filtro }}{% endif %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle"></i></a>
             </div>
         </form>
     </div>
@@ -130,7 +130,6 @@
                     </td>
                     <td>{{ p.entidad_nombre }}</td>
                     <td>
-                        <!-- 🆕 Mostrar los tipos de material -->
                         {% for tipo_mat in p.tipos_materiales %}
                             <span class="badge bg-secondary" style="font-size: 0.8em;">{{ tipo_mat }}</span><br>
                         {% empty %}
@@ -167,14 +166,12 @@
                         {% else %}<br><span class="badge bg-secondary" title="Sin factura activa">⏳ Sin factura</span>{% endif %}
                     </td>
                     <td class="text-center">
-                        <!-- 🆕 Pasamos los filtros en el Ojo -->
                         <a href="{% url 'detalle_pedido' p.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-outline-secondary btn-sm" title="Ver detalle"><i class="bi bi-eye"></i></a>
                         
                         {% if p.es_internacional and p.internacional %}
                         <a href="{% url 'detalle_pedido_internacional' p.internacional.id %}" class="btn btn-info btn-sm" title="Seguimiento"><i class="bi bi-globe"></i></a>
                         {% endif %}
                         
-                        <!-- 🆕 Pasamos los filtros en el Lápiz -->
                         <a href="{% url 'editar_pedido' p.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-outline-primary btn-sm" title="Editar"><i class="bi bi-pencil"></i></a>
                         
                         <a href="{% url 'confirmar_eliminar_pedido' p.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar"><i class="bi bi-trash"></i></a>
