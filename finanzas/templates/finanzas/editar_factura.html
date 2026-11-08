@@ -39,8 +39,8 @@
                     <select name="categoria" id="id_categoria" class="form-select">
                         {% for key, value in categorias %}
                         <option value="{{ key }}" 
-                                data-tipo="{% if key == 'COMERCIO_MATERIALES' or key == 'SUMINISTROS' or key == 'TRANSPORTE' or key == 'IMPUESTOS' or key == 'MANTENIMIENTO' or key == 'ATENCION_COMERCIAL' %}GASTO{% else %}INGRESO{% endif %}"
-                                {% if factura.categoria == key %}selected{% endif %}> <!-- 🆕 CORREGIDO AQUÍ -->
+                                data-tipo="{% if key == 'COMERCIO_MATERIALES' or key == 'SUMINISTROS' or key == 'TRANSPORTE' or key == 'IMPUESTOS' or key == 'MANTENIMIENTO' or key == 'ATENCION_COMERCIAL' or key == 'SERVICIOS_PROFESIONALES' %}GASTO{% else %}INGRESO{% endif %}"
+                                {% if factura.categoria == key %}selected{% endif %}>
                             {{ value }}
                         </option>
                         {% endfor %}
@@ -151,7 +151,6 @@ window.addEventListener('load', function() {
     const bloqueProveedor = document.getElementById('bloque-proveedor');
     const bloqueArchivo = document.getElementById('bloque-archivo-factura');
     
-    // Función para mostrar/ocultar bloques según el tipo
     function actualizarBloques() {
         if (!selectTipo) return;
         if (selectTipo.value === 'INGRESO') {
@@ -165,7 +164,6 @@ window.addEventListener('load', function() {
         }
     }
 
-    // Función para filtrar proveedores según la categoría (SIN borrar el seleccionado)
     function filtrarProveedores() {
         if (!selectCategoria || !selectProveedor) return;
         
@@ -178,7 +176,7 @@ window.addEventListener('load', function() {
 
         opciones.forEach(opt => {
             const tipo = opt.getAttribute('data-tipo');
-            if (permitidos.includes(tipo) || !categoria) {
+            if (permitidos.includes(tipo) || !categoria || categoria === 'OTROS') {
                 opt.style.display = '';
                 opt.disabled = false;
             } else {
@@ -188,11 +186,9 @@ window.addEventListener('load', function() {
         });
     }
 
-    // Eventos
     if (selectTipo) selectTipo.addEventListener('change', actualizarBloques);
     if (selectCategoria) selectCategoria.addEventListener('change', filtrarProveedores);
 
-    // Ejecutar al cargar la página
     actualizarBloques();
 });
 </script>

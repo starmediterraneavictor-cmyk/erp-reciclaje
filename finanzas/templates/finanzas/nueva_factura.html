@@ -37,7 +37,7 @@
                     <label class="form-label">Categoría</label>
                     <select name="categoria" id="id_categoria" class="form-select">
                         {% for key, value in categorias %}
-                        <option value="{{ key }}" data-tipo="{% if key == 'COMERCIO_MATERIALES' or key == 'SUMINISTROS' or key == 'TRANSPORTE' or key == 'IMPUESTOS' or key == 'MANTENIMIENTO' or key == 'ATENCION_COMERCIAL' %}GASTO{% else %}INGRESO{% endif %}">
+                        <option value="{{ key }}" data-tipo="{% if key == 'COMERCIO_MATERIALES' or key == 'SUMINISTROS' or key == 'TRANSPORTE' or key == 'IMPUESTOS' or key == 'MANTENIMIENTO' or key == 'ATENCION_COMERCIAL' or key == 'SERVICIOS_PROFESIONALES' %}GASTO{% else %}INGRESO{% endif %}">
                             {{ value }}
                         </option>
                         {% endfor %}
@@ -154,10 +154,8 @@ window.addEventListener('load', function() {
     const bloqueProveedor = document.getElementById('bloque-proveedor');
     const bloqueArchivo = document.getElementById('bloque-archivo-factura');
 
-    // Los datos de los proveedores que nos manda Python
     const listaProveedores = {{ proveedores_json|safe }};
     
-    // Función para rellenar el desplegable de proveedores
     function cargarProveedores() {
         if (!selectProveedor) return;
         const valorActual = selectProveedor.value;
@@ -174,7 +172,6 @@ window.addEventListener('load', function() {
         if (valorActual) selectProveedor.value = valorActual;
     }
 
-    // Función 1: Mostrar/Ocultar bloques y textos
     function actualizarBloques() {
         if (!selectTipo) return;
         
@@ -201,19 +198,17 @@ window.addEventListener('load', function() {
         filtrarCategorias();
     }
 
-    // Función 2: Filtrar Categorías
     function filtrarCategorias() {
         if (!selectTipo || !selectCategoria) return;
         const tipo = selectTipo.value;
         const opciones = selectCategoria.querySelectorAll('option');
         
-        // Lista de categorías que son de GASTO
+        // Lista de categorías que son de GASTO (Añadido SERVICIOS_PROFESIONALES)
         const categoriasGasto = ['COMERCIO_MATERIALES', 'SUMINISTROS', 'TRANSPORTE', 'IMPUESTOS', 'MANTENIMIENTO', 'ATENCION_COMERCIAL', 'SERVICIOS_PROFESIONALES'];
         
         opciones.forEach(opt => {
             const val = opt.value;
             if (tipo === 'INGRESO') {
-                // Si es ingreso, ocultamos las de gasto
                 if (categoriasGasto.includes(val)) {
                     opt.style.display = 'none';
                     opt.disabled = true;
@@ -222,7 +217,6 @@ window.addEventListener('load', function() {
                     opt.disabled = false;
                 }
             } else {
-                // Si es gasto, ocultamos las de ingreso (excepto OTROS)
                 if (!categoriasGasto.includes(val) && val !== 'OTROS' && val !== '') {
                     opt.style.display = 'none';
                     opt.disabled = true;
@@ -240,32 +234,19 @@ window.addEventListener('load', function() {
         filtrarProveedores();
     }
 
-    // Función 3: Filtrar Proveedores según Categoría (Ahora sí funciona bien)
     function filtrarProveedores() {
         if (!selectCategoria || !selectProveedor) return;
         
         const categoria = selectCategoria.value;
         const opciones = selectProveedor.querySelectorAll('option');
         
-        // 🆕 Lista completa de relaciones permitidas
         let permitidos = [categoria];
-        
-        // Reglas especiales de compatibilidad
         if (categoria === 'RENTA_PARKING') permitidos.push('TRANSPORTE');
         if (categoria === 'TRANSPORTE') permitidos.push('RENTA_PARKING');
-        
-        // 🆕 Añadimos las que faltaban
-        if (categoria === 'SERVICIOS_PROFESIONALES') permitidos.push('SERVICIOS_PROFESIONALES');
-        if (categoria === 'ATENCION_COMERCIAL') permitidos.push('ATENCION_COMERCIAL');
-        if (categoria === 'MANTENIMIENTO') permitidos.push('MANTENIMIENTO');
-        if (categoria === 'IMPUESTOS') permitidos.push('IMPUESTOS');
-        if (categoria === 'SUMINISTROS') permitidos.push('SUMINISTROS');
 
         opciones.forEach(opt => {
-            if (!opt.value) return; // Saltar el "Seleccionar"
+            if (!opt.value) return;
             const tipo = opt.getAttribute('data-tipo');
-            
-            // Si el proveedor es del tipo de la categoría (o estamos en "Otros"), lo mostramos
             if (!categoria || categoria === 'OTROS' || permitidos.includes(tipo)) {
                 opt.style.display = '';
                 opt.disabled = false;
@@ -275,9 +256,18 @@ window.addEventListener('load', function() {
             }
         });
         
-        // Si el proveedor seleccionado ya no es válido, lo deseleccionamos
         if (selectProveedor.options[selectProveedor.selectedIndex]?.style.display === 'none') {
             selectProveedor.value = '';
         }
     }
+
+    // Ejecutar al cargar
+    cargarProveedores();
+    
+    if (selectTipo) selectTipo.addEventListener('change', actualizarBloques);
+    if (selectCategoria) selectCategoria.addEventListener('change', filtrarProveedores);
+
+    actualizarBloques();
+});
+</script>
 {% endblock %}
