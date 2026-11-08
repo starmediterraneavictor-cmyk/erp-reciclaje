@@ -140,13 +140,13 @@
 window.addEventListener('load', function() {
     const selectTipo = document.getElementById('id_tipo');
     const selectCategoria = document.getElementById('id_categoria');
-    const selectProveedor = document.getElementById('id_proveedor');
+    const selectProveedor = document.getElementById('id_proveedor_edit'); // Asegúrate de que este ID es el correcto en tu HTML
     
     const bloqueCliente = document.getElementById('bloque-cliente');
     const bloqueProveedor = document.getElementById('bloque-proveedor');
     const bloqueArchivo = document.getElementById('bloque-archivo-factura');
     
-    // Función 1: Filtrar Categorías según Ingreso/Gasto
+    // Función 1: Filtrar Categorías (Sin forzar el valor)
     function filtrarCategorias() {
         if (!selectTipo || !selectCategoria) return;
         const tipo = selectTipo.value;
@@ -154,6 +154,7 @@ window.addEventListener('load', function() {
         
         opciones.forEach(opt => {
             const tipoCat = opt.getAttribute('data-tipo');
+            // Ocultamos las que no correspondan al tipo
             if (tipo === 'INGRESO' && tipoCat === 'GASTO') {
                 opt.style.display = 'none';
                 opt.disabled = true;
@@ -166,16 +167,21 @@ window.addEventListener('load', function() {
             }
         });
         
-        // Si la opción seleccionada se ha ocultado, reseteamos
+        // 🆕 Si la opción seleccionada se oculta, NO forzamos "Comercio". Buscamos una válida.
         if (selectCategoria.options[selectCategoria.selectedIndex]?.style.display === 'none') {
-            selectCategoria.value = ''; // O el valor por defecto que quieras
+            // Buscamos la primera opción visible
+            for (let i = 0; i < selectCategoria.options.length; i++) {
+                if (selectCategoria.options[i].style.display !== 'none') {
+                    selectCategoria.selectedIndex = i;
+                    break;
+                }
+            }
         }
         
-        // Forzamos filtro de proveedores
         filtrarProveedores();
     }
 
-    // Función 2: Mostrar/ocultar bloques de Cliente/Proveedor
+    // Función 2: Mostrar/ocultar bloques
     function actualizarBloques() {
         if (!selectTipo) return;
         if (selectTipo.value === 'INGRESO') {
@@ -190,16 +196,17 @@ window.addEventListener('load', function() {
         filtrarCategorias();
     }
 
-    // Función 3: Filtrar Proveedores según Categoría
+    // Función 3: Filtrar Proveedores (Añadida Atención Comercial)
     function filtrarProveedores() {
         if (!selectCategoria || !selectProveedor) return;
         
         const categoria = selectCategoria.value;
-        const opciones = selectProveedor.querySelectorAll('.opcion-proveedor');
+        const opciones = selectProveedor.querySelectorAll('.opcion-proveedor'); // Asegúrate de que tu HTML usa esta clase
         
         let permitidos = [categoria];
         if (categoria === 'RENTA_PARKING') permitidos.push('TRANSPORTE');
         if (categoria === 'TRANSPORTE') permitidos.push('RENTA_PARKING');
+        if (categoria === 'ATENCION_COMERCIAL') permitidos.push('ATENCION_COMERCIAL'); // 🆕 Añadido
 
         opciones.forEach(opt => {
             const tipo = opt.getAttribute('data-tipo');
