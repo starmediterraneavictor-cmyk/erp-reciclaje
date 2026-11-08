@@ -269,8 +269,14 @@ class Interaccion(models.Model):
         return f"{self.contacto.nombre} · {self.get_tipo_display()} · {self.fecha}"
 
     def save(self, *args, **kwargs):
-        # Al guardar una interacción, actualizamos la fecha de último contacto
-        # del contacto si esta es más reciente que la que ya tenía.
+        # 🆕 Convertimos la fecha a objeto date si viene como string
+        if isinstance(self.fecha, str):
+            from datetime import datetime
+            try:
+                self.fecha = datetime.strptime(self.fecha, '%Y-%m-%d').date()
+            except ValueError:
+                self.fecha = timezone.now().date()
+
         super().save(*args, **kwargs)
         c = self.contacto
         if not c.ultima_fecha_contacto or self.fecha > c.ultima_fecha_contacto:

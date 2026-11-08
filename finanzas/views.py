@@ -109,9 +109,13 @@ def lista_facturas(request):
         ingresos=Sum('total', filter=Q(tipo='INGRESO')),
         gastos=Sum('total', filter=Q(tipo='GASTO')),
     )
+
     total_ingresos = totales['ingresos'] or 0
     total_gastos = totales['gastos'] or 0
     beneficio = total_ingresos - total_gastos
+
+    # 🆕 Contador total de facturas sin importar los filtros (o con ellos, según prefieras)
+    num_facturas_totales = facturas.count() 
 
     context = {
         'facturas': page_obj, # 🆕 Solo la página
@@ -119,6 +123,7 @@ def lista_facturas(request):
         'total_ingresos': total_ingresos,
         'total_gastos': total_gastos,
         'beneficio': beneficio,
+        'num_facturas_totales': num_facturas_totales,
         'ver_anuladas': ver_anuladas,
         'categorias': Factura.CATEGORIAS,
         'estados': Factura.ESTADO_PAGO,

@@ -40,6 +40,7 @@ def lista_pedidos(request):
     hasta = request.GET.get('hasta', '')
     buscar = request.GET.get('buscar', '').strip()
     material_tipo = request.GET.get('material_tipo', '')
+    estado_factura = request.GET.get('facturado', '')
 
     if tipo:
         pedidos = pedidos.filter(tipo=tipo)
@@ -59,6 +60,12 @@ def lista_pedidos(request):
 
     if material_tipo:
         pedidos = pedidos.filter(detalles__material__tipo=material_tipo).distinct()
+
+    # 🆕 Aplicar filtro de facturación
+    if estado_factura == 'SI':
+        pedidos = pedidos.filter(facturas__isnull=False).distinct()
+    elif estado_factura == 'NO':
+        pedidos = pedidos.filter(facturas__isnull=True)
 
     # 🆕 PAGINACIÓN (DESPUÉS de los filtros)
     paginator = Paginator(pedidos, 10)
@@ -136,6 +143,7 @@ def lista_pedidos(request):
         'contadores': contadores,
         'material_tipo_filtro': material_tipo,
         'tipos_materiales': tipos_materiales,
+        'facturado_filtro': estado_factura,
     }
     return render(request, 'pedidos/lista.html', context)
 

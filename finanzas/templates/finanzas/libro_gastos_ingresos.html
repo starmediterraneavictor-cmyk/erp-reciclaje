@@ -210,6 +210,22 @@
                 </tr>
             </tfoot>
         </table>
+        <!-- 🆕 PAGINACIÓN GASTOS -->
+        {% if page_gas.has_other_pages %}
+        <div class="d-flex justify-content-center mt-3">
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_gas.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page_gas={{ page_gas.previous_page_number }}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}">Anterior</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">Página {{ page_gas.number }} de {{ page_gas.paginator.num_pages }}</span></li>
+                    {% if page_gas.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page_gas={{ page_gas.next_page_number }}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}{% if desde_filtro %}&desde={{ desde_filtro }}{% endif %}{% if hasta_filtro %}&hasta={{ hasta_filtro }}{% endif %}">Siguiente</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

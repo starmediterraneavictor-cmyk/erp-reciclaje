@@ -84,6 +84,13 @@
                 <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel"></i> Filtrar</button>
                 <a href="{% url 'lista_pedidos' %}{% if tipo_filtro %}?tipo={{ tipo_filtro }}{% endif %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle"></i> Limpiar</a>
             </div>
+            <div class="col-md-2">
+                <select name="facturado" class="form-select form-select-sm">
+                    <option value="">Facturación</option>
+                    <option value="SI" {% if facturado_filtro == 'SI' %}selected{% endif %}>Facturados</option>
+                    <option value="NO" {% if facturado_filtro == 'NO' %}selected{% endif %}>Sin Factura</option>
+                </select>
+            </div>
         </form>
     </div>
 </div>
