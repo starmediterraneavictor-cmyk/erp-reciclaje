@@ -226,34 +226,19 @@ window.addEventListener('load', function() {
         filtrarCategorias();
     }
 
-    // Función 3: Filtrar Proveedores según Categoría
+    // Función 3: Filtrar Proveedores (Ahora permite seleccionar todos)
     function filtrarProveedores() {
         if (!selectCategoria || !selectProveedor) return;
         
-        const categoria = selectCategoria.value;
+        // 🆕 VAMOS A MOSTRAR TODOS LOS PROVEEDORES SIEMPRE
+        // Esto evita que Melbicom u otros proveedores desaparezcan.
         const opciones = selectProveedor.querySelectorAll('option');
         
-        // 🆕 Añadimos ATENCION_COMERCIAL a la lista de permitidos
-        let permitidos = [categoria];
-        if (categoria === 'RENTA_PARKING') permitidos.push('TRANSPORTE');
-        if (categoria === 'TRANSPORTE') permitidos.push('RENTA_PARKING');
-        if (categoria === 'ATENCION_COMERCIAL') permitidos.push('ATENCION_COMERCIAL'); // 🆕
-
         opciones.forEach(opt => {
             if (!opt.value) return; // Saltar el "Seleccionar"
-            const tipo = opt.getAttribute('data-tipo');
-            if (!categoria || permitidos.includes(tipo)) {
-                opt.style.display = '';
-                opt.disabled = false;
-            } else {
-                opt.style.display = 'none';
-                opt.disabled = true;
-            }
+            opt.style.display = '';
+            opt.disabled = false;
         });
-        
-        if (selectProveedor.options[selectProveedor.selectedIndex]?.style.display === 'none') {
-            selectProveedor.value = '';
-        }
     }
 
     // Ejecutar al cargar
@@ -264,5 +249,6 @@ window.addEventListener('load', function() {
 
     actualizarBloques();
 });
+
 </script>
 {% endblock %}
