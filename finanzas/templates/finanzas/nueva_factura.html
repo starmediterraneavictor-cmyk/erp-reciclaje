@@ -233,9 +233,11 @@ window.addEventListener('load', function() {
         const categoria = selectCategoria.value;
         const opciones = selectProveedor.querySelectorAll('option');
         
+        // 🆕 Añadimos ATENCION_COMERCIAL a la lista de permitidos
         let permitidos = [categoria];
         if (categoria === 'RENTA_PARKING') permitidos.push('TRANSPORTE');
         if (categoria === 'TRANSPORTE') permitidos.push('RENTA_PARKING');
+        if (categoria === 'ATENCION_COMERCIAL') permitidos.push('ATENCION_COMERCIAL'); // 🆕
 
         opciones.forEach(opt => {
             if (!opt.value) return; // Saltar el "Seleccionar"
