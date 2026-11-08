@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between mb-4">
-    <h2>💰 Facturas</h2>
+    <h2>💰 Facturas <span class="badge bg-secondary fs-6">{{ num_facturas_totales }}</span></h2>
     <div class="d-flex gap-2">
         <!-- 🔘 Botón para ver/ocultar anuladas -->
         <a href="?ver_anuladas={% if ver_anuladas %}0{% else %}1{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}" 
