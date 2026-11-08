@@ -240,25 +240,44 @@ window.addEventListener('load', function() {
         filtrarProveedores();
     }
 
-    // 🆕 Función 3: Filtrar Proveedores (AHORA MUESTRA TODOS)
+    // Función 3: Filtrar Proveedores según Categoría (Ahora sí funciona bien)
     function filtrarProveedores() {
-        if (!selectProveedor) return;
+        if (!selectCategoria || !selectProveedor) return;
         
+        const categoria = selectCategoria.value;
         const opciones = selectProveedor.querySelectorAll('option');
+        
+        // 🆕 Lista completa de relaciones permitidas
+        let permitidos = [categoria];
+        
+        // Reglas especiales de compatibilidad
+        if (categoria === 'RENTA_PARKING') permitidos.push('TRANSPORTE');
+        if (categoria === 'TRANSPORTE') permitidos.push('RENTA_PARKING');
+        
+        // 🆕 Añadimos las que faltaban
+        if (categoria === 'SERVICIOS_PROFESIONALES') permitidos.push('SERVICIOS_PROFESIONALES');
+        if (categoria === 'ATENCION_COMERCIAL') permitidos.push('ATENCION_COMERCIAL');
+        if (categoria === 'MANTENIMIENTO') permitidos.push('MANTENIMIENTO');
+        if (categoria === 'IMPUESTOS') permitidos.push('IMPUESTOS');
+        if (categoria === 'SUMINISTROS') permitidos.push('SUMINISTROS');
+
         opciones.forEach(opt => {
             if (!opt.value) return; // Saltar el "Seleccionar"
-            opt.style.display = '';
-            opt.disabled = false;
+            const tipo = opt.getAttribute('data-tipo');
+            
+            // Si el proveedor es del tipo de la categoría (o estamos en "Otros"), lo mostramos
+            if (!categoria || categoria === 'OTROS' || permitidos.includes(tipo)) {
+                opt.style.display = '';
+                opt.disabled = false;
+            } else {
+                opt.style.display = 'none';
+                opt.disabled = true;
+            }
         });
+        
+        // Si el proveedor seleccionado ya no es válido, lo deseleccionamos
+        if (selectProveedor.options[selectProveedor.selectedIndex]?.style.display === 'none') {
+            selectProveedor.value = '';
+        }
     }
-
-    // Ejecutar al cargar
-    cargarProveedores();
-    
-    if (selectTipo) selectTipo.addEventListener('change', actualizarBloques);
-    if (selectCategoria) selectCategoria.addEventListener('change', filtrarProveedores);
-
-    actualizarBloques();
-});
-</script>
 {% endblock %}
