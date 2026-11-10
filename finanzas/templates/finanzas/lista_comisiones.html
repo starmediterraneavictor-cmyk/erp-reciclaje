@@ -10,19 +10,39 @@
 <div class="row">
     {% for d in datos_comerciales %}
     <div class="col-md-6 mb-4">
-        <div class="card card-custom">
+        <div class="card card-custom h-100">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">👤 {{ d.comercial.nombre }}</h5>
-                <span class="badge bg-primary fs-6">{{ d.total_comision|formato_es }} €</span>
+                <div>
+                    <span class="badge bg-primary fs-6" title="Total comisiones">Total: {{ d.total_comision|formato_es }} €</span>
+                </div>
             </div>
             <div class="card-body">
-                <p class="text-muted small mb-3">Total en {{ d.num_pedidos }} pedidos</p>
-                <table class="table table-sm table-hover">
+                
+                <!-- 🆕 Resumen de pagos -->
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="p-2 bg-success bg-opacity-10 rounded text-center border border-success">
+                            <small class="text-success fw-bold">Pagado</small><br>
+                            <strong>{{ d.total_pagado|formato_es }} €</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 bg-danger bg-opacity-10 rounded text-center border border-danger">
+                            <small class="text-danger fw-bold">Pendiente</small><br>
+                            <strong>{{ d.total_pendiente|formato_es }} €</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="table table-sm table-hover align-middle">
                     <thead>
                         <tr>
                             <th>Pedido</th>
-                            <th>Material / Cliente</th>
+                            <th>Cliente</th>
                             <th class="text-end">Comisión</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -34,7 +54,34 @@
                                 <small class="text-muted">{{ c.pedido.tipos_materiales|join:", " }}</small>
                             </td>
                             <td class="text-end text-success fw-bold">{{ c.importe_comision|formato_es }} €</td>
+                            <td class="text-center">
+                                {% if c.pagado %}
+                                    <span class="badge bg-success">Pagado</span>
+                                    <br><small class="text-muted" style="font-size: 0.7em;">{{ c.fecha_pago|date:"d/m/Y" }}</small>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <form method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="comision_id" value="{{ c.id }}">
+                                    {% if c.pagado %}
+                                        <input type="hidden" name="accion" value="desmarcar">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Desmarcar pago">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    {% else %}
+                                        <input type="hidden" name="accion" value="pagar">
+                                        <button type="submit" class="btn btn-success btn-sm" title="Marcar como pagado">
+                                            <i class="bi bi-check-circle"></i> Pagar
+                                        </button>
+                                    {% endif %}
+                                </form>
+                            </td>
                         </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">Sin comisiones</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

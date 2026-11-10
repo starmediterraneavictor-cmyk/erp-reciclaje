@@ -958,6 +958,23 @@ def anular_factura(request, factura_id):
 @login_required
 def lista_comisiones(request):
     """Lista todas las comisiones agrupadas por comercial"""
+    
+    # 🆕 Si se envía un formulario para marcar como pagado
+    if request.method == 'POST':
+        comision_id = request.POST.get('comision_id')
+        accion = request.POST.get('accion') # 'pagar' o 'desmarcar'
+        if comision_id:
+            comision = get_object_or_404(Comision, id=comision_id)
+            if accion == 'pagar':
+                comision.pagado = True
+                comision.fecha_pago = date.today()
+            else:
+                comision.pagado = False
+                comision.fecha_pago = None
+            comision.save()
+            messages.success(request, '✅ Estado de la comisión actualizado')
+        return redirect('lista_comisiones')
+
     comerciales = Comercial.objects.filter(activo=True).prefetch_related('comision_set')
     
     datos_comerciales = []
@@ -965,10 +982,16 @@ def lista_comisiones(request):
         comisiones = com.comision_set.all().select_related('pedido')
         total_comision = sum(c.importe_comision for c in comisiones)
         
+        # 🆕 Cálculo de pagado y pendiente
+        total_pagado = sum(c.importe_comision for c in comisiones if c.pagado)
+        total_pendiente = total_comision - total_pagado
+        
         datos_comerciales.append({
             'comercial': com,
             'comisiones': comisiones,
             'total_comision': total_comision,
+            'total_pagado': total_pagado,
+            'total_pendiente': total_pendiente,
             'num_pedidos': len(comisiones),
         })
         

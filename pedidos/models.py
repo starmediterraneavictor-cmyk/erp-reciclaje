@@ -590,6 +590,9 @@ class Comision(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='TN')
     valor = models.DecimalField(max_digits=10, decimal_places=2, help_text="Porcentaje (ej: 5) o importe fijo en €")
     notas = models.TextField(blank=True)
+    # 🆕 Campos para el control de pagos
+    pagado = models.BooleanField(default=False, verbose_name="¿Pagado?")
+    fecha_pago = models.DateField(null=True, blank=True, verbose_name="Fecha de pago")
 
     def __str__(self):
         return f"{self.comercial.nombre} - {self.pedido.numero_pedido}"
