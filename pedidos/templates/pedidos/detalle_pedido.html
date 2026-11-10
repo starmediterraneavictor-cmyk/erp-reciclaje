@@ -254,23 +254,9 @@
     </div>
 </div>
 {% endif %}
+
 <!-- ⚖️ CONTROL DE PESADAS POR CAMIÓN -->
-{% if pedido.tipo == 'COMPRA_MAT' or pedido.tipo == 'MAQUILA' %} <!-- 🆕 SOLO PARA COMPRAS Y MAQUILAS -->
-<div class="card card-custom mb-4 border-warning">
-    <div class="card-header bg-warning text-dark">
-        <h5 class="mb-0">⚖️ Control de Pesadas por Camión</h5>
-    </div>
-    <div class="card-body">
-        
-        <button class="btn btn-warning mb-3" data-bs-toggle="collapse" data-bs-target="#formPesada">
-            <i class="bi bi-truck"></i> Añadir Pesada (Nuevo Camión)
-        </button>
-        
-        <!-- ... (resto del contenido de la tabla de pesadas) ... -->
-        
-    </div>
-</div>
-{% endif %}
+{% if pedido.tipo == 'COMPRA_MAT' or pedido.tipo == 'MAQUILA' %}
 <div class="card card-custom mb-4 border-warning">
     <div class="card-header bg-warning text-dark">
         <h5 class="mb-0">⚖️ Control de Pesadas por Camión</h5>
@@ -378,6 +364,7 @@
         </table>
     </div>
 </div>
+{% endif %}
 
 <!-- 💼 COMISIONES DE COMERCIALES -->
 <div class="card card-custom mb-4">
