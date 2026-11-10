@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import ProtectedError
 from django.db.models import Q
+from pedidos.models import recalcular_stock_material
 
 from .models import Material, Inventario, TipoMaterial, SubgrupoMaterial
 from django.http import JsonResponse
@@ -19,13 +20,17 @@ from datetime import date
 def lista_inventario(request):
     materiales = Material.objects.all().order_by('nombre')
     
-    # 🆕 Obtener todo el inventario de golpe
-    inventario_dict = {inv.material_id: inv.cantidad for inv in Inventario.objects.all()}
+    # 🆕 Recalculamos el stock real de cada material usando la misma lógica que el Dashboard
+    inventario_dict = {}
+    for mat in materiales:
+        # Esta función guarda el stock real en la BD y lo devuelve
+        cantidad_real = recalcular_stock_material(mat) 
+        inventario_dict[mat.id] = cantidad_real
     
-    # 🆕 Asignar el stock a cada material
+    # Asignamos el stock a cada objeto para usarlo en el HTML
     for mat in materiales:
         mat.stock_actual = inventario_dict.get(mat.id, 0)
-        
+
     context = {
         'materiales': materiales,
     }

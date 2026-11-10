@@ -5,7 +5,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>💳 Registrar Pago</h2>
-    <a href="{% url 'cuentas_por_pagar' %}" class="btn btn-secondary">
+    <a href="{% if request.GET.return_url %}{% url 'cuentas_por_pagar' %}?{{ request.GET.return_url }}{% else %}{% url 'cuentas_por_pagar' %}{% endif %}" class="btn btn-secondary">
         <i class="bi bi-arrow-left"></i> Volver
     </a>
 </div>
@@ -81,7 +81,7 @@
                 <button type="submit" class="btn btn-success btn-lg">
                     <i class="bi bi-check-circle"></i> Registrar pago
                 </button>
-                <a href="{% url 'cuentas_por_pagar' %}" class="btn btn-secondary btn-lg">
+                <a href="{% if request.GET.return_url %}{% url 'cuentas_por_pagar' %}?{{ request.GET.return_url }}{% else %}{% url 'cuentas_por_pagar' %}{% endif %}" class="btn btn-secondary btn-lg">
                     <i class="bi bi-x-circle"></i> Cancelar
                 </a>
             </div>
