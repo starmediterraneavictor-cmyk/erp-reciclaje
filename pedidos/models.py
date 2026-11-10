@@ -527,7 +527,7 @@ def recalcular_stock_material(material):
     detalles_compra = DetallePedido.objects.filter(
         material=material,
         pedido__tipo__in=['COMPRA_MAT', 'MAQUILA']
-    ).exclude(pedido__estado='CANCELADO')
+    ).exclude(pedido__estado__in=['CANCELADO', 'PREVISION'])  # 🆕 Añadimos PREVISION
     
     total_disponible = Decimal('0')
     

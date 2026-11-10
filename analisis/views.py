@@ -181,16 +181,17 @@ def dashboard_analisis(request):
     # ============================================
     # BLOQUE 3: ANÁLISIS DE INVENTARIO
     # ============================================
+    from inventario.models import Material, Inventario
+    from pedidos.models import recalcular_stock_material
+
     inventario_analisis = []
     valor_total_inventario = 0
     alertas_stock = []
 
+    # 🆕 Usamos la misma lógica que el Dashboard Principal
     for material in Material.objects.all():
-        try:
-            inv = Inventario.objects.get(material=material)
-            cantidad = float(inv.cantidad)
-        except Inventario.DoesNotExist:
-            cantidad = 0
+        # Llamamos a la función que calcula el stock real (excluyendo previsiones)
+        cantidad = float(recalcular_stock_material(material))
 
         valor = cantidad * float(material.precio_compra)
         valor_total_inventario += valor
@@ -225,6 +226,7 @@ def dashboard_analisis(request):
             'color': color_estado,
         })
 
+    # Ordenamos por cantidad de mayor a menor
     inventario_analisis.sort(key=lambda x: x['cantidad'], reverse=True)
 
     # ============================================
