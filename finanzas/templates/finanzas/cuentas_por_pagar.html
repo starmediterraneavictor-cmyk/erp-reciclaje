@@ -152,7 +152,7 @@
                     <td class="text-center">
                         {# Botón de pagar (solo si no está pagado) #}
                         {% if c.estado != 'PAGADO' %}
-                        <a href="{% url 'registrar_pago_cuenta' c.id %}" class="btn btn-success btn-sm" title="Registrar pago">
+                        <a href="{% url 'registrar_pago_cuenta' c.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-success btn-sm" title="Registrar pago">
                             <i class="bi bi-cash"></i> Pagar
                         </a>
                         {% endif %}

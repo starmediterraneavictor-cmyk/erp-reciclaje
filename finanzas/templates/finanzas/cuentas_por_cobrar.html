@@ -136,7 +136,7 @@
                     </td>
                     <td class="text-center">
                         {% if c.estado != 'COBRADO' %}
-                        <a href="{% url 'registrar_cobro_cuenta' c.id %}" class="btn btn-success btn-sm" title="Registrar cobro">
+                        <a href="{% url 'registrar_cobro_cuenta' c.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-success btn-sm" title="Registrar cobro">
                             <i class="bi bi-cash"></i> Cobrar
                         </a>
                         {% endif %}
