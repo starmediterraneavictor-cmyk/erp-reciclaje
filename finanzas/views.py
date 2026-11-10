@@ -43,6 +43,7 @@ def _crear_cuenta_para_factura(factura):
         
         return CuentaPorCobrar.objects.create(
             concepto=f"Factura {factura.numero_factura}",
+            categoria=factura.categoria,
             cliente=factura.cliente,
             importe_total=factura.total,
             fecha_emision=factura.fecha,
@@ -424,19 +425,16 @@ def registrar_pago_cuenta(request, cuenta_id):
 def cuentas_por_cobrar(request):
     """Lista de cuentas por cobrar"""
     orden = request.GET.get('orden', 'fecha_vencimiento')
+    categoria = request.GET.get('categoria', '') # 🆕 Añadido filtro categoría
     estado = request.GET.get('estado', '')
     buscar = request.GET.get('buscar', '').strip()
-    
-    # 🆕 Filtros de fecha
-    emision_desde = request.GET.get('emision_desde', '')
-    emision_hasta = request.GET.get('emision_hasta', '')
-    vence_desde = request.GET.get('vence_desde', '')
-    vence_hasta = request.GET.get('vence_hasta', '')
 
     # Base queryset
     cuentas = CuentaPorCobrar.objects.exclude(estado='ANULADO').order_by(orden)
 
     # Aplicar filtros
+    if categoria:
+        cuentas = cuentas.filter(categoria=categoria)
     if estado:
         cuentas = cuentas.filter(estado=estado)
     if buscar:
@@ -444,16 +442,6 @@ def cuentas_por_cobrar(request):
             Q(concepto__icontains=buscar) | 
             Q(cliente__nombre__icontains=buscar)
         )
-        
-    # 🆕 Aplicar filtros de fecha
-    if emision_desde:
-        cuentas = cuentas.filter(fecha_emision__gte=emision_desde)
-    if emision_hasta:
-        cuentas = cuentas.filter(fecha_emision__lte=emision_hasta)
-    if vence_desde:
-        cuentas = cuentas.filter(fecha_vencimiento__gte=vence_desde)
-    if vence_hasta:
-        cuentas = cuentas.filter(fecha_vencimiento__lte=vence_hasta)
 
     pendientes = cuentas.filter(estado__in=['PENDIENTE', 'PARCIAL'])
     vencidas = [c for c in pendientes if c.estado != 'COBRADO' and c.dias_para_vencer < 0]
@@ -467,17 +455,15 @@ def cuentas_por_cobrar(request):
         'vencidas': vencidas,
         'total_pendiente': total_pendiente,
         'total_vencido': total_vencido,
+        
+        # 🆕 Enviamos las categorías de la Factura para el desplegable
+        'categorias': Factura.CATEGORIAS, 
+        
         'estados': CuentaPorCobrar.ESTADO_CHOICES,
-        
-        # 🆕 Pasar los filtros al HTML
-        'emision_desde_filtro': emision_desde,
-        'emision_hasta_filtro': emision_hasta,
-        'vence_desde_filtro': vence_desde,
-        'vence_hasta_filtro': vence_hasta,
-        
+        'categoria_filtro': categoria,
         'estado_filtro': estado,
-        'buscar_filtro': buscar,
         'orden_filtro': orden,
+        'buscar_filtro': buscar,
     }
     return render(request, 'finanzas/cuentas_por_cobrar.html', context)
 
@@ -489,6 +475,7 @@ def nueva_cuenta_por_cobrar(request):
         try:
             cuenta = CuentaPorCobrar.objects.create(
                 concepto=request.POST.get('concepto'),
+                categoria=request.POST.get('categoria', 'OTROS'),
                 cliente_id=request.POST.get('cliente'),
                 importe_total=request.POST.get('importe_total'),
                 fecha_emision=request.POST.get('fecha_emision'),
@@ -503,6 +490,7 @@ def nueva_cuenta_por_cobrar(request):
 
     context = {
         'clientes': Cliente.objects.all().order_by('nombre'),
+        'categorias': Factura.CATEGORIAS,
         'fecha_actual': date.today().strftime('%Y-%m-%d'),
     }
     return render(request, 'finanzas/nueva_cuenta_por_cobrar.html', context)
@@ -626,6 +614,7 @@ def registrar_cobro_pago_factura(request, factura_id):
             if factura.tipo == 'INGRESO':
                 cuenta = CuentaPorCobrar.objects.create(
                     concepto=f"Factura {factura.numero_factura}",
+                    categoria=factura.categoria,
                     cliente=factura.cliente,
                     importe_total=factura.total,
                     fecha_emision=factura.fecha,
