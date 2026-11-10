@@ -315,7 +315,13 @@ def cuentas_por_pagar(request):
     orden = request.GET.get('orden', '-fecha_vencimiento')
     categoria = request.GET.get('categoria', '')
     estado = request.GET.get('estado', '')
-    buscar = request.GET.get('buscar', '').strip() # 🆕
+    buscar = request.GET.get('buscar', '').strip()
+    
+    # 🆕 Nuevos filtros de fecha
+    emision_desde = request.GET.get('emision_desde', '')
+    emision_hasta = request.GET.get('emision_hasta', '')
+    vence_desde = request.GET.get('vence_desde', '')
+    vence_hasta = request.GET.get('vence_hasta', '')
 
     cuentas = CuentaPorPagar.objects.exclude(estado='ANULADO').order_by(orden)
 
@@ -323,29 +329,35 @@ def cuentas_por_pagar(request):
         cuentas = cuentas.filter(categoria=categoria)
     if estado:
         cuentas = cuentas.filter(estado=estado)
-    if buscar: # 🆕
+    if buscar:
         cuentas = cuentas.filter(
             Q(concepto__icontains=buscar) | 
             Q(proveedor__nombre__icontains=buscar)
         )
+        
+    # 🆕 Aplicar filtros de fecha
+    if emision_desde:
+        cuentas = cuentas.filter(fecha_emision__gte=emision_desde)
+    if emision_hasta:
+        cuentas = cuentas.filter(fecha_emision__lte=emision_hasta)
+    if vence_desde:
+        cuentas = cuentas.filter(fecha_vencimiento__gte=vence_desde)
+    if vence_hasta:
+        cuentas = cuentas.filter(fecha_vencimiento__lte=vence_hasta)
 
-    pendientes = cuentas.filter(estado__in=['PENDIENTE', 'PARCIAL'])
-    vencidas = [c for c in pendientes if c.esta_vencida]
-
-    total_pendiente = sum(c.saldo_pendiente for c in pendientes)
-    total_vencido = sum(c.saldo_pendiente for c in vencidas)
+    # ... (resto de tu código de totales y pendientes) ...
 
     context = {
-        'cuentas': cuentas,
-        'pendientes': pendientes,
-        'vencidas': vencidas,
-        'total_pendiente': total_pendiente,
-        'total_vencido': total_vencido,
-        
-        # 🆕 VOLVEMOS A PONER LA LISTA LARGA AQUÍ
+        # ... (lo que ya tenías) ...
         'categorias': CuentaPorPagar.CATEGORIA_CHOICES, 
-        
         'estados': CuentaPorPagar.ESTADO_CHOICES,
+        
+        # 🆕 Pasar los filtros al HTML
+        'emision_desde_filtro': emision_desde,
+        'emision_hasta_filtro': emision_hasta,
+        'vence_desde_filtro': vence_desde,
+        'vence_hasta_filtro': vence_hasta,
+        
         'categoria_filtro': categoria,
         'estado_filtro': estado,
         'orden_filtro': orden,
@@ -428,8 +440,12 @@ def cuentas_por_cobrar(request):
     orden = request.GET.get('orden', 'fecha_vencimiento')
     estado = request.GET.get('estado', '')
     buscar = request.GET.get('buscar', '').strip()
-    desde = request.GET.get('desde', '')
-    hasta = request.GET.get('hasta', '')
+    
+    # 🆕 Filtros de fecha
+    emision_desde = request.GET.get('emision_desde', '')
+    emision_hasta = request.GET.get('emision_hasta', '')
+    vence_desde = request.GET.get('vence_desde', '')
+    vence_hasta = request.GET.get('vence_hasta', '')
 
     # Base queryset
     cuentas = CuentaPorCobrar.objects.exclude(estado='ANULADO').order_by(orden)
@@ -442,10 +458,16 @@ def cuentas_por_cobrar(request):
             Q(concepto__icontains=buscar) | 
             Q(cliente__nombre__icontains=buscar)
         )
-    if desde:
-        cuentas = cuentas.filter(fecha_vencimiento__gte=desde)
-    if hasta:
-        cuentas = cuentas.filter(fecha_vencimiento__lte=hasta)
+        
+    # 🆕 Aplicar filtros de fecha
+    if emision_desde:
+        cuentas = cuentas.filter(fecha_emision__gte=emision_desde)
+    if emision_hasta:
+        cuentas = cuentas.filter(fecha_emision__lte=emision_hasta)
+    if vence_desde:
+        cuentas = cuentas.filter(fecha_vencimiento__gte=vence_desde)
+    if vence_hasta:
+        cuentas = cuentas.filter(fecha_vencimiento__lte=vence_hasta)
 
     pendientes = cuentas.filter(estado__in=['PENDIENTE', 'PARCIAL'])
     vencidas = [c for c in pendientes if c.estado != 'COBRADO' and c.dias_para_vencer < 0]
@@ -460,10 +482,15 @@ def cuentas_por_cobrar(request):
         'total_pendiente': total_pendiente,
         'total_vencido': total_vencido,
         'estados': CuentaPorCobrar.ESTADO_CHOICES,
+        
+        # 🆕 Pasar los filtros al HTML
+        'emision_desde_filtro': emision_desde,
+        'emision_hasta_filtro': emision_hasta,
+        'vence_desde_filtro': vence_desde,
+        'vence_hasta_filtro': vence_hasta,
+        
         'estado_filtro': estado,
         'buscar_filtro': buscar,
-        'desde_filtro': desde,
-        'hasta_filtro': hasta,
         'orden_filtro': orden,
     }
     return render(request, 'finanzas/cuentas_por_cobrar.html', context)

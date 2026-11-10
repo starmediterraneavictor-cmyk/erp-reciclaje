@@ -81,7 +81,25 @@
                 </a>
             </div>
 
-            <!-- Fila 2: Ordenación (ocupa el ancho completo) -->
+            <!-- 🆕 Fila 2: Filtros de Fechas -->
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Emisión desde</label>
+                <input type="date" name="emision_desde" class="form-control form-control-sm" value="{{ emision_desde_filtro }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Emisión hasta</label>
+                <input type="date" name="emision_hasta" class="form-control form-control-sm" value="{{ emision_hasta_filtro }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Vence desde</label>
+                <input type="date" name="vence_desde" class="form-control form-control-sm" value="{{ vence_desde_filtro }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Vence hasta</label>
+                <input type="date" name="vence_hasta" class="form-control form-control-sm" value="{{ vence_hasta_filtro }}">
+            </div>
+
+            <!-- Fila 3: Ordenación -->
             <div class="col-md-4">
                 <label class="form-label small mb-1">Ordenar por</label>
                 <select name="orden" class="form-select form-select-sm">
