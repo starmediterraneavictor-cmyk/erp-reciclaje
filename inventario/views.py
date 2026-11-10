@@ -2,9 +2,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import ProtectedError
+from django.db.models import Q
 
 from .models import Material, Inventario, TipoMaterial, SubgrupoMaterial
 from django.http import JsonResponse
+
+from core.utils import exportar_excel # 🆕 Importar utilidad
+from datetime import date
 
 
 # ============================================

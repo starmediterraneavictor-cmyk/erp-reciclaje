@@ -3,11 +3,17 @@
 {% block title %}Inventario - ERP Reciclaje{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
     <h2>📦 Inventario</h2>
-    <a href="{% url 'nuevo_material' %}" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Nuevo material
-    </a>
+    <div class="d-flex gap-2">
+        <!-- 🆕 BOTÓN EXPORTAR -->
+        <a href="{% url 'exportar_inventario_excel' %}" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+        </a>
+        <a href="{% url 'nuevo_material' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nuevo material
+        </a>
+    </div>
 </div>
 
 <div class="card card-custom">
@@ -22,6 +28,7 @@
                     <th>Unidad</th>
                     <th>P. Compra ref.(€/tn)</th>
                     <th>P. Venta ref.(€/tn)</th>
+                    <th class="text-end bg-primary text-white">Stock Actual</th>
                     <th class="text-center">Acciones</th>
                 </tr>
             </thead>
@@ -32,6 +39,9 @@
                         <a href="{% url 'detalle_material' m.id %}">
                             <strong>{{ m.codigo }}</strong>
                         </a>
+                    </td>
+                    <td class="text-end fw-bold {% if m.stock_actual <= 0 %}text-danger{% elif m.stock_actual < 5 %}text-warning{% else %}text-success{% endif %}">
+                        {{ m.stock_actual|floatformat:2 }} tn
                     </td>
                     <td>{{ m.nombre }}</td>
                     <td>{{ m.tipo.nombre }}</td>

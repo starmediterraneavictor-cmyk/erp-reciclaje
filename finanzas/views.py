@@ -401,6 +401,11 @@ def registrar_pago_cuenta(request, cuenta_id):
                 archivo_justificante=request.FILES.get('archivo_justificante') or None,
             )
             messages.success(request, f'✅ Pago registrado: {request.POST.get("importe")}€')
+            # 🆕 Redirigir manteniendo los filtros
+            url_retorno = request.POST.get('return_url', '')
+            if url_retorno:
+                return redirect(f"/finanzas/pagar/?{url_retorno}")
+            
             return redirect('cuentas_por_pagar')
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
@@ -408,6 +413,7 @@ def registrar_pago_cuenta(request, cuenta_id):
     context = {
         'cuenta': cuenta,
         'fecha_actual': date.today().strftime('%Y-%m-%d'),
+        'return_url': request.GET.urlencode(),
     }
     return render(request, 'finanzas/registrar_pago_cuenta.html', context)
 
@@ -416,7 +422,6 @@ def registrar_pago_cuenta(request, cuenta_id):
 # CUENTAS POR COBRAR
 # ============================================
 
-@login_required
 @login_required
 def cuentas_por_cobrar(request):
     """Lista de cuentas por cobrar"""
@@ -507,6 +512,11 @@ def registrar_cobro_cuenta(request, cuenta_id):
                 archivo_justificante=request.FILES.get('archivo_justificante') or None,
             )
             messages.success(request, '✅ Cobro registrado')
+            # 🆕 Redirigir manteniendo los filtros
+            url_retorno = request.POST.get('return_url', '')
+            if url_retorno:
+                return redirect(f"/finanzas/cobrar/?{url_retorno}")
+            
             return redirect('cuentas_por_cobrar')
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
@@ -514,6 +524,7 @@ def registrar_cobro_cuenta(request, cuenta_id):
     context = {
         'cuenta': cuenta,
         'fecha_actual': date.today().strftime('%Y-%m-%d'),
+        'return_url': request.GET.urlencode(),
     }
     return render(request, 'finanzas/registrar_cobro_cuenta.html', context)
 

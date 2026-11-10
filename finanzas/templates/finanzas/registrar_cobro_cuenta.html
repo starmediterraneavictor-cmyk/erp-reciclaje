@@ -31,7 +31,7 @@
         <h5>💰 Nuevo cobro</h5>
         <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
-            
+            <input type="hidden" name="return_url" value="{{ request.GET.urlencode }}">
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Importe (€) <span class="text-danger">*</span></label>

@@ -338,6 +338,26 @@
                     <td colspan="7" class="text-center text-muted py-3">No hay pesadas registradas. Añade el primer camión cuando llegue.</td>
                 </tr>
                 {% endfor %}
+
+                {# 🆕 FILA DE TOTALES #}
+                {% if pedido.pesadas.exists %}
+                <tr class="table-dark fw-bold">
+                    <td colspan="2" class="text-end">TOTALES:</td>
+                    <td class="text-end">{{ total_previsto|formato_es }} tn</td>
+                    <td class="text-end">{{ total_real|formato_es }} tn</td>
+                    <td class="text-end {% if total_diferencia < 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ total_diferencia|formato_es }} tn
+                    </td>
+                    <td class="text-end">
+                        {% if total_impacto != 0 %}
+                            {{ total_impacto|formato_es }} €
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td></td>
+                </tr>
+                {% endif %}
             </tbody>
         </table>
     </div>

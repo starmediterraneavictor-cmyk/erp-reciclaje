@@ -9,5 +9,6 @@ urlpatterns = [
     path('<int:material_id>/editar/', views.editar_material, name='editar_material'),
     path('<int:material_id>/eliminar/', views.confirmar_eliminar_material, name='confirmar_eliminar_material'),
     path('<int:material_id>/eliminar/confirmar/', views.eliminar_material, name='eliminar_material'),
+    path('exportar/', views.exportar_inventario_excel, name='exportar_inventario_excel'),
     
 ]

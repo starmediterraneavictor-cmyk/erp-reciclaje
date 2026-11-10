@@ -173,6 +173,13 @@ def detalle_pedido(request, pedido_id):
 
     url_retorno = request.GET.get('return_url', '')
 
+    # 🆕 Calcular totales de las pesadas
+    pesadas = pedido.pesadas.all()
+    total_previsto = sum(p.peso_previsto_tn for p in pesadas)
+    total_real = sum(p.peso_real_tn for p in pesadas)
+    total_diferencia = total_real - total_previsto
+    total_impacto = sum(p.impacto_economico for p in pesadas)
+
     context = {
         'pedido': pedido,
         'factura_existente': factura_existente,
@@ -183,6 +190,10 @@ def detalle_pedido(request, pedido_id):
         'comisiones': pedido.comisiones.all(),
         'total_comisiones': pedido.total_comisiones,
         'url_retorno': url_retorno,
+        'total_previsto': total_previsto,
+        'total_real': total_real,
+        'total_diferencia': total_diferencia,
+        'total_impacto': total_impacto,
     }
     return render(request, 'pedidos/detalle_pedido.html', context)
 
