@@ -47,6 +47,13 @@ class Material(models.Model):
     precio_venta = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     descripcion = models.TextField(blank=True)
 
+    # 🆕 Código LER para el Archivo Cronológico (¡Aquí es donde debe ir!)
+    codigo_ler = models.CharField(
+        max_length=20, blank=True, 
+        verbose_name="Código LER",
+        help_text="Ej: 12 01 05 (Virutas de plástico), 15 01 02 (Envases de plástico)"
+    )
+
     stock_minimo_critico = models.DecimalField(
         max_digits=12, decimal_places=2, default=100,
         verbose_name="Stock mínimo crítico (tn)"

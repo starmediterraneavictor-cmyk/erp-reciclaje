@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load formato_es %}
+
+{% block title %}Archivo Cronológico - ERP Reciclaje{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📚 Archivo Cronológico de Residuos</h2>
+    <div class="d-flex gap-2">
+        <a href="?year_inicio={{ year_inicio }}&year_fin={{ year_fin }}&exportar=1" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+        </a>
+        <a href="{% url 'lista_pedidos' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Este documento cumple con el formato exigido para el Archivo Cronológico de Residuos (Ley 7/2022). Conserve este registro durante al menos 5 años.
+</div>
+
+<!-- Filtros por año -->
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Año Inicio</label>
+                <input type="number" name="year_inicio" class="form-control form-control-sm" value="{{ year_inicio }}" min="2000" max="2099">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Año Fin</label>
+                <input type="number" name="year_fin" class="form-control form-control-sm" value="{{ year_fin }}" min="2000" max="2099">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card card-custom">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Nº Pedido</th>
+                        <th>Material</th>
+                        <th>Código LER</th>
+                        <th class="text-end">Cantidad (tn)</th>
+                        <th>Entidad</th>
+                        <th>NIMA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in movimientos %}
+                    <tr>
+                        <td>{{ m.fecha|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if m.tipo == 'ENTRADA' %}
+                            <span class="badge bg-success">ENTRADA</span>
+                            {% else %}
+                            <span class="badge bg-danger">SALIDA</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ m.pedido }}</td>
+                        <td>{{ m.material }}</td>
+                        <td><span class="badge bg-secondary">{{ m.ler|default:"—" }}</span></td>
+                        <td class="text-end fw-bold">{{ m.cantidad|formato_es }}</td>
+                        <td>{{ m.entidad }}</td>
+                        <td>{{ m.nima|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            No hay movimientos registrados en este periodo. Asegúrate de rellenar el Código LER en los materiales.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

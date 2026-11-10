@@ -1120,3 +1120,103 @@ def generar_ajuste_pesada(request, pesada_id):
         messages.error(request, f'❌ Error al generar ajuste: {str(e)}')
         
     return redirect('detalle_pedido', pedido_id=pedido.id)
+
+@login_required
+def archivo_cronologico(request):
+    """Archivo Cronológico de Residuos para inspecciones (Guardia Civil)"""
+    from datetime import date
+    from dateutil.relativedelta import relativedelta
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.http import HttpResponse
+
+    # Filtros por año (por defecto, últimos 4 años)
+    year_actual = date.today().year
+    year_inicio = request.GET.get('year_inicio', year_actual - 4)
+    year_fin = request.GET.get('year_fin', year_actual)
+
+    # Buscar pedidos de compra (ENTRADAS) y venta (SALIDAS) en ese rango
+    entradas = Pedido.objects.filter(
+        tipo__in=['COMPRA_MAT', 'MAQUILA'],
+        fecha__year__gte=year_inicio,
+        fecha__year__lte=year_fin
+    ).exclude(estado='PREVISION').order_by('fecha')
+
+    salidas = Pedido.objects.filter(
+        tipo='VENTA_MAT',
+        fecha__year__gte=year_inicio,
+        fecha__year__lte=year_fin
+    ).exclude(estado='PREVISION').order_by('fecha')
+
+    # Consolidar en una lista cronológica
+    movimientos = []
+    
+    for p in entradas:
+        # Entradas (Compras)
+        for detalle in p.detalles.all():
+            movimientos.append({
+                'fecha': p.fecha,
+                'tipo': 'ENTRADA',
+                'pedido': p.numero_pedido,
+                'material': detalle.material.nombre,
+                'ler': detalle.material.codigo_ler,
+                'cantidad': detalle.cantidad,
+                'entidad': p.proveedor.nombre if p.proveedor else '—',
+                'nima': p.proveedor.codigo_nima if p.proveedor else '—',
+            })
+
+    for p in salidas:
+        # Salidas (Ventas)
+        for detalle in p.detalles.all():
+            movimientos.append({
+                'fecha': p.fecha,
+                'tipo': 'SALIDA',
+                'pedido': p.numero_pedido,
+                'material': detalle.material.nombre,
+                'ler': detalle.material.codigo_ler,
+                'cantidad': detalle.cantidad,
+                'entidad': p.cliente.nombre if p.cliente else '—',
+                'nima': p.cliente.codigo_nima if p.cliente else '—',
+            })
+
+    # Ordenar por fecha
+    movimientos.sort(key=lambda x: x['fecha'])
+
+    # 🆕 Si se pide exportar a Excel
+    if request.GET.get('exportar') == '1':
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Archivo Cronológico"
+        
+        cabeceras = ['Fecha', 'Tipo', 'Nº Pedido', 'Material', 'Código LER', 'Cantidad (tn)', 'Entidad (Proveedor/Cliente)', 'NIMA']
+        ws.append(cabeceras)
+        
+        for cell in ws[1]:
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill('solid', fgColor='2D6A4F')
+            cell.alignment = Alignment(horizontal='center')
+
+        for m in movimientos:
+            ws.append([
+                m['fecha'].strftime('%d/%m/%Y'),
+                m['tipo'],
+                m['pedido'],
+                m['material'],
+                m['ler'],
+                float(m['cantidad']),
+                m['entidad'],
+                m['nima'],
+            ])
+            
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="Archivo_Cronologico_{year_inicio}_{year_fin}.xlsx"'
+        wb.save(response)
+        return response
+
+    context = {
+        'movimientos': movimientos,
+        'year_inicio': year_inicio,
+        'year_fin': year_fin,
+    }
+    return render(request, 'pedidos/archivo_cronologico.html', context)

@@ -34,5 +34,7 @@ urlpatterns = [
     path('<int:pedido_id>/pesada/nueva/', views.nueva_pesada, name='nueva_pesada'),
     path('pesada/<int:pesada_id>/ajuste/', views.generar_ajuste_pesada, name='generar_ajuste_pesada'),
 
+    # Archivo cronologico
+    path('archivo-cronologico/', views.archivo_cronologico, name='archivo_cronologico'),
 ]
 

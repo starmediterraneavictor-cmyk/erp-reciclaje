@@ -282,6 +282,9 @@ class CuentaPorCobrar(models.Model):
     
     concepto = models.CharField(max_length=200)
 
+    # 🆕 Añadimos el campo categoría para poder filtrar
+    categoria = models.CharField(max_length=50, choices=Factura.CATEGORIAS, default='OTROS')
+
     cliente = models.ForeignKey(
         Cliente, on_delete=models.PROTECT, 
         null=True, blank=True, 
