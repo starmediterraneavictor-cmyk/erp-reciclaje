@@ -26,8 +26,8 @@
                     <th>Tipo</th>
                     <th>Subgrupo</th>
                     <th>Unidad</th>
-                    <th>P. Compra ref.(€/tn)</th>
-                    <th>P. Venta ref.(€/tn)</th>
+                    <th class="text-end">P. Compra (€/tn)</th>
+                    <th class="text-end">P. Venta (€/tn)</th>
                     <th class="text-end bg-primary text-white">Stock Actual</th>
                     <th class="text-center">Acciones</th>
                 </tr>
@@ -40,16 +40,18 @@
                             <strong>{{ m.codigo }}</strong>
                         </a>
                     </td>
-                    <td class="text-end fw-bold {% if m.stock_actual <= 0 %}text-danger{% elif m.stock_actual < 5 %}text-warning{% else %}text-success{% endif %}">
-                        {{ m.stock_actual|floatformat:2 }} tn
-                    </td>
                     <td>{{ m.nombre }}</td>
                     <td>{{ m.tipo.nombre }}</td>
                     <td>{{ m.subgrupo.nombre|default:"-" }}</td>
                     <td><span class="badge bg-info">{{ m.get_unidad_display }}</span></td>
-                    <td>{{ m.precio_compra }} €</td>
-                    <td>{{ m.precio_venta }} €</td>
+                    <td class="text-end">{{ m.precio_compra }} €</td>
+                    <td class="text-end">{{ m.precio_venta }} €</td>
                     
+                    <!-- 🆕 CELDA CORREGIDA -->
+                    <td class="text-end fw-bold {% if m.stock_actual <= 0 %}text-danger{% elif m.stock_actual < 5 %}text-warning{% else %}text-success{% endif %}">
+                        {{ m.stock_actual|floatformat:2 }} tn
+                    </td>
+
                     <td class="text-center">
                         <a href="{% url 'detalle_material' m.id %}" class="btn btn-outline-secondary btn-sm" title="Ver detalle">
                             <i class="bi bi-eye"></i>
@@ -64,7 +66,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center py-4">
+                    <td colspan="9" class="text-center py-4">
                         <p class="text-muted">No hay materiales</p>
                         <a href="{% url 'nuevo_material' %}" class="btn btn-success btn-sm">
                             <i class="bi bi-plus-circle"></i> Crear primer material

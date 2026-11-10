@@ -18,10 +18,49 @@ from datetime import date
 @login_required
 def lista_inventario(request):
     materiales = Material.objects.all().order_by('nombre')
+    
+    # 🆕 Obtener todo el inventario de golpe
+    inventario_dict = {inv.material_id: inv.cantidad for inv in Inventario.objects.all()}
+    
+    # 🆕 Asignar el stock a cada material
+    for mat in materiales:
+        mat.stock_actual = inventario_dict.get(mat.id, 0)
+        
     context = {
         'materiales': materiales,
     }
     return render(request, 'inventario/lista.html', context)
+
+# 🆕 NUEVA FUNCIÓN DE EXPORTACIÓN
+@login_required
+def exportar_inventario_excel(request):
+    """Exporta el inventario a Excel para inspecciones."""
+    materiales = Material.objects.all().order_by('nombre')
+    inventario_dict = {inv.material_id: inv.cantidad for inv in Inventario.objects.all()}
+
+    cabeceras = [
+        'Código', 'Nombre', 'Tipo', 'Subgrupo', 'Unidad', 
+        'P. Compra ref. (€/tn)', 'P. Venta ref. (€/tn)', 'Stock Actual'
+    ]
+
+    filas = []
+    for m in materiales:
+        stock = inventario_dict.get(m.id, 0)
+        filas.append([
+            m.codigo,
+            m.nombre,
+            m.tipo.nombre if m.tipo else '',
+            m.subgrupo.nombre if m.subgrupo else '',
+            m.unidad,
+            float(m.precio_compra or 0),
+            float(m.precio_venta or 0),
+            float(stock)
+        ])
+
+    hoy = date.today().strftime('%Y%m%d')
+    nombre_archivo = f'Inventario_{hoy}.xlsx'
+
+    return exportar_excel(nombre_archivo, cabeceras, filas, titulo_hoja="Inventario")
 
 
 @login_required
