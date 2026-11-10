@@ -959,18 +959,27 @@ def anular_factura(request, factura_id):
 def lista_comisiones(request):
     """Lista todas las comisiones agrupadas por comercial"""
     
-    # 🆕 Si se envía un formulario para marcar como pagado
     if request.method == 'POST':
         comision_id = request.POST.get('comision_id')
-        accion = request.POST.get('accion') # 'pagar' o 'desmarcar'
+        accion = request.POST.get('accion') 
+        
         if comision_id:
             comision = get_object_or_404(Comision, id=comision_id)
             if accion == 'pagar':
                 comision.pagado = True
-                comision.fecha_pago = date.today()
-            else:
+                # 🆕 Cogemos la fecha del formulario. Si viene vacía, ponemos la de hoy.
+                fecha_str = request.POST.get('fecha_pago')
+                comision.fecha_pago = fecha_str if fecha_str else date.today()
+                
+            elif accion == 'editar_fecha': # 🆕 Nueva acción para editar fecha
+                fecha_str = request.POST.get('fecha_pago')
+                if fecha_str:
+                    comision.fecha_pago = fecha_str
+                    
+            else: # Desmarcar (volver a pendiente)
                 comision.pagado = False
                 comision.fecha_pago = None
+                
             comision.save()
             messages.success(request, '✅ Estado de la comisión actualizado')
         return redirect('lista_comisiones')
@@ -981,8 +990,6 @@ def lista_comisiones(request):
     for com in comerciales:
         comisiones = com.comision_set.all().select_related('pedido')
         total_comision = sum(c.importe_comision for c in comisiones)
-        
-        # 🆕 Cálculo de pagado y pendiente
         total_pagado = sum(c.importe_comision for c in comisiones if c.pagado)
         total_pendiente = total_comision - total_pagado
         
@@ -995,10 +1002,10 @@ def lista_comisiones(request):
             'num_pedidos': len(comisiones),
         })
         
-    # Ordenar por el que más ha ganado
     datos_comerciales = sorted(datos_comerciales, key=lambda x: x['total_comision'], reverse=True)
 
     context = {
         'datos_comerciales': datos_comerciales,
+        'fecha_actual': date.today().strftime('%Y-%m-%d'), # 🆕 Para el input date
     }
     return render(request, 'finanzas/lista_comisiones.html', context)

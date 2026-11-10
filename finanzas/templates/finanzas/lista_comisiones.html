@@ -19,7 +19,7 @@
             </div>
             <div class="card-body">
                 
-                <!-- 🆕 Resumen de pagos -->
+                <!-- Resumen de pagos -->
                 <div class="row mb-3">
                     <div class="col-6">
                         <div class="p-2 bg-success bg-opacity-10 rounded text-center border border-success">
@@ -41,8 +41,8 @@
                             <th>Pedido</th>
                             <th>Cliente</th>
                             <th class="text-end">Comisión</th>
-                            <th class="text-center">Estado</th>
-                            <th class="text-center">Acción</th>
+                            <th class="text-center">Estado / Fecha</th>
+                            <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -56,28 +56,38 @@
                             <td class="text-end text-success fw-bold">{{ c.importe_comision|formato_es }} €</td>
                             <td class="text-center">
                                 {% if c.pagado %}
-                                    <span class="badge bg-success">Pagado</span>
-                                    <br><small class="text-muted" style="font-size: 0.7em;">{{ c.fecha_pago|date:"d/m/Y" }}</small>
+                                    <span class="badge bg-success mb-1">Pagado</span>
+                                    <form method="POST" class="d-flex gap-1 justify-content-center">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="comision_id" value="{{ c.id }}">
+                                        <input type="hidden" name="accion" value="editar_fecha">
+                                        <input type="date" name="fecha_pago" value="{{ c.fecha_pago|date:'Y-m-d' }}" class="form-control form-control-sm" style="width: 120px; font-size: 0.75rem;">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Actualizar fecha"><i class="bi bi-check"></i></button>
+                                    </form>
                                 {% else %}
-                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                    <span class="badge bg-warning text-dark mb-1">Pendiente</span>
+                                    <form method="POST" class="d-flex gap-1 justify-content-center">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="comision_id" value="{{ c.id }}">
+                                        <input type="hidden" name="accion" value="pagar">
+                                        <input type="date" name="fecha_pago" value="{{ fecha_actual }}" class="form-control form-control-sm" style="width: 120px; font-size: 0.75rem;" required>
+                                        <button type="submit" class="btn btn-sm btn-success" title="Marcar como pagado"><i class="bi bi-check-circle"></i></button>
+                                    </form>
                                 {% endif %}
                             </td>
                             <td class="text-center">
-                                <form method="POST" style="display:inline;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="comision_id" value="{{ c.id }}">
-                                    {% if c.pagado %}
+                                {% if c.pagado %}
+                                    <form method="POST" style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="comision_id" value="{{ c.id }}">
                                         <input type="hidden" name="accion" value="desmarcar">
                                         <button type="submit" class="btn btn-outline-danger btn-sm" title="Desmarcar pago">
                                             <i class="bi bi-x-circle"></i>
                                         </button>
-                                    {% else %}
-                                        <input type="hidden" name="accion" value="pagar">
-                                        <button type="submit" class="btn btn-success btn-sm" title="Marcar como pagado">
-                                            <i class="bi bi-check-circle"></i> Pagar
-                                        </button>
-                                    {% endif %}
-                                </form>
+                                    </form>
+                                {% else %}
+                                    <!-- El botón de pagar ya está integrado con la fecha arriba -->
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}
