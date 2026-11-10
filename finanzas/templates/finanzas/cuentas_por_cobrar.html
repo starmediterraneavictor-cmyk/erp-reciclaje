@@ -91,78 +91,84 @@
 
 <!-- Tabla -->
 <div class="card card-custom">
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Concepto</th>
-                    <th>Cliente</th>
-                    <th>Importe</th>
-                    <th>Pendiente</th>
-                    <th>Vence</th>
-                    <th>Estado</th>
-                    <th class="text-center">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in cuentas %}
-                <tr {% if c.estado != 'COBRADO' and c.alerta %}class="table-warning"{% endif %}>
-                    <td><strong>{{ c.concepto }}</strong></td>
-                    <td>
-                        {% if c.cliente %}
-                            {{ c.cliente.nombre }}
-                        {% elif c.proveedor %}
-                            <span class="badge bg-warning text-dark">Proveedor:</span> {{ c.proveedor.nombre }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                    <td>{{ c.importe_total|formato_es }} €</td>
-                    <td><strong>{{ c.saldo_pendiente|formato_es }} €</strong></td>
-                    <td>
-                        {{ c.fecha_vencimiento|date:"d/m/Y" }}
-                        {% if c.estado != 'COBRADO' and c.dias_para_vencer < 0 %}
-                        <br><small class="text-danger">{{ c.dias_para_vencer }} días</small>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if c.estado == 'COBRADO' %}
-                        <span class="badge bg-success">Cobrado</span>
-                        {% elif c.estado == 'PARCIAL' %}
-                        <span class="badge bg-info">Parcial</span>
-                        {% else %}
-                        <span class="badge bg-warning">Pendiente</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">
-                        {% if c.estado != 'COBRADO' %}
-                        <a href="{% url 'registrar_cobro_cuenta' c.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-success btn-sm" title="Registrar cobro">
-                            <i class="bi bi-cash"></i> Cobrar
-                        </a>
-                        {% endif %}
-                        {% if not c.tiene_factura %}
-                        <a href="{% url 'confirmar_eliminar_cuenta_por_cobrar' c.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
-                            <i class="bi bi-trash"></i>
-                        </a>
-                        {% else %}
-                        <span class="badge bg-secondary" title="Vinculada a factura {{ c.numero_factura }}">
-                            🔒 Factura
-                        </span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="text-center py-4">
-                        <p class="text-muted">No hay cuentas por cobrar</p>
-                        <a href="{% url 'nueva_cuenta_por_cobrar' %}" class="btn btn-success btn-sm">
-                            <i class="bi bi-plus-circle"></i> Crear primera
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="card-body p-0"> <!-- p-0 para que la tabla ocupe todo el ancho -->
+        <div class="table-responsive"> <!-- 🆕 Scroll horizontal en móvil -->
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="min-width: 200px;">Concepto</th>
+                        <th style="min-width: 150px;">Cliente</th>
+                        <th class="text-end" style="min-width: 100px;">Importe</th>
+                        <th class="text-end" style="min-width: 100px;">Pendiente</th>
+                        <th class="text-center" style="min-width: 100px;">Emisión</th> <!-- 🆕 -->
+                        <th class="text-center" style="min-width: 100px;">Vence</th>
+                        <th class="text-center" style="min-width: 90px;">Estado</th>
+                        <th class="text-center" style="min-width: 140px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in cuentas %}
+                    <tr {% if c.estado != 'COBRADO' and c.alerta %}class="table-warning"{% endif %}>
+                        <td>
+                            <strong>{{ c.concepto }}</strong>
+                        </td>
+                        <td>
+                            {% if c.cliente %}
+                                {{ c.cliente.nombre }}
+                            {% elif c.proveedor %}
+                                <span class="badge bg-warning text-dark">Proveedor:</span> {{ c.proveedor.nombre }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ c.importe_total|formato_es }} €</td>
+                        <td class="text-end fw-bold">{{ c.saldo_pendiente|formato_es }} €</td>
+                        <td class="text-center">{{ c.fecha_emision|date:"d/m/Y" }}</td> <!-- 🆕 -->
+                        <td class="text-center">
+                            {{ c.fecha_vencimiento|date:"d/m/Y" }}
+                            {% if c.estado != 'COBRADO' and c.dias_para_vencer < 0 %}
+                            <br><small class="text-danger">{{ c.dias_para_vencer }} días</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if c.estado == 'COBRADO' %}
+                            <span class="badge bg-success">Cobrado</span>
+                            {% elif c.estado == 'PARCIAL' %}
+                            <span class="badge bg-info">Parcial</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if c.estado != 'COBRADO' %}
+                            <a href="{% url 'registrar_cobro_cuenta' c.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-success btn-sm" title="Registrar cobro">
+                                <i class="bi bi-cash"></i> Cobrar
+                            </a>
+                            {% endif %}
+                            {% if not c.tiene_factura %}
+                            <a href="{% url 'confirmar_eliminar_cuenta_por_cobrar' c.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% else %}
+                            <span class="badge bg-secondary" title="Vinculada a factura {{ c.numero_factura }}">
+                                🔒 Factura
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <p class="text-muted">No hay cuentas por cobrar</p>
+                            <a href="{% url 'nueva_cuenta_por_cobrar' %}" class="btn btn-success btn-sm">
+                                <i class="bi bi-plus-circle"></i> Crear primera
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}
