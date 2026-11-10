@@ -1125,16 +1125,17 @@ def generar_ajuste_pesada(request, pesada_id):
 def archivo_cronologico(request):
     """Archivo Cronológico de Residuos para inspecciones (Guardia Civil)"""
     from datetime import date
-    from dateutil.relativedelta import relativedelta
     import io
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
     from django.http import HttpResponse
+    from django.core.paginator import Paginator
 
-    # Filtros por año (por defecto, últimos 4 años)
+    # Filtros
     year_actual = date.today().year
     year_inicio = request.GET.get('year_inicio', year_actual - 4)
     year_fin = request.GET.get('year_fin', year_actual)
+    tipo_filtro = request.GET.get('tipo', '') # 🆕 Filtro Entrada/Salida
 
     # Buscar pedidos de compra (ENTRADAS) y venta (SALIDAS) en ese rango
     entradas = Pedido.objects.filter(
@@ -1149,47 +1150,59 @@ def archivo_cronologico(request):
         fecha__year__lte=year_fin
     ).exclude(estado='PREVISION').order_by('fecha')
 
-    # Consolidar en una lista cronológica
     movimientos = []
     
-    for p in entradas:
-        # Entradas (Compras)
-        for detalle in p.detalles.all():
-            movimientos.append({
-                'fecha': p.fecha,
-                'tipo': 'ENTRADA',
-                'pedido': p.numero_pedido,
-                'material': detalle.material.nombre,
-                'ler': detalle.material.codigo_ler,
-                'cantidad': detalle.cantidad,
-                'entidad': p.proveedor.nombre if p.proveedor else '—',
-                'nima': p.proveedor.codigo_nima if p.proveedor else '—',
-            })
+    if tipo_filtro != 'SALIDA': # Si no filtramos solo salidas, añadimos entradas
+        for p in entradas:
+            for detalle in p.detalles.all():
+                # 🆕 Buscamos el albarán en la factura asociada si existe
+                albaran = ''
+                factura = p.facturas.first()
+                if factura and factura.numero_albaran:
+                    albaran = factura.numero_albaran
+                    
+                movimientos.append({
+                    'fecha': p.fecha,
+                    'tipo': 'ENTRADA',
+                    'pedido': p.numero_pedido,
+                    'albaran': albaran, # 🆕
+                    'material': detalle.material.nombre,
+                    'ler': detalle.material.codigo_ler,
+                    'cantidad': detalle.cantidad,
+                    'entidad': p.proveedor.nombre if p.proveedor else '—',
+                    'nima': p.proveedor.codigo_nima if p.proveedor else '—',
+                })
 
-    for p in salidas:
-        # Salidas (Ventas)
-        for detalle in p.detalles.all():
-            movimientos.append({
-                'fecha': p.fecha,
-                'tipo': 'SALIDA',
-                'pedido': p.numero_pedido,
-                'material': detalle.material.nombre,
-                'ler': detalle.material.codigo_ler,
-                'cantidad': detalle.cantidad,
-                'entidad': p.cliente.nombre if p.cliente else '—',
-                'nima': p.cliente.codigo_nima if p.cliente else '—',
-            })
+    if tipo_filtro != 'ENTRADA': # Si no filtramos solo entradas, añadimos salidas
+        for p in salidas:
+            for detalle in p.detalles.all():
+                albaran = ''
+                factura = p.facturas.first()
+                if factura and factura.numero_albaran:
+                    albaran = factura.numero_albaran
+
+                movimientos.append({
+                    'fecha': p.fecha,
+                    'tipo': 'SALIDA',
+                    'pedido': p.numero_pedido,
+                    'albaran': albaran, # 🆕
+                    'material': detalle.material.nombre,
+                    'ler': detalle.material.codigo_ler,
+                    'cantidad': detalle.cantidad,
+                    'entidad': p.cliente.nombre if p.cliente else '—',
+                    'nima': p.cliente.codigo_nima if p.cliente else '—',
+                })
 
     # Ordenar por fecha
     movimientos.sort(key=lambda x: x['fecha'])
 
-    # 🆕 Si se pide exportar a Excel
+    # 🆕 Si se pide exportar a Excel (exporta TODO, sin paginar)
     if request.GET.get('exportar') == '1':
         wb = Workbook()
         ws = wb.active
         ws.title = "Archivo Cronológico"
         
-        cabeceras = ['Fecha', 'Tipo', 'Nº Pedido', 'Material', 'Código LER', 'Cantidad (tn)', 'Entidad (Proveedor/Cliente)', 'NIMA']
+        cabeceras = ['Fecha', 'Tipo', 'Nº Pedido', 'Nº Albarán', 'Material', 'Código LER', 'Cantidad (tn)', 'Entidad (Proveedor/Cliente)', 'NIMA']
         ws.append(cabeceras)
         
         for cell in ws[1]:
@@ -1202,6 +1215,7 @@ def archivo_cronologico(request):
                 m['fecha'].strftime('%d/%m/%Y'),
                 m['tipo'],
                 m['pedido'],
+                m['albaran'], # 🆕
                 m['material'],
                 m['ler'],
                 float(m['cantidad']),
@@ -1214,9 +1228,16 @@ def archivo_cronologico(request):
         wb.save(response)
         return response
 
+    # 🆕 Paginación
+    paginator = Paginator(movimientos, 50) # 50 movimientos por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        'movimientos': movimientos,
+        'movimientos': page_obj, # 🆕 Solo la página
+        'page_obj': page_obj,
         'year_inicio': year_inicio,
         'year_fin': year_fin,
+        'tipo_filtro': tipo_filtro,
     }
     return render(request, 'pedidos/archivo_cronologico.html', context)

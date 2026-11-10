@@ -7,7 +7,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>📚 Archivo Cronológico de Residuos</h2>
     <div class="d-flex gap-2">
-        <a href="?year_inicio={{ year_inicio }}&year_fin={{ year_fin }}&exportar=1" class="btn btn-success">
+        <a href="?year_inicio={{ year_inicio }}&year_fin={{ year_fin }}&tipo={{ tipo_filtro }}&exportar=1" class="btn btn-success">
             <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
         </a>
         <a href="{% url 'lista_pedidos' %}" class="btn btn-secondary">
@@ -20,17 +20,25 @@
     <i class="bi bi-info-circle"></i> Este documento cumple con el formato exigido para el Archivo Cronológico de Residuos (Ley 7/2022). Conserve este registro durante al menos 5 años.
 </div>
 
-<!-- Filtros por año -->
+<!-- Filtros -->
 <div class="card card-custom mb-4">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label small mb-1">Año Inicio</label>
                 <input type="number" name="year_inicio" class="form-control form-control-sm" value="{{ year_inicio }}" min="2000" max="2099">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label small mb-1">Año Fin</label>
                 <input type="number" name="year_fin" class="form-control form-control-sm" value="{{ year_fin }}" min="2000" max="2099">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Tipo de Movimiento</label>
+                <select name="tipo" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    <option value="ENTRADA" {% if tipo_filtro == 'ENTRADA' %}selected{% endif %}>Solo Entradas</option>
+                    <option value="SALIDA" {% if tipo_filtro == 'SALIDA' %}selected{% endif %}>Solo Salidas</option>
+                </select>
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
@@ -46,14 +54,15 @@
             <table class="table table-hover table-sm align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>Fecha</th>
-                        <th>Tipo</th>
-                        <th>Nº Pedido</th>
+                        <th style="width: 90px;">Fecha</th>
+                        <th style="width: 90px;">Tipo</th>
+                        <th style="width: 110px;">Nº Pedido</th>
+                        <th style="width: 110px;">Nº Albarán</th> <!-- 🆕 -->
                         <th>Material</th>
-                        <th>Código LER</th>
-                        <th class="text-end">Cantidad (tn)</th>
-                        <th>Entidad</th>
-                        <th>NIMA</th>
+                        <th style="width: 100px;">Código LER</th>
+                        <th class="text-end" style="width: 100px;">Cant. (tn)</th>
+                        <th style="width: 200px;">Entidad</th> <!-- 🆕 Ajustado -->
+                        <th style="width: 100px;">NIMA</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -68,15 +77,17 @@
                             {% endif %}
                         </td>
                         <td>{{ m.pedido }}</td>
+                        <td>{{ m.albaran|default:"—" }}</td> <!-- 🆕 -->
                         <td>{{ m.material }}</td>
                         <td><span class="badge bg-secondary">{{ m.ler|default:"—" }}</span></td>
                         <td class="text-end fw-bold">{{ m.cantidad|formato_es }}</td>
-                        <td>{{ m.entidad }}</td>
+                        <!-- 🆕 Acortamos el nombre para que no ocupe 3 líneas -->
+                        <td title="{{ m.entidad }}">{{ m.entidad|truncatechars:30 }}</td>
                         <td>{{ m.nima|default:"—" }}</td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-4 text-muted">
+                        <td colspan="9" class="text-center py-4 text-muted">
                             No hay movimientos registrados en este periodo. Asegúrate de rellenar el Código LER en los materiales.
                         </td>
                     </tr>
@@ -86,4 +97,35 @@
         </div>
     </div>
 </div>
+
+<!-- 🆕 Paginación -->
+{% if page_obj.has_other_pages %}
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Navegación de páginas">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&year_inicio={{ year_inicio }}&year_fin={{ year_fin }}&tipo={{ tipo_filtro }}">
+                    &laquo; Anterior
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo; Anterior</span></li>
+            {% endif %}
+
+            <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&year_inicio={{ year_inicio }}&year_fin={{ year_fin }}&tipo={{ tipo_filtro }}">
+                    Siguiente &raquo;
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Siguiente &raquo;</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
 {% endblock %}
