@@ -316,12 +316,6 @@ def cuentas_por_pagar(request):
     categoria = request.GET.get('categoria', '')
     estado = request.GET.get('estado', '')
     buscar = request.GET.get('buscar', '').strip()
-    
-    # 🆕 Nuevos filtros de fecha
-    emision_desde = request.GET.get('emision_desde', '')
-    emision_hasta = request.GET.get('emision_hasta', '')
-    vence_desde = request.GET.get('vence_desde', '')
-    vence_hasta = request.GET.get('vence_hasta', '')
 
     cuentas = CuentaPorPagar.objects.exclude(estado='ANULADO').order_by(orden)
 
@@ -334,30 +328,22 @@ def cuentas_por_pagar(request):
             Q(concepto__icontains=buscar) | 
             Q(proveedor__nombre__icontains=buscar)
         )
-        
-    # 🆕 Aplicar filtros de fecha
-    if emision_desde:
-        cuentas = cuentas.filter(fecha_emision__gte=emision_desde)
-    if emision_hasta:
-        cuentas = cuentas.filter(fecha_emision__lte=emision_hasta)
-    if vence_desde:
-        cuentas = cuentas.filter(fecha_vencimiento__gte=vence_desde)
-    if vence_hasta:
-        cuentas = cuentas.filter(fecha_vencimiento__lte=vence_hasta)
 
-    # ... (resto de tu código de totales y pendientes) ...
+    # 🆕 Cálculo de totales (Esto es lo que faltaba y dejaba la tabla vacía)
+    pendientes = cuentas.filter(estado__in=['PENDIENTE', 'PARCIAL'])
+    vencidas = [c for c in pendientes if c.esta_vencida]
+
+    total_pendiente = sum(c.saldo_pendiente for c in pendientes)
+    total_vencido = sum(c.saldo_pendiente for c in vencidas)
 
     context = {
-        # ... (lo que ya tenías) ...
+        'cuentas': cuentas,
+        'pendientes': pendientes,
+        'vencidas': vencidas,
+        'total_pendiente': total_pendiente,
+        'total_vencido': total_vencido,
         'categorias': CuentaPorPagar.CATEGORIA_CHOICES, 
         'estados': CuentaPorPagar.ESTADO_CHOICES,
-        
-        # 🆕 Pasar los filtros al HTML
-        'emision_desde_filtro': emision_desde,
-        'emision_hasta_filtro': emision_hasta,
-        'vence_desde_filtro': vence_desde,
-        'vence_hasta_filtro': vence_hasta,
-        
         'categoria_filtro': categoria,
         'estado_filtro': estado,
         'orden_filtro': orden,
