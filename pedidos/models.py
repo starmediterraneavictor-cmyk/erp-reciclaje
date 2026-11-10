@@ -285,8 +285,12 @@ class Pedido(models.Model):
     def tn_disponibles(self):
         if self.tipo != 'COMPRA_MAT':
             return self.total_kg
+        
+        # 🆕 Si hay un peso real ajustado, usamos ese. Si no, el previsto.
+        base_tn = self.peso_real_tn if self.peso_real_tn is not None else self.total_kg
+        
         tn_vendidas = sum(o.cantidad_tn for o in self.ventas_asociadas.all())
-        return self.total_kg - tn_vendidas
+        return base_tn - tn_vendidas
 
     @property
     def total_comisiones(self):
@@ -527,13 +531,25 @@ def recalcular_stock_material(material):
     detalles_compra = DetallePedido.objects.filter(
         material=material,
         pedido__tipo__in=['COMPRA_MAT', 'MAQUILA']
-    ).exclude(pedido__estado__in=['CANCELADO', 'PREVISION'])  # 🆕 Añadimos PREVISION
+    ).exclude(pedido__estado__in=['CANCELADO', 'PREVISION'])
     
     total_disponible = Decimal('0')
     
     for detalle in detalles_compra:
         pedido = detalle.pedido
-        tn_compradas_linea = detalle.cantidad
+        
+        # 🆕 Calculamos la proporción de este detalle sobre el total del pedido
+        if pedido.total_kg > 0:
+            proporcion = Decimal(str(detalle.cantidad)) / pedido.total_kg
+        else:
+            proporcion = Decimal('0')
+            
+        # 🆕 Si hay peso real, aplicamos la proporción al peso real
+        if pedido.peso_real_tn is not None:
+            tn_compradas_linea = pedido.peso_real_tn * proporcion
+        else:
+            tn_compradas_linea = detalle.cantidad
+            
         tn_asignadas = sum(o.cantidad_tn for o in pedido.ventas_asociadas.all())
         libre = tn_compradas_linea - tn_asignadas
         
