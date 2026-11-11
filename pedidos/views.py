@@ -158,6 +158,8 @@ def lista_pedidos(request):
 def detalle_pedido(request, pedido_id):
     """Ver detalle completo de un pedido"""
     pedido = get_object_or_404(Pedido, id=pedido_id)
+    # 🆕 Capturamos el return_url de la URL
+    url_retorno = request.GET.get('return_url', '')
 
     if request.method == 'POST' and 'peso_real_tn' in request.POST:
         peso_str = request.POST.get('peso_real_tn')
