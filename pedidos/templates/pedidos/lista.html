@@ -152,10 +152,11 @@
                     <!-- 🆕 CELDA CORREGIDA: Cantidad Real -->
                     <td class="text-end">
                         {% if p.peso_real_tn %}
-                            <strong class="text-success">{{ p.peso_real_tn|formato_es }}</strong>
-                            <br><small class="text-muted" style="font-size: 0.7em;">(Prev: {{ p.total_kg|formato_es }})</small>
+                            <div class="fw-bold text-success" style="font-size: 1.1em;">{{ p.peso_real_tn|formato_es }} tn</div>
+                            <!-- 🆕 Peso previsto más grande y oscuro -->
+                            <div class="text-dark fw-semibold" style="font-size: 0.9em;">(Prev: {{ p.total_kg|formato_es }} tn)</div>
                         {% else %}
-                            <strong>{{ p.total_kg|formato_es }}</strong>
+                            <div class="fw-bold" style="font-size: 1.1em;">{{ p.total_kg|formato_es }} tn</div>
                         {% endif %}
                     </td>
                     
