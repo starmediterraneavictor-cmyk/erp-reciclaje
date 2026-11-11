@@ -506,7 +506,8 @@ def cuentas_por_cobrar(request):
     if buscar:
         cuentas = cuentas.filter(
             Q(concepto__icontains=buscar) | 
-            Q(cliente__nombre__icontains=buscar)
+            Q(cliente__nombre__icontains=buscar) |
+            Q(proveedor__nombre__icontains=buscar)
         )
 
     # 🆕 PAGINACIÓN
