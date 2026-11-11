@@ -5,6 +5,8 @@ from django.conf.urls.static import static
 from core import views
 from django.contrib.auth import views as auth_views
 from core import views as core_views
+from django.conf.urls.i18n import i18n_patterns
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -18,7 +20,9 @@ urlpatterns = [
     path('crm/', include('crm.urls')),
     path('logout/', auth_views.LogoutView.as_view(next_page='/admin/login/'), name='logout'),
     path('manual/', core_views.manual_usuario, name='manual_usuario'),
+    path('i18n/', include('django.conf.urls.i18n')),
 ]
+
 
 # Servir archivos media (logos, PDFs) en desarrollo
 if settings.DEBUG:
