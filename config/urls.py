@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from core import views
 from django.contrib.auth import views as auth_views
+from core import views as core_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -16,7 +17,7 @@ urlpatterns = [
     path('analisis/', include('analisis.urls')),
     path('crm/', include('crm.urls')),
     path('logout/', auth_views.LogoutView.as_view(next_page='/admin/login/'), name='logout'),
-
+    path('manual/', core_views.manual_usuario, name='manual_usuario'),
 ]
 
 # Servir archivos media (logos, PDFs) en desarrollo

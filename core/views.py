@@ -111,3 +111,8 @@ def dashboard(request):
         'demanda': demanda,
     }
     return render(request, 'core/dashboard.html', context)
+
+@login_required
+def manual_usuario(request):
+    """Página de manual de usuario con guías rápidas"""
+    return render(request, 'core/manual_usuario.html')
