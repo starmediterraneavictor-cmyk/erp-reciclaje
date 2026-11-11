@@ -191,6 +191,36 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <!-- 🆕 PAGINACIÓN -->
+            {% if page_obj.has_other_pages %}
+            <div class="d-flex justify-content-center mt-4">
+                <nav aria-label="Navegación de páginas">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if orden_filtro %}&orden={{ orden_filtro }}{% endif %}">
+                                &laquo; Anterior
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">&laquo; Anterior</span></li>
+                        {% endif %}
+
+                        <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if buscar_filtro %}&buscar={{ buscar_filtro }}{% endif %}{% if orden_filtro %}&orden={{ orden_filtro }}{% endif %}">
+                                Siguiente &raquo;
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">Siguiente &raquo;</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

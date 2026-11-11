@@ -366,7 +366,12 @@ def cuentas_por_pagar(request):
             Q(proveedor__nombre__icontains=buscar)
         )
 
-    # 🆕 Cálculo de totales (Esto es lo que faltaba y dejaba la tabla vacía)
+    # 🆕 PAGINACIÓN
+    paginator = Paginator(cuentas, 20) # 20 por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Para los totales usamos el queryset completo, no solo la página
     pendientes = cuentas.filter(estado__in=['PENDIENTE', 'PARCIAL'])
     vencidas = [c for c in pendientes if c.esta_vencida]
 
@@ -374,7 +379,8 @@ def cuentas_por_pagar(request):
     total_vencido = sum(c.saldo_pendiente for c in vencidas)
 
     context = {
-        'cuentas': cuentas,
+        'cuentas': page_obj, # 🆕 Solo la página
+        'page_obj': page_obj,
         'pendientes': pendientes,
         'vencidas': vencidas,
         'total_pendiente': total_pendiente,
@@ -487,14 +493,12 @@ def registrar_pago_cuenta(request, cuenta_id):
 def cuentas_por_cobrar(request):
     """Lista de cuentas por cobrar"""
     orden = request.GET.get('orden', 'fecha_vencimiento')
-    categoria = request.GET.get('categoria', '') # 🆕 Añadido filtro categoría
+    categoria = request.GET.get('categoria', '')
     estado = request.GET.get('estado', '')
     buscar = request.GET.get('buscar', '').strip()
 
-    # Base queryset
     cuentas = CuentaPorCobrar.objects.exclude(estado='ANULADO').order_by(orden)
 
-    # Aplicar filtros
     if categoria:
         cuentas = cuentas.filter(categoria=categoria)
     if estado:
@@ -505,6 +509,11 @@ def cuentas_por_cobrar(request):
             Q(cliente__nombre__icontains=buscar)
         )
 
+    # 🆕 PAGINACIÓN
+    paginator = Paginator(cuentas, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     pendientes = cuentas.filter(estado__in=['PENDIENTE', 'PARCIAL'])
     vencidas = [c for c in pendientes if c.estado != 'COBRADO' and c.dias_para_vencer < 0]
 
@@ -512,15 +521,13 @@ def cuentas_por_cobrar(request):
     total_vencido = sum(c.saldo_pendiente for c in vencidas)
 
     context = {
-        'cuentas': cuentas,
+        'cuentas': page_obj, # 🆕 Solo la página
+        'page_obj': page_obj,
         'pendientes': pendientes,
         'vencidas': vencidas,
         'total_pendiente': total_pendiente,
         'total_vencido': total_vencido,
-        
-        # 🆕 Enviamos las categorías de la Factura para el desplegable
         'categorias': Factura.CATEGORIAS, 
-        
         'estados': CuentaPorCobrar.ESTADO_CHOICES,
         'categoria_filtro': categoria,
         'estado_filtro': estado,
