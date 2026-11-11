@@ -106,10 +106,7 @@ def dashboard_analisis(request):
     for f in facturas_rango.filter(tipo='GASTO').exclude(estado_pago='ANULADO'):
         categorias_gastos[f.get_categoria_display()] += f.total
         
-    # 🆕 Sumamos los pagos de cuentas por pagar que NO tengan factura (gastos directos)
-    for c in pagos_rango:
-        if not c.tiene_factura:
-            categorias_gastos[c.get_categoria_display()] += c.importe_pagado
+    
 
     desglose_categorias = [
         {'categoria': cat, 'importe': imp}
