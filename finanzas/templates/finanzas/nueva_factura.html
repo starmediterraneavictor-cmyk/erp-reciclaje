@@ -77,10 +77,11 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Pedido asociado (opcional)</label>
-                    <select name="pedido" class="form-select">
-                        <option value="">-- Sin pedido --</option>
+                    <option value="">-- Sin pedido --</option>
                         {% for p in pedidos %}
-                        <option value="{{ p.id }}">{{ p.numero_pedido }} - {{ p.cliente.nombre }}</option>
+                        <option value="{{ p.id }}">
+                            {{ p.numero_pedido }} - {{ p.entidad_nombre }} ({{ p.get_tipo_display }})
+                        </option>
                         {% endfor %}
                     </select>
                 </div>

@@ -174,7 +174,7 @@ def nueva_factura(request):
         'clientes': Cliente.objects.all().order_by('nombre'),
         'proveedores': Proveedor.objects.all().order_by('nombre'),
         'proveedores_json': list(Proveedor.objects.values('id', 'nombre', 'tipo')), # 🆕 Para el JS
-        'pedidos': Pedido.objects.all().order_by('-fecha')[:50],
+        'pedidos': Pedido.objects.all().order_by('-fecha'), 
         'tipos': Factura.TIPO_FACTURA,
         'categorias': Factura.CATEGORIAS,
         'estados': Factura.ESTADO_PAGO,
