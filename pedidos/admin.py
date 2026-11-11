@@ -1,19 +1,45 @@
 from django.contrib import admin
-from .models import Pedido, DetallePedido, PedidoInternacional, PagoInternacional, CondicionPago
-from .models import OrigenVenta
+from .models import (
+    Pedido, PesadaCamion, DetallePedido, 
+    PedidoInternacional, PagoInternacional, 
+    CondicionPago, OrigenVenta, Comercial, Comision
+)
+
+# ============================================
+# INLINES (Secciones dentro del Pedido)
+# ============================================
 
 class DetalleInline(admin.TabularInline):
     model = DetallePedido
     extra = 1
 
+class PesadaCamionInline(admin.TabularInline):
+    model = PesadaCamion
+    extra = 0
+    readonly_fields = ('diferencia_tn', 'impacto_economico')
+
+class ComisionInline(admin.TabularInline):
+    model = Comision
+    extra = 1
+
+
+# ============================================
+# ADMIN DE PEDIDOS
+# ============================================
 
 @admin.register(Pedido)
 class PedidoAdmin(admin.ModelAdmin):
-    list_display = ('numero_pedido', 'cliente', 'tipo', 'estado', 'fecha')
+    list_display = ('numero_pedido', 'cliente', 'proveedor', 'tipo', 'estado', 'fecha')
     list_filter = ('tipo', 'estado')
-    search_fields = ('numero_pedido', 'cliente__nombre')
-    inlines = [DetalleInline]
+    search_fields = ('numero_pedido', 'cliente__nombre', 'proveedor__nombre')
+    
+    # 🆕 Añadimos TODOS los inlines aquí
+    inlines = [DetalleInline, PesadaCamionInline, ComisionInline]
 
+
+# ============================================
+# OTROS MODELOS
+# ============================================
 
 @admin.register(CondicionPago)
 class CondicionPagoAdmin(admin.ModelAdmin):
@@ -63,6 +89,7 @@ class PedidoInternacionalAdmin(admin.ModelAdmin):
         }),
     )
 
+
 @admin.register(OrigenVenta)
 class OrigenVentaAdmin(admin.ModelAdmin):
     list_display = ('pedido_venta', 'pedido_compra', 'cantidad_tn', 'fecha_asignacion')
@@ -70,17 +97,8 @@ class OrigenVentaAdmin(admin.ModelAdmin):
     list_filter = ('pedido_venta__tipo', 'pedido_compra__tipo')
 
 
-from .models import Comercial, Comision
-
 @admin.register(Comercial)
 class ComercialAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'telefono', 'email', 'activo')
     search_fields = ('nombre', 'email')
     list_filter = ('activo',)
-
-class ComisionInline(admin.TabularInline):
-    model = Comision
-    extra = 1
-
-# Y añade el Inline al PedidoAdmin (si no lo tienes):
-# inlines = [DetalleInline, ComisionInline]
