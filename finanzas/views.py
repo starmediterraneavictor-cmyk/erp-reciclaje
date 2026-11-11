@@ -355,6 +355,13 @@ def cuentas_por_pagar(request):
 @login_required
 def nueva_cuenta_por_pagar(request):
     """Crear una nueva cuenta por pagar"""
+    pedido_id = request.GET.get('pedido_id')
+    tipo = request.GET.get('tipo')
+    pedido = None
+    
+    if pedido_id:
+        pedido = get_object_or_404(Pedido, id=pedido_id)
+
     if request.method == 'POST':
         try:
             cuenta = CuentaPorPagar.objects.create(
@@ -366,6 +373,7 @@ def nueva_cuenta_por_pagar(request):
                 fecha_vencimiento=request.POST.get('fecha_vencimiento'),
                 periodicidad=request.POST.get('periodicidad', 'UNICO'),
                 numero_factura=request.POST.get('numero_factura', ''),
+                numero_proforma=request.POST.get('numero_proforma', ''),
                 notas=request.POST.get('notas', ''),
                 archivo_factura=request.FILES.get('archivo_factura') or None,
             )
@@ -374,11 +382,29 @@ def nueva_cuenta_por_pagar(request):
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
 
+    # 🆕 Si venimos de un pedido, pre-rellenamos los datos
+    contexto_extra = {}
+    if pedido:
+        if tipo == 'proforma':
+            contexto_extra = {
+                'concepto_sugerido': f"Proforma {pedido.numero_pedido} - {pedido.proveedor.nombre if pedido.proveedor else ''}",
+                'importe_sugerido': pedido.total_importe,
+            }
+        else:
+            # Para factura definitiva, lo normal es que el importe sea el ajustado
+            contexto_extra = {
+                'concepto_sugerido': f"Factura Definitiva {pedido.numero_pedido} - {pedido.proveedor.nombre if pedido.proveedor else ''}",
+                'importe_sugerido': pedido.total_importe, # Aquí el usuario pondrá el real
+            }
+
     context = {
         'categorias': CuentaPorPagar.CATEGORIA_CHOICES,
         'periodicidades': CuentaPorPagar.PERIODICIDAD,
         'proveedores': Proveedor.objects.all().order_by('nombre'),
         'fecha_actual': date.today().strftime('%Y-%m-%d'),
+        'pedido': pedido, # 🆕 Pasamos el pedido al formulario
+        'tipo': tipo,
+        **contexto_extra
     }
     return render(request, 'finanzas/nueva_cuenta_por_pagar.html', context)
 
