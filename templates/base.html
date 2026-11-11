@@ -1,5 +1,6 @@
+{% load i18n %}
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,58 +51,78 @@
             <div class="collapse navbar-collapse" id="menuPrincipal">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">📊 Dashboard</a>
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">📊 {% trans "Dashboard" %}</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {% if '/pedidos/' in request.path %}active{% endif %}" href="#" data-bs-toggle="dropdown">
-                            📋 Pedidos
+                            📋 {% trans "Pedidos" %}
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/pedidos/">📋 Lista de pedidos</a></li>
-                            <li><a class="dropdown-item" href="/pedidos/nuevo/">➕ Nuevo pedido</a></li>
+                            <li><a class="dropdown-item" href="/pedidos/">📋 {% trans "Lista de pedidos" %}</a></li>
+                            <li><a class="dropdown-item" href="/pedidos/nuevo/">➕ {% trans "Nuevo pedido" %}</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/pedidos/internacional/">🌍 Seguimiento Int/Nac</a></li>
-                            <li><a class="dropdown-item" href="{% url 'archivo_cronologico' %}">📚 Archivo Cronológico (Inspecciones)</a></li>
+                            <li><a class="dropdown-item" href="/pedidos/internacional/">🌍 {% trans "Seguimiento Int/Nac" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'archivo_cronologico' %}">📚 {% trans "Archivo Cronológico (Inspecciones)" %}</a></li>
                         </ul>   
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/clientes/' in request.path %}active{% endif %}" href="/clientes/">👥 Clientes</a>
+                        <a class="nav-link {% if '/clientes/' in request.path %}active{% endif %}" href="/clientes/">👥 {% trans "Clientes" %}</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/proveedores/' in request.path %}active{% endif %}" href="{% url 'lista_proveedores' %}">🏭 Proveedores</a>
+                        <a class="nav-link {% if '/proveedores/' in request.path %}active{% endif %}" href="{% url 'lista_proveedores' %}">🏭 {% trans "Proveedores" %}</a>
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link {% if '/crm/' in request.path %}active{% endif %}" href="/crm/">🗂️ CRM</a>
+                        <a class="nav-link {% if '/crm/' in request.path %}active{% endif %}" href="/crm/">🗂️ {% trans "CRM" %}</a>
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link {% if '/inventario/' in request.path %}active{% endif %}" href="/inventario/">📦 Inventario</a>
+                        <a class="nav-link {% if '/inventario/' in request.path %}active{% endif %}" href="/inventario/">📦 {% trans "Inventario" %}</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {% if '/finanzas/' in request.path %}active{% endif %}" href="#" data-bs-toggle="dropdown">
-                            💰 Finanzas
+                            💰 {% trans "Finanzas" %}
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/finanzas/">📄 Facturas</a></li>
-                            <li><a class="dropdown-item" href="/finanzas/dashboard/">💼 Dashboard financiero</a></li>
-                            <li><a class="dropdown-item" href="/finanzas/libro/">📚 Libro de Gastos e Ingresos</a></li>
+                            <li><a class="dropdown-item" href="/finanzas/">📄 {% trans "Facturas" %}</a></li>
+                            <li><a class="dropdown-item" href="/finanzas/dashboard/">💼 {% trans "Dashboard financiero" %}</a></li>
+                            <li><a class="dropdown-item" href="/finanzas/libro/">📚 {% trans "Libro de Gastos e Ingresos" %}</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/finanzas/pagar/">💸 Cuentas por pagar</a></li>
-                            <li><a class="dropdown-item" href="/finanzas/cobrar/">💰 Cuentas por cobrar</a></li>
-                            <li><a class="dropdown-item" href="{% url 'lista_comisiones' %}">💼 Comisiones</a></li>
+                            <li><a class="dropdown-item" href="/finanzas/pagar/">💸 {% trans "Cuentas por pagar" %}</a></li>
+                            <li><a class="dropdown-item" href="/finanzas/cobrar/">💰 {% trans "Cuentas por cobrar" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'lista_comisiones' %}">💼 {% trans "Comisiones" %}</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/analisis/' in request.path %}active{% endif %}" href="/analisis/">📈 Análisis</a>
+                        <a class="nav-link {% if '/analisis/' in request.path %}active{% endif %}" href="/analisis/">📈 {% trans "Análisis" %}</a>
                     </li>
                 </ul>
                 
-                <!-- 🆕 MENÚ DERECHO: MANUAL Y ADMIN -->
+                <!-- 🆕 MENÚ DERECHO: IDIOMA, MANUAL Y ADMIN -->
                 <ul class="navbar-nav">
+                    <!-- Selector de idioma -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            🌐 {% get_current_language as LANGUAGE_CODE %}{{ LANGUAGE_CODE|upper }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% get_available_languages as LANGUAGES %}
+                            {% for lang_code, lang_name in LANGUAGES %}
+                            <li>
+                                <form action="{% url 'set_language' %}" method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input name="next" type="hidden" value="{{ request.path }}">
+                                    <input name="language" type="hidden" value="{{ lang_code }}">
+                                    <button type="submit" class="dropdown-item {% if lang_code == LANGUAGE_CODE %}active{% endif %}">{{ lang_name }}</button>
+                                </form>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'manual_usuario' %}">
-                            <i class="bi bi-book"></i> 📖 Manual
+                            <i class="bi bi-book"></i> 📖 {% trans "Manual" %}
                         </a>
                     </li>
                     <li class="nav-item">
@@ -112,7 +133,7 @@
                         <form method="POST" action="{% url 'logout' %}" style="display:inline;">
                             {% csrf_token %}
                             <button type="submit" class="nav-link btn btn-link" style="color: white; text-decoration: none;">
-                                🚪 Salir ({{ user.username }})
+                                🚪 {% trans "Salir" %} ({{ user.username }})
                             </button>
                         </form>
                     </li>

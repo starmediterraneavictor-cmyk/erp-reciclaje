@@ -879,17 +879,23 @@ def libro_gastos_ingresos(request):
     total_ingresos = facturas_ingresos.aggregate(t=Sum('total'))['t'] or Decimal('0')
     total_gastos = facturas_gastos.aggregate(t=Sum('total'))['t'] or Decimal('0')
     beneficio = total_ingresos - total_gastos
+    
+    # 🆕 Contadores
     num_facturas = facturas.count()
+    num_ingresos = facturas_ingresos.count()
+    num_gastos = facturas_gastos.count()
 
     context = {
-        'facturas_ingresos': page_ing,  # 🆕 Enviamos la página
-        'facturas_gastos': page_gas,    # 🆕 Enviamos la página
+        'facturas_ingresos': page_ing,
+        'facturas_gastos': page_gas,
         'page_ing': page_ing,
         'page_gas': page_gas,
         'total_ingresos': total_ingresos,
         'total_gastos': total_gastos,
         'beneficio': beneficio,
         'num_facturas': num_facturas,
+        'num_ingresos': num_ingresos, # 🆕
+        'num_gastos': num_gastos, # 🆕
         'categorias': Factura.CATEGORIAS,
         'categoria_filtro': categoria,
         'desde_filtro': desde,
