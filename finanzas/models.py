@@ -87,14 +87,12 @@ class Factura(models.Model):
     def save(self, *args, **kwargs):
         if self.base:
             base = Decimal(str(self.base))
-            if self.categoria == 'COMERCIO_MATERIALES':
-                self.iva_porcentaje = Decimal('0')
-                self.iva = Decimal('0')
-                self.total = base
-            else:
-                iva_pct = Decimal(str(self.iva_porcentaje))
-                self.iva = base * (iva_pct / Decimal('100'))
-                self.total = base + self.iva
+            iva_pct = Decimal(str(self.iva_porcentaje))
+            
+            # 🆕 Ya NO forzamos el IVA a 0. Respetamos lo que ponga el usuario.
+            self.iva = base * (iva_pct / Decimal('100'))
+            self.total = base + self.iva
+            
         super().save(*args, **kwargs)
     
     class Meta:
