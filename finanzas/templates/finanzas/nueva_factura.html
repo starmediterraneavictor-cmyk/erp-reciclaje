@@ -27,17 +27,22 @@
                 </div>
                 <div class="col-md-3 mb-3">
                     <label class="form-label">Tipo <span class="text-danger">*</span></label>
-                    <select name="tipo" id="id_tipo" class="form-select" required>
+                    <select name="tipo" id="id_tipo" class="form-select" required {% if bloqueado %}disabled{% endif %}>
                         {% for key, value in tipos %}
-                        <option value="{{ key }}" {% if key == 'INGRESO' %}selected{% endif %}>{{ value }}</option>
+                        <option value="{{ key }}" {% if tipo_defecto == key %}selected{% endif %}>{{ value }}</option>
                         {% endfor %}
                     </select>
+                    {% if bloqueado %}
+                    <input type="hidden" name="tipo" value="{{ tipo_defecto }}">
+                    {% endif %}
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Categoría</label>
                     <select name="categoria" id="id_categoria" class="form-select">
                         {% for key, value in categorias %}
-                        <option value="{{ key }}" data-tipo="{% if key == 'COMERCIO_MATERIALES' or key == 'SUMINISTROS' or key == 'TRANSPORTE' or key == 'IMPUESTOS' or key == 'MANTENIMIENTO' or key == 'ATENCION_COMERCIAL' or key == 'SERVICIOS_PROFESIONALES' %}GASTO{% else %}INGRESO{% endif %}">
+                        <option value="{{ key }}" 
+                                data-tipo="{% if key == 'COMERCIO_MATERIALES' or key == 'SUMINISTROS' or key == 'TRANSPORTE' or key == 'IMPUESTOS' or key == 'MANTENIMIENTO' or key == 'ATENCION_COMERCIAL' or key == 'SERVICIOS_PROFESIONALES' %}GASTO{% else %}INGRESO{% endif %}"
+                                {% if categoria_defecto == key %}selected{% endif %}>
                             {{ value }}
                         </option>
                         {% endfor %}
@@ -59,32 +64,39 @@
             <div class="row">
                 <div class="col-md-6 mb-3" id="bloque-cliente">
                     <label class="form-label">Cliente <span class="text-danger">*</span></label>
-                    <select name="cliente" class="form-select">
+                    <select name="cliente" class="form-select" {% if bloqueado %}disabled{% endif %}>
                         <option value="">-- Seleccionar cliente --</option>
                         {% for c in clientes %}
-                        <option value="{{ c.id }}">{{ c.nombre }}</option>
+                        <option value="{{ c.id }}" {% if cliente_defecto and cliente_defecto.id == c.id %}selected{% endif %}>{{ c.nombre }}</option>
                         {% endfor %}
                     </select>
-                    <small class="text-muted">Para facturas de INGRESO (ventas)</small>
+                    {% if bloqueado and cliente_defecto %}
+                    <input type="hidden" name="cliente" value="{{ cliente_defecto.id }}">
+                    {% endif %}
                 </div>
-                <div class="col-md-6 mb-3 d-none" id="bloque-proveedor">
+                <div class="col-md-6 mb-3 {% if tipo_defecto != 'GASTO' %}d-none{% endif %}" id="bloque-proveedor">
                     <label class="form-label">Proveedor <span class="text-danger">*</span></label>
-                    <select name="proveedor" class="form-select" id="id_proveedor_edit">
+                    <select name="proveedor" class="form-select" id="id_proveedor_edit" {% if bloqueado %}disabled{% endif %}>
                         <option value="">-- Seleccionar proveedor --</option>
                         <!-- Se llena vía JS -->
                     </select>
-                    <small class="text-muted">Para facturas de GASTO (compras)</small>
+                    {% if bloqueado and proveedor_defecto %}
+                    <input type="hidden" name="proveedor" value="{{ proveedor_defecto.id }}">
+                    {% endif %}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Pedido asociado (opcional)</label>
-                    <select name="pedido" class="form-select">
+                    <select name="pedido" class="form-select" {% if bloqueado %}disabled{% endif %}>
                         <option value="">-- Sin pedido --</option>
                         {% for p in pedidos %}
-                        <option value="{{ p.id }}">
+                        <option value="{{ p.id }}" {% if pedido_defecto and pedido_defecto.id == p.id %}selected{% endif %}>
                             {{ p.numero_pedido }} - {{ p.entidad_nombre|truncatechars:25 }} ({{ p.get_tipo_display }})
                         </option>
                         {% endfor %}
                     </select>
+                    {% if bloqueado and pedido_defecto %}
+                    <input type="hidden" name="pedido" value="{{ pedido_defecto.id }}">
+                    {% endif %}
                 </div>
             </div>
 
@@ -205,7 +217,6 @@ window.addEventListener('load', function() {
         const tipo = selectTipo.value;
         const opciones = selectCategoria.querySelectorAll('option');
         
-        // Lista de categorías que son de GASTO (Añadido SERVICIOS_PROFESIONALES)
         const categoriasGasto = ['COMERCIO_MATERIALES', 'SUMINISTROS', 'TRANSPORTE', 'IMPUESTOS', 'MANTENIMIENTO', 'ATENCION_COMERCIAL', 'SERVICIOS_PROFESIONALES'];
         
         opciones.forEach(opt => {
@@ -269,7 +280,15 @@ window.addEventListener('load', function() {
     if (selectTipo) selectTipo.addEventListener('change', actualizarBloques);
     if (selectCategoria) selectCategoria.addEventListener('change', filtrarProveedores);
 
+    // 🆕 Forzamos la actualización inicial para que respete los valores por defecto
     actualizarBloques();
+    
+    // 🆕 Si hay un proveedor por defecto, lo seleccionamos después de cargar la lista
+    {% if proveedor_defecto %}
+    if (selectProveedor) {
+        selectProveedor.value = '{{ proveedor_defecto.id }}';
+    }
+    {% endif %}
 });
 </script>
 {% endblock %}

@@ -138,6 +138,12 @@ def lista_facturas(request):
 @login_required
 def nueva_factura(request):
     """Formulario para crear una nueva factura"""
+    # 🆕 Recogemos el pedido_id de la URL
+    pedido_id = request.GET.get('pedido_id')
+    pedido_pre = None
+    if pedido_id:
+        pedido_pre = get_object_or_404(Pedido, id=pedido_id)
+
     if request.method == 'POST':
         try:
             tipo_factura = request.POST.get('tipo')
@@ -146,7 +152,7 @@ def nueva_factura(request):
 
             factura = Factura.objects.create(
                 numero_factura=request.POST.get('numero_factura'),
-                numero_albaran=request.POST.get('numero_albaran', ''), # 🆕
+                numero_albaran=request.POST.get('numero_albaran', ''),
                 tipo=tipo_factura,
                 fecha=request.POST.get('fecha') or datetime.now().date(),
                 fecha_vencimiento=request.POST.get('fecha_vencimiento') or None,
@@ -160,7 +166,6 @@ def nueva_factura(request):
                 notas=request.POST.get('notas', ''),
                 archivo_justificante=request.FILES.get('archivo_factura') or None,
             )
-            # Crear cuenta asociada si se ha marcado el checkbox
             if request.POST.get('crear_cuenta'):
                 _crear_cuenta_para_factura(factura)
 
@@ -170,15 +175,46 @@ def nueva_factura(request):
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
 
+    # 🆕 Si venimos de un pedido, configuramos los valores por defecto
+    tipo_defecto = 'INGRESO'
+    cliente_defecto = None
+    proveedor_defecto = None
+    pedido_defecto = None
+    categoria_defecto = 'OTROS'
+    bloqueado = False # 🆕 Para bloquear los campos
+
+    if pedido_pre:
+        bloqueado = True
+        if pedido_pre.tipo == 'COMPRA_MAT' or pedido_pre.tipo == 'MAQUILA':
+            tipo_defecto = 'GASTO'
+            proveedor_defecto = pedido_pre.proveedor
+            categoria_defecto = pedido_pre.proveedor.tipo if pedido_pre.proveedor else 'OTROS'
+        else:
+            tipo_defecto = 'INGRESO'
+            cliente_defecto = pedido_pre.cliente
+        
+        pedido_defecto = pedido_pre
+
+    # 🆕 Solo mostramos pedidos que NO tengan factura asociada
+    pedidos_disponibles = Pedido.objects.filter(facturas__isnull=True).order_by('-fecha')[:50]
+
     context = {
         'clientes': Cliente.objects.all().order_by('nombre'),
         'proveedores': Proveedor.objects.all().order_by('nombre'),
-        'proveedores_json': list(Proveedor.objects.values('id', 'nombre', 'tipo')), # 🆕 Para el JS
-        'pedidos': Pedido.objects.all().order_by('-fecha')[:50],
+        'proveedores_json': list(Proveedor.objects.values('id', 'nombre', 'tipo')),
+        'pedidos': pedidos_disponibles, # 🆕 Solo los que no tienen factura
         'tipos': Factura.TIPO_FACTURA,
         'categorias': Factura.CATEGORIAS,
         'estados': Factura.ESTADO_PAGO,
         'fecha_actual': datetime.now().strftime('%Y-%m-%d'),
+        
+        # 🆕 Pasamos los valores por defecto
+        'tipo_defecto': tipo_defecto,
+        'cliente_defecto': cliente_defecto,
+        'proveedor_defecto': proveedor_defecto,
+        'pedido_defecto': pedido_defecto,
+        'categoria_defecto': categoria_defecto,
+        'bloqueado': bloqueado, # 🆕 Para saber si bloquear los campos
     }
     return render(request, 'finanzas/nueva_factura.html', context)
 
