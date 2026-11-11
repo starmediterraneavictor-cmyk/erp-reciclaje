@@ -107,7 +107,7 @@
                     <th>Ámbito</th>
                     <th>Fecha</th>
                     <th>Estado</th>
-                    <th class="text-end">Cant. (tn)</th>
+                    <th class="text-end">Cant. Real (tn)</th>
                     <th class="text-end">€/TN</th>
                     <th class="text-end">Beneficio €/TN</th>
                     <th class="text-end">Total</th>
@@ -148,7 +148,17 @@
                         {% elif p.estado == 'CANCELADO' %}<span class="badge bg-danger">❌ Cancelado</span>
                         {% else %}<span class="badge bg-secondary">{{ p.get_estado_display }}</span>{% endif %}
                     </td>
-                    <td class="text-end"><strong>{{ p.total_kg|formato_es }}</strong></td>
+                    
+                    <!-- 🆕 CELDA CORREGIDA: Cantidad Real -->
+                    <td class="text-end">
+                        {% if p.peso_real_tn %}
+                            <strong class="text-success">{{ p.peso_real_tn|formato_es }}</strong>
+                            <br><small class="text-muted" style="font-size: 0.7em;">(Prev: {{ p.total_kg|formato_es }})</small>
+                        {% else %}
+                            <strong>{{ p.total_kg|formato_es }}</strong>
+                        {% endif %}
+                    </td>
+                    
                     <td class="text-end">
                         {% if p.tipo == 'VENTA_MAT' %}<strong>{{ p.precio_venta_tn|formato_es }} €</strong>
                         {% else %}<strong>{{ p.precio_compra_tn|formato_es }} €</strong>{% endif %}

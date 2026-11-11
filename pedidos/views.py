@@ -113,6 +113,12 @@ def lista_pedidos(request):
         else:
             p.venta_asociada = None
 
+        # 🆕 Si tiene peso real, usamos ese para la cantidad
+        if p.peso_real_tn:
+            p.cantidad_real = p.peso_real_tn
+        else:
+            p.cantidad_real = p.total_kg
+
     # Totales (del queryset filtrado completo, no solo la página)
     total_pedidos = pedidos.count()
     total_importe = sum((p.total_importe for p in pedidos), Decimal('0'))
