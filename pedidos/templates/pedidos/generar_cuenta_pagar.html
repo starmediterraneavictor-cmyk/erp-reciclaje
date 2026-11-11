@@ -64,12 +64,25 @@
                         <small class="text-muted">Número del albarán que trajo el transportista</small>
                     </div>
 
-                    <table class="table">
-                        <tr>
-                            <td><strong>Importe total:</strong></td>
-                            <td class="text-end">{{ pedido.total_importe|formato_es }} €</td>
-                        </tr>
-                    </table>
+                    <!-- 🆕 CAMPOS DE BASE E IVA -->
+                    <div class="row mt-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Base Imponible (€) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="base" class="form-control" 
+                                   value="{{ pedido.total_importe }}" required>
+                            <small class="text-muted">Modifica si el precio real es distinto</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">IVA (%)</label>
+                            <input type="number" step="0.01" name="iva_porcentaje" class="form-control" 
+                                   value="{% if pedido.proveedor and pedido.proveedor.pais != 'España' %}0{% else %}21{% endif %}">
+                            <small class="text-muted">0% si es intracomunitario</small>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info text-center">
+                        <strong>Total a pagar:</strong> Se calculará automáticamente al guardar (Base + IVA)
+                    </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">

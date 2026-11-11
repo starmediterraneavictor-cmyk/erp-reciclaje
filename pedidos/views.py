@@ -881,6 +881,19 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
         try:
             with transaction.atomic():
                 numero_factura = request.POST.get('numero_factura', '')
+                
+                # 🆕 Cogemos la base y el IVA del formulario
+                base_form = Decimal(request.POST.get('base', 0) or 0)
+                iva_pct = Decimal(request.POST.get('iva_porcentaje', 0) or 0)
+                
+                # Si el formulario trae base 0, usamos la del pedido (por si acaso)
+                if base_form == 0 and pedido.total_importe > 0:
+                    base_final = pedido.total_importe
+                else:
+                    base_final = base_form
+                    
+                iva_importe = base_final * (iva_pct / Decimal('100'))
+                total_final = base_final + iva_importe
 
                 factura = Factura.objects.create(
                     numero_factura=numero_factura or f"G-{pedido.numero_pedido}",
@@ -890,9 +903,11 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
                     fecha_vencimiento=request.POST.get('fecha_vencimiento'),
                     proveedor=pedido.proveedor,
                     pedido=pedido,
-                    categoria='COMERCIO_MATERIALES',
-                    base=pedido.total_importe,
-                    iva_porcentaje=0,
+                    categoria=pedido.proveedor.tipo if pedido.proveedor else 'OTROS',
+                    base=base_final,
+                    iva_porcentaje=iva_pct,
+                    iva=iva_importe,
+                    total=total_final,
                     estado_pago='PENDIENTE',
                     notas=request.POST.get('notas', '') or f'Generada desde pedido {pedido.numero_pedido}',
                     archivo_justificante=request.FILES.get('archivo_factura') or None,
@@ -902,7 +917,7 @@ def generar_cuenta_pagar_desde_pedido(request, pedido_id):
                     concepto=concepto,
                     categoria=pedido.proveedor.tipo if pedido.proveedor else 'OTROS',
                     proveedor=pedido.proveedor,
-                    importe_total=pedido.total_importe,
+                    importe_total=total_final, # 🆕 Usamos el total con IVA
                     fecha_emision=request.POST.get('fecha_emision') or datetime.now().date(),
                     fecha_vencimiento=request.POST.get('fecha_vencimiento'),
                     periodicidad='UNICO',
