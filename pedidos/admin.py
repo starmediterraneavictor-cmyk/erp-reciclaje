@@ -16,7 +16,7 @@ class DetalleInline(admin.TabularInline):
 class PesadaCamionInline(admin.TabularInline):
     model = PesadaCamion
     extra = 0
-    readonly_fields = ('diferencia_tn', 'impacto_economico')
+    
 
 class ComisionInline(admin.TabularInline):
     model = Comision
