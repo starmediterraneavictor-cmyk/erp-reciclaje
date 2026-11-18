@@ -1158,7 +1158,7 @@ def archivo_cronologico(request):
     year_actual = date.today().year
     year_inicio = request.GET.get('year_inicio', year_actual - 4)
     year_fin = request.GET.get('year_fin', year_actual)
-    tipo_filtro = request.GET.get('tipo', '') # 🆕 Filtro Entrada/Salida
+    tipo_filtro = request.GET.get('tipo', '')
 
     # Buscar pedidos de compra (ENTRADAS) y venta (SALIDAS) en ese rango
     entradas = Pedido.objects.filter(
@@ -1175,43 +1175,58 @@ def archivo_cronologico(request):
 
     movimientos = []
     
-    if tipo_filtro != 'SALIDA': # Si no filtramos solo salidas, añadimos entradas
+    if tipo_filtro != 'SALIDA':
         for p in entradas:
+            # 🆕 Calculamos el factor de peso real
+            factor_peso = Decimal('1')
+            if p.peso_real_tn and p.total_kg > 0:
+                factor_peso = p.peso_real_tn / p.total_kg
+
             for detalle in p.detalles.all():
-                # 🆕 Buscamos el albarán en la factura asociada si existe
                 albaran = ''
                 factura = p.facturas.first()
                 if factura and factura.numero_albaran:
                     albaran = factura.numero_albaran
-                    
+                
+                # 🆕 Aplicamos el factor de peso real a la cantidad
+                cantidad_real = detalle.cantidad * factor_peso
+
                 movimientos.append({
                     'fecha': p.fecha,
                     'tipo': 'ENTRADA',
                     'pedido': p.numero_pedido,
-                    'albaran': albaran, # 🆕
+                    'albaran': albaran,
                     'material': detalle.material.nombre,
                     'ler': detalle.material.codigo_ler,
-                    'cantidad': detalle.cantidad,
+                    'cantidad': cantidad_real, # 🆕 Usamos la cantidad real
                     'entidad': p.proveedor.nombre if p.proveedor else '—',
                     'nima': p.proveedor.codigo_nima if p.proveedor else '—',
                 })
 
-    if tipo_filtro != 'ENTRADA': # Si no filtramos solo entradas, añadimos salidas
+    if tipo_filtro != 'ENTRADA':
         for p in salidas:
+            # 🆕 Calculamos el factor de peso real
+            factor_peso = Decimal('1')
+            if p.peso_real_tn and p.total_kg > 0:
+                factor_peso = p.peso_real_tn / p.total_kg
+
             for detalle in p.detalles.all():
                 albaran = ''
                 factura = p.facturas.first()
                 if factura and factura.numero_albaran:
                     albaran = factura.numero_albaran
+
+                # 🆕 Aplicamos el factor de peso real a la cantidad
+                cantidad_real = detalle.cantidad * factor_peso
 
                 movimientos.append({
                     'fecha': p.fecha,
                     'tipo': 'SALIDA',
                     'pedido': p.numero_pedido,
-                    'albaran': albaran, # 🆕
+                    'albaran': albaran,
                     'material': detalle.material.nombre,
                     'ler': detalle.material.codigo_ler,
-                    'cantidad': detalle.cantidad,
+                    'cantidad': cantidad_real, # 🆕 Usamos la cantidad real
                     'entidad': p.cliente.nombre if p.cliente else '—',
                     'nima': p.cliente.codigo_nima if p.cliente else '—',
                 })
@@ -1219,7 +1234,7 @@ def archivo_cronologico(request):
     # Ordenar por fecha
     movimientos.sort(key=lambda x: x['fecha'])
 
-    # 🆕 Si se pide exportar a Excel (exporta TODO, sin paginar)
+    # Exportar a Excel
     if request.GET.get('exportar') == '1':
         wb = Workbook()
         ws = wb.active
@@ -1238,7 +1253,7 @@ def archivo_cronologico(request):
                 m['fecha'].strftime('%d/%m/%Y'),
                 m['tipo'],
                 m['pedido'],
-                m['albaran'], # 🆕
+                m['albaran'],
                 m['material'],
                 m['ler'],
                 float(m['cantidad']),
@@ -1251,13 +1266,13 @@ def archivo_cronologico(request):
         wb.save(response)
         return response
 
-    # 🆕 Paginación
-    paginator = Paginator(movimientos, 50) # 50 movimientos por página
+    # Paginación
+    paginator = Paginator(movimientos, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     context = {
-        'movimientos': page_obj, # 🆕 Solo la página
+        'movimientos': page_obj,
         'page_obj': page_obj,
         'year_inicio': year_inicio,
         'year_fin': year_fin,
