@@ -1178,35 +1178,36 @@ def archivo_cronologico(request):
     if tipo_filtro != 'SALIDA':
         for p in entradas:
             albaran = ''
+            num_factura = '—'
             factura = p.facturas.first()
-            if factura and factura.numero_albaran:
-                albaran = factura.numero_albaran
+            if factura:
+                albaran = factura.numero_albaran or ''
+                num_factura = factura.numero_factura
 
             # 🆕 Si el pedido tiene pesadas, usamos las pesadas reales
             if p.pesadas.exists():
                 for pesada in p.pesadas.all():
-                    # Asociamos la pesada al primer material del pedido (o al que corresponda)
-                    # Para simplificar, usamos el primer detalle
                     detalle = p.detalles.first()
                     if detalle:
                         movimientos.append({
                             'fecha': pesada.fecha,
                             'tipo': 'ENTRADA',
                             'pedido': p.numero_pedido,
+                            'factura': num_factura, # 🆕
                             'albaran': albaran,
                             'material': detalle.material.nombre,
                             'ler': detalle.material.codigo_ler,
-                            'cantidad': pesada.peso_real_tn, # 🆕 Usamos el peso real de la pesada
+                            'cantidad': pesada.peso_real_tn,
                             'entidad': p.proveedor.nombre if p.proveedor else '—',
                             'nima': p.proveedor.codigo_nima if p.proveedor else '—',
                         })
             else:
-                # Si no hay pesadas, usamos los detalles normales
                 for detalle in p.detalles.all():
                     movimientos.append({
                         'fecha': p.fecha,
                         'tipo': 'ENTRADA',
                         'pedido': p.numero_pedido,
+                        'factura': num_factura, # 🆕
                         'albaran': albaran,
                         'material': detalle.material.nombre,
                         'ler': detalle.material.codigo_ler,
@@ -1218,9 +1219,11 @@ def archivo_cronologico(request):
     if tipo_filtro != 'ENTRADA':
         for p in salidas:
             albaran = ''
+            num_factura = '—'
             factura = p.facturas.first()
-            if factura and factura.numero_albaran:
-                albaran = factura.numero_albaran
+            if factura:
+                albaran = factura.numero_albaran or ''
+                num_factura = factura.numero_factura
 
             if p.pesadas.exists():
                 for pesada in p.pesadas.all():
@@ -1230,6 +1233,7 @@ def archivo_cronologico(request):
                             'fecha': pesada.fecha,
                             'tipo': 'SALIDA',
                             'pedido': p.numero_pedido,
+                            'factura': num_factura, # 🆕
                             'albaran': albaran,
                             'material': detalle.material.nombre,
                             'ler': detalle.material.codigo_ler,
@@ -1243,6 +1247,7 @@ def archivo_cronologico(request):
                         'fecha': p.fecha,
                         'tipo': 'SALIDA',
                         'pedido': p.numero_pedido,
+                        'factura': num_factura, # 🆕
                         'albaran': albaran,
                         'material': detalle.material.nombre,
                         'ler': detalle.material.codigo_ler,
@@ -1251,7 +1256,7 @@ def archivo_cronologico(request):
                         'nima': p.cliente.codigo_nima if p.cliente else '—',
                     })
 
-    # 🆕 Ordenar por fecha (convirtiendo todo a date)
+    # Ordenar por fecha (convirtiendo todo a date)
     for m in movimientos:
         if isinstance(m['fecha'], datetime):
             m['fecha'] = m['fecha'].date()
@@ -1263,7 +1268,8 @@ def archivo_cronologico(request):
         ws = wb.active
         ws.title = "Archivo Cronológico"
         
-        cabeceras = ['Fecha', 'Tipo', 'Nº Pedido', 'Nº Albarán', 'Material', 'Código LER', 'Cantidad (tn)', 'Entidad (Proveedor/Cliente)', 'NIMA']
+        # 🆕 Añadimos Nº Factura a las cabeceras
+        cabeceras = ['Fecha', 'Tipo', 'Nº Pedido', 'Nº Factura', 'Nº Albarán', 'Material', 'Código LER', 'Cantidad (tn)', 'Entidad (Proveedor/Cliente)', 'NIMA']
         ws.append(cabeceras)
         
         for cell in ws[1]:
@@ -1276,6 +1282,7 @@ def archivo_cronologico(request):
                 m['fecha'].strftime('%d/%m/%Y'),
                 m['tipo'],
                 m['pedido'],
+                m['factura'], # 🆕
                 m['albaran'],
                 m['material'],
                 m['ler'],
