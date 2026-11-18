@@ -1251,7 +1251,10 @@ def archivo_cronologico(request):
                         'nima': p.cliente.codigo_nima if p.cliente else '—',
                     })
 
-    # Ordenar por fecha
+    # 🆕 Ordenar por fecha (convirtiendo todo a date)
+    for m in movimientos:
+        if isinstance(m['fecha'], datetime):
+            m['fecha'] = m['fecha'].date()
     movimientos.sort(key=lambda x: x['fecha'])
 
     # Exportar a Excel
