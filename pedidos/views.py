@@ -1177,59 +1177,79 @@ def archivo_cronologico(request):
     
     if tipo_filtro != 'SALIDA':
         for p in entradas:
-            # 🆕 Calculamos el factor de peso real
-            factor_peso = Decimal('1')
-            if p.peso_real_tn and p.total_kg > 0:
-                factor_peso = p.peso_real_tn / p.total_kg
+            albaran = ''
+            factura = p.facturas.first()
+            if factura and factura.numero_albaran:
+                albaran = factura.numero_albaran
 
-            for detalle in p.detalles.all():
-                albaran = ''
-                factura = p.facturas.first()
-                if factura and factura.numero_albaran:
-                    albaran = factura.numero_albaran
-                
-                # 🆕 Aplicamos el factor de peso real a la cantidad
-                cantidad_real = detalle.cantidad * factor_peso
-
-                movimientos.append({
-                    'fecha': p.fecha,
-                    'tipo': 'ENTRADA',
-                    'pedido': p.numero_pedido,
-                    'albaran': albaran,
-                    'material': detalle.material.nombre,
-                    'ler': detalle.material.codigo_ler,
-                    'cantidad': cantidad_real, # 🆕 Usamos la cantidad real
-                    'entidad': p.proveedor.nombre if p.proveedor else '—',
-                    'nima': p.proveedor.codigo_nima if p.proveedor else '—',
-                })
+            # 🆕 Si el pedido tiene pesadas, usamos las pesadas reales
+            if p.pesadas.exists():
+                for pesada in p.pesadas.all():
+                    # Asociamos la pesada al primer material del pedido (o al que corresponda)
+                    # Para simplificar, usamos el primer detalle
+                    detalle = p.detalles.first()
+                    if detalle:
+                        movimientos.append({
+                            'fecha': pesada.fecha,
+                            'tipo': 'ENTRADA',
+                            'pedido': p.numero_pedido,
+                            'albaran': albaran,
+                            'material': detalle.material.nombre,
+                            'ler': detalle.material.codigo_ler,
+                            'cantidad': pesada.peso_real_tn, # 🆕 Usamos el peso real de la pesada
+                            'entidad': p.proveedor.nombre if p.proveedor else '—',
+                            'nima': p.proveedor.codigo_nima if p.proveedor else '—',
+                        })
+            else:
+                # Si no hay pesadas, usamos los detalles normales
+                for detalle in p.detalles.all():
+                    movimientos.append({
+                        'fecha': p.fecha,
+                        'tipo': 'ENTRADA',
+                        'pedido': p.numero_pedido,
+                        'albaran': albaran,
+                        'material': detalle.material.nombre,
+                        'ler': detalle.material.codigo_ler,
+                        'cantidad': detalle.cantidad,
+                        'entidad': p.proveedor.nombre if p.proveedor else '—',
+                        'nima': p.proveedor.codigo_nima if p.proveedor else '—',
+                    })
 
     if tipo_filtro != 'ENTRADA':
         for p in salidas:
-            # 🆕 Calculamos el factor de peso real
-            factor_peso = Decimal('1')
-            if p.peso_real_tn and p.total_kg > 0:
-                factor_peso = p.peso_real_tn / p.total_kg
+            albaran = ''
+            factura = p.facturas.first()
+            if factura and factura.numero_albaran:
+                albaran = factura.numero_albaran
 
-            for detalle in p.detalles.all():
-                albaran = ''
-                factura = p.facturas.first()
-                if factura and factura.numero_albaran:
-                    albaran = factura.numero_albaran
-
-                # 🆕 Aplicamos el factor de peso real a la cantidad
-                cantidad_real = detalle.cantidad * factor_peso
-
-                movimientos.append({
-                    'fecha': p.fecha,
-                    'tipo': 'SALIDA',
-                    'pedido': p.numero_pedido,
-                    'albaran': albaran,
-                    'material': detalle.material.nombre,
-                    'ler': detalle.material.codigo_ler,
-                    'cantidad': cantidad_real, # 🆕 Usamos la cantidad real
-                    'entidad': p.cliente.nombre if p.cliente else '—',
-                    'nima': p.cliente.codigo_nima if p.cliente else '—',
-                })
+            if p.pesadas.exists():
+                for pesada in p.pesadas.all():
+                    detalle = p.detalles.first()
+                    if detalle:
+                        movimientos.append({
+                            'fecha': pesada.fecha,
+                            'tipo': 'SALIDA',
+                            'pedido': p.numero_pedido,
+                            'albaran': albaran,
+                            'material': detalle.material.nombre,
+                            'ler': detalle.material.codigo_ler,
+                            'cantidad': pesada.peso_real_tn,
+                            'entidad': p.cliente.nombre if p.cliente else '—',
+                            'nima': p.cliente.codigo_nima if p.cliente else '—',
+                        })
+            else:
+                for detalle in p.detalles.all():
+                    movimientos.append({
+                        'fecha': p.fecha,
+                        'tipo': 'SALIDA',
+                        'pedido': p.numero_pedido,
+                        'albaran': albaran,
+                        'material': detalle.material.nombre,
+                        'ler': detalle.material.codigo_ler,
+                        'cantidad': detalle.cantidad,
+                        'entidad': p.cliente.nombre if p.cliente else '—',
+                        'nima': p.cliente.codigo_nima if p.cliente else '—',
+                    })
 
     # Ordenar por fecha
     movimientos.sort(key=lambda x: x['fecha'])
