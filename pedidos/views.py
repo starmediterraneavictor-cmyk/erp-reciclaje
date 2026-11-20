@@ -102,7 +102,7 @@ def lista_pedidos(request):
         CuentaPorPagar.objects.filter(estado__in=['PENDIENTE', 'PARCIAL']).values_list('concepto', flat=True)
     )
 
-    for p in page_obj: # 🆕 Iteramos sobre page_obj
+    for p in page_obj:
         concepto = f"Pedido {p.numero_pedido}"
         p.tiene_cuenta_pagada = concepto in conceptos_pagados
         p.tiene_cuenta_pendiente = concepto in conceptos_pendientes
@@ -113,9 +113,13 @@ def lista_pedidos(request):
         else:
             p.venta_asociada = None
 
-        # 🆕 Si tiene peso real, usamos ese para la cantidad
+        # 🆕 Lógica para calcular el peso real
         if p.peso_real_tn:
             p.cantidad_real = p.peso_real_tn
+        elif p.pesadas.exists():
+            # Si no tiene peso_real_tn pero tiene pesadas, sumamos sus pesos reales
+            p.cantidad_real = sum(pesada.peso_real_tn for pesada in p.pesadas.all())
+            p.peso_real_tn = p.cantidad_real # 🆕 Actualizamos el campo para la plantilla
         else:
             p.cantidad_real = p.total_kg
 
