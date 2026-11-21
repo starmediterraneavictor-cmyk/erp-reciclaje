@@ -162,7 +162,7 @@
                                 {% endif %}
 
                                 {% if c.factura_asociada %}
-                                <a href="{% url 'editar_factura' c.factura_asociada.id %}" class="btn btn-outline-primary btn-sm" title="Ver factura">
+                                <a href="{% url 'editar_factura' c.factura_asociada.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-outline-primary btn-sm" title="Ver factura">
                                     <i class="bi bi-receipt"></i>
                                 </a>
                                 {% endif %}

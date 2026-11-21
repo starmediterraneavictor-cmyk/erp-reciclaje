@@ -300,7 +300,14 @@ class Pedido(models.Model):
     def beneficio_real_total(self):
         if self.beneficio_total is None:
             return None
-        return self.beneficio_total - self.total_comisiones
+        # 🆕 Restamos las comisiones del propio pedido
+        total_comisiones = self.total_comisiones
+        
+        # 🆕 Restamos las comisiones de los pedidos de compra asociados
+        for origen in self.origenes_venta.all():
+            total_comisiones += origen.pedido_compra.total_comisiones
+        
+        return self.beneficio_total - total_comisiones
 
     @property
     def beneficio_real_tn(self):

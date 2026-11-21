@@ -52,7 +52,7 @@
                 </ul>
             </div>
             {% else %}
-            <a href="{% url 'cuentas_por_pagar' %}" class="btn btn-info">
+            <a href="{% url 'registrar_pago_cuenta' cuenta_pagar_existente.id %}" class="btn btn-info">
                 <i class="bi bi-receipt"></i> Ver Cuenta por Pagar
             </a>
             {% endif %}

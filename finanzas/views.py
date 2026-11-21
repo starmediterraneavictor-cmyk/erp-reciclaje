@@ -1079,11 +1079,17 @@ def lista_comisiones(request):
             'total_pendiente': total_pendiente,
             'num_pedidos': len(comisiones),
         })
-        
+    
     datos_comerciales = sorted(datos_comerciales, key=lambda x: x['total_comision'], reverse=True)
-
+    
+    # 🆕 Paginación
+    paginator = Paginator(datos_comerciales, 5) # 5 comerciales por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'datos_comerciales': datos_comerciales,
-        'fecha_actual': date.today().strftime('%Y-%m-%d'), # 🆕 Para el input date
+        'datos_comerciales': page_obj,
+        'page_obj': page_obj,
+        'fecha_actual': date.today().strftime('%Y-%m-%d'),
     }
     return render(request, 'finanzas/lista_comisiones.html', context)
