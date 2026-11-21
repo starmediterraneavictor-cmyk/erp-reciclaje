@@ -206,7 +206,7 @@
                         <h3 class="mb-0">
                             {% if pedido.beneficio_real_tn >= 0 %}+{% endif %}{{ pedido.beneficio_real_tn|formato_es }} €
                         </h3>
-                        <small>(-{{ total_comisiones|formato_es }} € en comisiones)</small>
+                        <small>(-{{ pedido.total_comisiones|add:comisiones_origenes|formato_es }} € en comisiones)</small>
                     </div>
                 </div>
             </div>
