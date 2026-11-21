@@ -179,8 +179,9 @@ def detalle_pedido(request, pedido_id):
 
     cuenta_pagar_existente = None
     if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
+        # 🆕 Buscamos cualquier cuenta que contenga el nº de pedido en el concepto
         cuenta_pagar_existente = CuentaPorPagar.objects.filter(
-            concepto=f"Pedido {pedido.numero_pedido}"
+            concepto__icontains=pedido.numero_pedido
         ).first()
 
     # 🆕 Calcular totales de las pesadas
