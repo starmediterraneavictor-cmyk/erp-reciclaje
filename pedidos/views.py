@@ -197,10 +197,18 @@ def detalle_pedido(request, pedido_id):
         for origen in pedido.origenes_venta.all():
             comisiones_origenes += origen.pedido_compra.total_comisiones
 
+    # 🆕 Buscar proforma pagada (informativo)
+    proforma_pagada = None
+    if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
+        proforma_pagada = CuentaPorPagar.objects.filter(
+            concepto__icontains=f"Proforma {pedido.numero_pedido}"
+        ).exclude(estado='ANULADO').first()
+
     context = {
         'pedido': pedido,
         'factura_existente': factura_existente,
         'cuenta_pagar_existente': cuenta_pagar_existente,
+        'proforma_pagada': proforma_pagada,
         'total_kg': pedido.total_kg,
         'total_importe': pedido.total_importe,
         'comerciales': Comercial.objects.filter(activo=True),
