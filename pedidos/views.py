@@ -207,6 +207,18 @@ def detalle_pedido(request, pedido_id):
         'total_diferencia': total_diferencia,
         'total_impacto': total_impacto,
     }
+
+    # 🆕 Calcular comisiones de los orígenes de compra
+    comisiones_origenes = 0
+    if pedido.tipo == 'VENTA_MAT' and pedido.origenes_venta.exists():
+        for origen in pedido.origenes_venta.all():
+            comisiones_origenes += origen.pedido_compra.total_comisiones
+    
+    context = {
+        'pedido': pedido,
+        # ... (resto de variables) ...
+        'comisiones_origenes': comisiones_origenes, # 🆕
+    }
     return render(request, 'pedidos/detalle_pedido.html', context)
 
 

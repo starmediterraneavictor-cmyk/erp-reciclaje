@@ -212,6 +212,31 @@
             </div>
         </div>
 
+        <!-- 🆕 DESGLOSE DE COMISIONES -->
+        {% if pedido.tipo == 'VENTA_MAT' and pedido.origenes_venta.exists %}
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <div class="alert alert-light border">
+                    <h6 class="mb-2">💼 Desglose de comisiones:</h6>
+                    <table class="table table-sm mb-0">
+                        <tr>
+                            <td><strong>Comisiones del propio pedido:</strong></td>
+                            <td class="text-end">{{ pedido.total_comisiones|formato_es }} €</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Comisiones de pedidos de compra asociados:</strong></td>
+                            <td class="text-end">{{ comisiones_origenes|formato_es }} €</td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td><strong>TOTAL COMISIONES (restadas del beneficio):</strong></td>
+                            <td class="text-end"><strong>{{ total_comisiones|formato_es }} €</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <hr>
 
         <div class="row">
