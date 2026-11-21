@@ -229,7 +229,9 @@
                         </tr>
                         <tr class="table-warning">
                             <td><strong>TOTAL COMISIONES (restadas del beneficio):</strong></td>
-                            <td class="text-end"><strong>{{ total_comisiones|formato_es }} €</strong></td>
+                            <td class="text-end">
+                                <strong>{{ pedido.total_comisiones|add:comisiones_origenes|formato_es }} €</strong>
+                            </td>
                         </tr>
                     </table>
                 </div>

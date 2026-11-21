@@ -162,7 +162,7 @@ def lista_pedidos(request):
 def detalle_pedido(request, pedido_id):
     """Ver detalle completo de un pedido"""
     pedido = get_object_or_404(Pedido, id=pedido_id)
-    # 🆕 Capturamos el return_url de la URL
+    
     url_retorno = request.GET.get('return_url', '')
 
     if request.method == 'POST' and 'peso_real_tn' in request.POST:
@@ -183,14 +183,18 @@ def detalle_pedido(request, pedido_id):
             concepto=f"Pedido {pedido.numero_pedido}"
         ).first()
 
-    url_retorno = request.GET.get('return_url', '')
-
     # 🆕 Calcular totales de las pesadas
     pesadas = pedido.pesadas.all()
     total_previsto = sum(p.peso_previsto_tn for p in pesadas)
     total_real = sum(p.peso_real_tn for p in pesadas)
     total_diferencia = total_real - total_previsto
     total_impacto = sum(p.impacto_economico for p in pesadas)
+
+    # 🆕 Calcular comisiones de los orígenes de compra (ANTES del context)
+    comisiones_origenes = 0
+    if pedido.tipo == 'VENTA_MAT' and pedido.origenes_venta.exists():
+        for origen in pedido.origenes_venta.all():
+            comisiones_origenes += origen.pedido_compra.total_comisiones
 
     context = {
         'pedido': pedido,
@@ -206,18 +210,7 @@ def detalle_pedido(request, pedido_id):
         'total_real': total_real,
         'total_diferencia': total_diferencia,
         'total_impacto': total_impacto,
-    }
-
-    # 🆕 Calcular comisiones de los orígenes de compra
-    comisiones_origenes = 0
-    if pedido.tipo == 'VENTA_MAT' and pedido.origenes_venta.exists():
-        for origen in pedido.origenes_venta.all():
-            comisiones_origenes += origen.pedido_compra.total_comisiones
-    
-    context = {
-        'pedido': pedido,
-        # ... (resto de variables) ...
-        'comisiones_origenes': comisiones_origenes, # 🆕
+        'comisiones_origenes': comisiones_origenes, # 🆕 Ahora sí tiene valor
     }
     return render(request, 'pedidos/detalle_pedido.html', context)
 
