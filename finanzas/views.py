@@ -906,7 +906,7 @@ def libro_gastos_ingresos(request):
 
 @login_required
 def exportar_libro_excel(request):
-    """Exporta el libro separado por trimestres + hoja Resumen."""
+    """Exporta el libro separado por trimestres + hoja Resumen, incluyendo NIF y Albarán."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
     from datetime import date
@@ -915,7 +915,7 @@ def exportar_libro_excel(request):
     categoria = request.GET.get('categoria', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
-    year = request.GET.get('year', date.today().year) # Mantenemos el año por defecto
+    year = request.GET.get('year', date.today().year)
 
     # 2. Queryset base
     facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('fecha')
@@ -930,7 +930,8 @@ def exportar_libro_excel(request):
     wb = Workbook()
     wb.remove(wb.active)
 
-    cabeceras = ['Fecha', 'Nº Factura', 'Entidad', 'Categoría', 'Base (€)', 'IVA (%)', 'IVA (€)', 'Total (€)', 'Estado']
+    # 🆕 Añadimos NIF y Albarán a las cabeceras
+    cabeceras = ['Fecha', 'Nº Factura', 'Nº Albarán', 'Entidad', 'NIF', 'Categoría', 'Base (€)', 'IVA (%)', 'IVA (€)', 'Total (€)', 'Estado']
     estilo_cabecera = Font(bold=True, color='FFFFFF')
     fondo_ingresos = PatternFill('solid', fgColor='2D6A4F')
     fondo_gastos = PatternFill('solid', fgColor='DC3545')
@@ -957,7 +958,6 @@ def exportar_libro_excel(request):
         facturas_ing = facturas_trim.filter(tipo='INGRESO')
         facturas_gas = facturas_trim.filter(tipo='GASTO')
 
-        # Si no hay facturas en este trimestre, no creamos la hoja (opcional, pero más limpio)
         if not facturas_ing.exists() and not facturas_gas.exists():
             continue
 
@@ -977,13 +977,27 @@ def exportar_libro_excel(request):
             cell.fill = fondo_ingresos
         
         for f in facturas_ing:
-            ws.append([f.fecha.strftime('%d/%m/%Y'), f.numero_factura, f.entidad_nombre, f.get_categoria_display(),
-                       float(f.base), float(f.iva_porcentaje), float(f.iva), float(f.total), f.get_estado_pago_display()])
+            # 🆕 Extraemos el NIF de la entidad correspondiente
+            nif = f.cliente.nif if f.cliente else (f.proveedor.nif if f.proveedor else '')
+            
+            ws.append([
+                f.fecha.strftime('%d/%m/%Y'), 
+                f.numero_factura, 
+                f.numero_albaran or '', # 🆕 Albarán
+                f.entidad_nombre, 
+                nif,                    # 🆕 NIF
+                f.get_categoria_display(),
+                float(f.base), 
+                float(f.iva_porcentaje), 
+                float(f.iva), 
+                float(f.total), 
+                f.get_estado_pago_display()
+            ])
         
         fila_total_ing = ws.max_row + 1
-        ws.append(['TOTAL INGRESOS', '', '', '', '', '', '', float(total_ing), ''])
+        ws.append(['TOTAL INGRESOS', '', '', '', '', '', '', '', '', float(total_ing), ''])
         ws.cell(row=fila_total_ing, column=1).font = Font(bold=True)
-        ws.cell(row=fila_total_ing, column=8).font = Font(bold=True)
+        ws.cell(row=fila_total_ing, column=10).font = Font(bold=True)
         
         ws.append([]) # Línea en blanco
 
@@ -998,23 +1012,36 @@ def exportar_libro_excel(request):
             cell.fill = fondo_gastos
             
         for f in facturas_gas:
-            ws.append([f.fecha.strftime('%d/%m/%Y'), f.numero_factura, f.entidad_nombre, f.get_categoria_display(),
-                       float(f.base), float(f.iva_porcentaje), float(f.iva), float(f.total), f.get_estado_pago_display()])
+            # 🆕 Extraemos el NIF de la entidad correspondiente
+            nif = f.proveedor.nif if f.proveedor else (f.cliente.nif if f.cliente else '')
+            
+            ws.append([
+                f.fecha.strftime('%d/%m/%Y'), 
+                f.numero_factura, 
+                f.numero_albaran or '', # 🆕 Albarán
+                f.entidad_nombre, 
+                nif,                    # 🆕 NIF
+                f.get_categoria_display(),
+                float(f.base), 
+                float(f.iva_porcentaje), 
+                float(f.iva), 
+                float(f.total), 
+                f.get_estado_pago_display()
+            ])
         
         fila_total_gas = ws.max_row + 1
-        ws.append(['TOTAL GASTOS', '', '', '', '', '', '', float(total_gas), ''])
+        ws.append(['TOTAL GASTOS', '', '', '', '', '', '', '', '', float(total_gas), ''])
         ws.cell(row=fila_total_gas, column=1).font = Font(bold=True)
-        ws.cell(row=fila_total_gas, column=8).font = Font(bold=True)
+        ws.cell(row=fila_total_gas, column=10).font = Font(bold=True)
 
         ws.append([])
         
-        # Resumen del trimestre
         fila_beneficio = ws.max_row + 1
-        ws.append([f'BENEFICIO T{trimestre}', '', '', '', '', '', '', float(total_ing - total_gas), ''])
+        ws.append([f'BENEFICIO T{trimestre}', '', '', '', '', '', '', '', '', float(total_ing - total_gas), ''])
         ws.cell(row=fila_beneficio, column=1).font = Font(bold=True, color='2D6A4F')
-        ws.cell(row=fila_beneficio, column=8).font = Font(bold=True, color='2D6A4F')
+        ws.cell(row=fila_beneficio, column=10).font = Font(bold=True, color='2D6A4F')
 
-        # Ajustar ancho de columnas para esta hoja
+        # Ajustar ancho de columnas
         for col in ws.columns:
             max_length = 0
             col_letter = col[0].column_letter
