@@ -103,9 +103,11 @@ def lista_pedidos(request):
     )
 
     for p in page_obj:
-        concepto = f"Pedido {p.numero_pedido}"
-        p.tiene_cuenta_pagada = concepto in conceptos_pagados
-        p.tiene_cuenta_pendiente = concepto in conceptos_pendientes
+        # 🆕 Buscamos el concepto exacto para evitar que la proforma marque como "pagado" el pedido entero
+        concepto_exacto = f"Pedido {p.numero_pedido}"
+        
+        p.tiene_cuenta_pagada = concepto_exacto in conceptos_pagados
+        p.tiene_cuenta_pendiente = concepto_exacto in conceptos_pendientes
         
         if p.tipo == 'COMPRA_MAT':
             venta_asociada = p.ventas_asociadas.first()
@@ -160,9 +162,7 @@ def lista_pedidos(request):
 
 @login_required
 def detalle_pedido(request, pedido_id):
-    """Ver detalle completo de un pedido"""
     pedido = get_object_or_404(Pedido, id=pedido_id)
-    
     url_retorno = request.GET.get('return_url', '')
 
     if request.method == 'POST' and 'peso_real_tn' in request.POST:
@@ -170,7 +170,7 @@ def detalle_pedido(request, pedido_id):
         try:
             pedido.peso_real_tn = Decimal(peso_str) if peso_str else None
             pedido.save()
-            messages.success(request, '✅ Peso real guardado correctamente. Revisa el impacto económico.')
+            messages.success(request, '✅ Peso real guardado correctamente.')
         except (ValueError, TypeError):
             messages.error(request, '❌ El peso introducido no es válido.')
         return redirect('detalle_pedido', pedido_id=pedido.id)
@@ -178,11 +178,18 @@ def detalle_pedido(request, pedido_id):
     factura_existente = pedido.facturas.exclude(estado_pago='ANULADO').first()
 
     cuenta_pagar_existente = None
+    proforma_pagada = None
+    
     if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
-        # 🆕 Buscamos cualquier cuenta que contenga el nº de pedido en el concepto
+        # 🆕 BUSCAMOS LA FACTURA DEFINITIVA EXACTA
         cuenta_pagar_existente = CuentaPorPagar.objects.filter(
-            concepto__icontains=pedido.numero_pedido
-        ).first()
+            concepto=f"Pedido {pedido.numero_pedido}"
+        ).exclude(estado='ANULADO').first()
+
+        # 🆕 BUSCAMOS LA PROFORMA (Solo para el cartel informativo)
+        proforma_pagada = CuentaPorPagar.objects.filter(
+            concepto__icontains=f"Proforma {pedido.numero_pedido}"
+        ).exclude(estado='ANULADO').first()
 
     # 🆕 Calcular totales de las pesadas
     pesadas = pedido.pesadas.all()
@@ -191,24 +198,16 @@ def detalle_pedido(request, pedido_id):
     total_diferencia = total_real - total_previsto
     total_impacto = sum(p.impacto_economico for p in pesadas)
 
-    # 🆕 Calcular comisiones de los orígenes de compra (ANTES del context)
     comisiones_origenes = 0
     if pedido.tipo == 'VENTA_MAT' and pedido.origenes_venta.exists():
         for origen in pedido.origenes_venta.all():
             comisiones_origenes += origen.pedido_compra.total_comisiones
 
-    # 🆕 Buscar proforma pagada (informativo)
-    proforma_pagada = None
-    if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
-        proforma_pagada = CuentaPorPagar.objects.filter(
-            concepto__icontains=f"Proforma {pedido.numero_pedido}"
-        ).exclude(estado='ANULADO').first()
-
     context = {
         'pedido': pedido,
         'factura_existente': factura_existente,
         'cuenta_pagar_existente': cuenta_pagar_existente,
-        'proforma_pagada': proforma_pagada,
+        'proforma_pagada': proforma_pagada, # Pasamos la proforma
         'total_kg': pedido.total_kg,
         'total_importe': pedido.total_importe,
         'comerciales': Comercial.objects.filter(activo=True),
@@ -219,7 +218,7 @@ def detalle_pedido(request, pedido_id):
         'total_real': total_real,
         'total_diferencia': total_diferencia,
         'total_impacto': total_impacto,
-        'comisiones_origenes': comisiones_origenes, # 🆕 Ahora sí tiene valor
+        'comisiones_origenes': comisiones_origenes,
     }
     return render(request, 'pedidos/detalle_pedido.html', context)
 

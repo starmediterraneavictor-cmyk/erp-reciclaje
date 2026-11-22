@@ -18,7 +18,8 @@ from datetime import date
 
 @login_required
 def lista_inventario(request):
-    materiales = Material.objects.all().order_by('nombre')
+    # 🆕 select_related evita consultas extra para tipo y subgrupo
+    materiales = Material.objects.select_related('tipo', 'subgrupo').all().order_by('nombre')
     
     # 🆕 Recalculamos el stock real de cada material usando la misma lógica que el Dashboard
     inventario_dict = {}
@@ -120,6 +121,7 @@ def nuevo_material(request):
                 unidad=unidad,
                 precio_compra=precio_compra,
                 precio_venta=precio_venta,
+                codigo_ler=request.POST.get('codigo_ler', ''),
                 stock_minimo_critico=request.POST.get('stock_minimo_critico', 100) or 100,
                 stock_minimo_bajo=request.POST.get('stock_minimo_bajo', 500) or 500,
             )
@@ -150,6 +152,7 @@ def editar_material(request, material_id):
         material.unidad = request.POST.get('unidad', 'TN')
         material.precio_compra = request.POST.get('precio_compra', 0)
         material.precio_venta = request.POST.get('precio_venta', 0)
+        material.codigo_ler = request.POST.get('codigo_ler', '')
         material.stock_minimo_critico = request.POST.get('stock_minimo_critico', 100) or 100
         material.stock_minimo_bajo = request.POST.get('stock_minimo_bajo', 500) or 500
         material.save()

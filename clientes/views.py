@@ -79,6 +79,7 @@ def nuevo_cliente(request):
             cliente = Cliente.objects.create(
                 nombre=request.POST.get('nombre'),
                 pais=request.POST.get('pais', 'España'),
+                nif=request.POST.get('nif', ''),
                 direccion=request.POST.get('direccion', ''),
                 email=request.POST.get('email', ''),
                 telefono=request.POST.get('telefono', ''),
@@ -112,6 +113,7 @@ def editar_cliente(request, cliente_id):
         cliente.tipo = request.POST.get('tipo', 'RECICLAJE')
         cliente.estado = request.POST.get('estado', 'ACTIVO')
         cliente.notas = request.POST.get('notas', '')
+        cliente.nif = request.POST.get('nif', '')
         cliente.save()
         
         messages.success(request, f'✅ Cliente "{cliente.nombre}" actualizado')

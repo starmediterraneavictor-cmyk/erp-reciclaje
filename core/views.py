@@ -43,7 +43,8 @@ def dashboard(request):
     stock_total_prevision = Decimal('0')
     materiales_con_stock = []
 
-    for mat in Material.objects.all():
+    # 🆕 Optimizamos la consulta de materiales
+    for mat in Material.objects.select_related('tipo').all():
         # 🆕 Usamos la función unificada para el stock real
         stock_real = recalcular_stock_material(mat)
         
