@@ -341,7 +341,8 @@ const pedidosCompraDisponibles = [
     {% for pc in pedidos_compra %}
     { 
         id: {{ pc.id }}, 
-        label: "{{ pc.numero_pedido }} - {{ pc.entidad_nombre|escapejs }} - Quedan: {{ pc.tn_libres_calculadas|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn" 
+        label: "{{ pc.numero_pedido }} - {{ pc.entidad_nombre|escapejs }} - Quedan: {{ pc.tn_disponibles|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn",
+        materiales: [{% for d in pc.detalles.all %}{{ d.material.id }}{% if not forloop.last %},{% endif %}{% endfor %}]
     },
     {% endfor %}
 ];
@@ -376,12 +377,7 @@ function añadirOrigen(datos = null) {
     actualizarOrigenesDisponibles();
 }
 
-function eliminarOrigen(btn) {
-    btn.closest('.origen-item').remove();
-    actualizarOrigenesDisponibles();
-    calcularTotales();
-}
-
+// 🆕 LÓGICA DE FILTRADO POR MATERIAL
 function actualizarOrigenesDisponibles() {
     const selects = document.querySelectorAll('.origen-select');
     const seleccionados = [];
@@ -389,16 +385,58 @@ function actualizarOrigenesDisponibles() {
         if (s.value) seleccionados.push(s.value);
     });
 
+    // Detectar el primer material seleccionado en las líneas de materiales
+    let materialSeleccionadoId = null;
+    const selectMaterial = document.querySelector('select[name="material[]"]');
+    if (selectMaterial && selectMaterial.value) {
+        materialSeleccionadoId = selectMaterial.value;
+    }
+
     selects.forEach(select => {
         const valorActual = select.value;
         Array.from(select.options).forEach(option => {
             if (!option.value) return;
+            
+            // 1. Evitar duplicados
             const estaEnOtro = seleccionados.includes(option.value) && option.value !== valorActual;
-            option.disabled = estaEnOtro;
-            option.style.display = estaEnOtro ? 'none' : '';
+            
+            // 2. Filtrar por material
+            let materialCoincide = true;
+            if (materialSeleccionadoId) {
+                const pedidoId = option.value;
+                const pedidoObj = pedidosCompraDisponibles.find(p => p.id == pedidoId);
+                if (pedidoObj && pedidoObj.materiales) {
+                    // Si el material seleccionado no está en el pedido, lo ocultamos
+                    materialCoincide = pedidoObj.materiales.includes(parseInt(materialSeleccionadoId));
+                }
+            }
+
+            // Aplicar visibilidad
+            if (estaEnOtro || !materialCoincide) {
+                option.disabled = true;
+                option.style.display = 'none';
+            } else {
+                option.disabled = false;
+                option.style.display = '';
+            }
         });
     });
 }
+
+// Escuchar cuando se cambia un material para volver a filtrar
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'material[]') {
+        actualizarOrigenesDisponibles();
+        // (También tienes aquí la lógica de auto-rellenar el precio, déjala igual)
+    }
+});
+
+function eliminarOrigen(btn) {
+    btn.closest('.origen-item').remove();
+    actualizarOrigenesDisponibles();
+    calcularTotales();
+}
+
 
 // 3. CÁLCULO DE TOTALES
 function calcularTotales() {

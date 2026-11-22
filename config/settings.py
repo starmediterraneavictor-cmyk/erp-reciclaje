@@ -97,7 +97,6 @@ USE_TZ = True
 
 LANGUAGES = [
     ('es', _('Español')),
-    ('en', _('English')),
     ('zh-hans', _('中文 (简体)')),
 ]
 LOCALE_PATHS = [

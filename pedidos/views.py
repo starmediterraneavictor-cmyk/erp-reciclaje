@@ -341,8 +341,8 @@ def nuevo_pedido(request):
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
 
-    # 🆕 Filtrar solo los pedidos de compra que tengan toneladas disponibles
-    todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').exclude(estado='PREVISION').order_by('-fecha')
+    # 🆕 Traemos los pedidos con sus detalles para poder filtrar en el HTML
+    todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').exclude(estado='PREVISION').prefetch_related('detalles__material').order_by('-fecha')
     pedidos_disponibles = [pc for pc in todos_compra if pc.tn_disponibles > Decimal('0')]
 
     context = {
@@ -553,7 +553,8 @@ def editar_pedido(request, pedido_id):
     # GET: cargar datos para el formulario
     # ============================================
     
-    todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').exclude(id=pedido.id).exclude(estado='PREVISION').order_by('-fecha')
+    # 🆕 Añadimos prefetch_related
+    todos_compra = Pedido.objects.filter(tipo='COMPRA_MAT').exclude(id=pedido.id).exclude(estado='PREVISION').prefetch_related('detalles__material').order_by('-fecha')
     
     origenes_este_pedido = pedido.origenes_venta.all()
     cantidades_este_pedido = {o.pedido_compra_id: o.cantidad_tn for o in origenes_este_pedido}

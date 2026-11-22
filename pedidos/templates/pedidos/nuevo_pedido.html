@@ -82,7 +82,7 @@
                 <!-- 🔗 ORÍGENES DE COMPRA -->
                 <div class="col-md-12 mb-3 d-none" id="bloque-origenes">
                     <label class="form-label">🔗 Orígenes de compra</label>
-                    <div id="origenesContainer"></div>
+                    <div id="origenesNuevos"></div>
                     <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="añadirOrigen()">
                         <i class="bi bi-plus-circle"></i> Añadir origen
                     </button>
@@ -237,23 +237,25 @@ function eliminarLinea(btn) {
     }
 }
 
+// 🆕 ARRAY CON LOS PEDIDOS DE COMPRA Y SUS MATERIALES
 const pedidosCompraDisponibles = [
     {% for pc in pedidos_compra %}
     { 
         id: {{ pc.id }}, 
-        label: "{{ pc.numero_pedido }} - {{ pc.entidad_nombre|escapejs }} - Quedan: {{ pc.tn_disponibles|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn" 
+        label: "{{ pc.numero_pedido }} - {{ pc.entidad_nombre|escapejs }} - Quedan: {{ pc.tn_disponibles|floatformat:2 }} tn - {{ pc.precio_compra_tn|floatformat:2 }} €/tn",
+        materiales: [{% for d in pc.detalles.all %}{{ d.material.id }}{% if not forloop.last %},{% endif %}{% endfor %}]
     },
     {% endfor %}
 ];
 
 function añadirOrigen(datos = null) {
-    const container = document.getElementById('origenesContainer');
+    const container = document.getElementById('origenesNuevos');
     const html = `
         <div class="origen-item border rounded p-2 mb-2">
             <div class="row">
                 <div class="col-md-6 mb-2">
                     <label class="form-label small">Pedido de compra</label>
-                    <select name="origen_pedido" class="form-select form-select-sm origen-select" onchange="actualizarOrigenesDisponibles()">
+                    <select name="origen_pedido_nuevo" class="form-select form-select-sm origen-select" onchange="actualizarOrigenesDisponibles()">
                         <option value="">-- Seleccionar --</option>
                         ${pedidosCompraDisponibles.map(pc => 
                             `<option value="${pc.id}" ${datos && datos.pedido_id == pc.id ? 'selected' : ''}>${pc.label}</option>`
@@ -276,12 +278,7 @@ function añadirOrigen(datos = null) {
     actualizarOrigenesDisponibles();
 }
 
-function eliminarOrigen(btn) {
-    btn.closest('.origen-item').remove();
-    actualizarOrigenesDisponibles();
-    calcularTotales();
-}
-
+// 🆕 LÓGICA DE FILTRADO POR MATERIAL
 function actualizarOrigenesDisponibles() {
     const selects = document.querySelectorAll('.origen-select');
     const seleccionados = [];
@@ -289,16 +286,58 @@ function actualizarOrigenesDisponibles() {
         if (s.value) seleccionados.push(s.value);
     });
 
+    // Detectar el primer material seleccionado en las líneas de materiales
+    let materialSeleccionadoId = null;
+    const selectMaterial = document.querySelector('select[name="material[]"]');
+    if (selectMaterial && selectMaterial.value) {
+        materialSeleccionadoId = selectMaterial.value;
+    }
+
     selects.forEach(select => {
         const valorActual = select.value;
         Array.from(select.options).forEach(option => {
             if (!option.value) return;
+            
+            // 1. Evitar duplicados
             const estaEnOtro = seleccionados.includes(option.value) && option.value !== valorActual;
-            option.disabled = estaEnOtro;
-            option.style.display = estaEnOtro ? 'none' : '';
+            
+            // 2. Filtrar por material
+            let materialCoincide = true;
+            if (materialSeleccionadoId) {
+                const pedidoId = option.value;
+                const pedidoObj = pedidosCompraDisponibles.find(p => p.id == pedidoId);
+                if (pedidoObj && pedidoObj.materiales) {
+                    // Si el material seleccionado no está en el pedido, lo ocultamos
+                    materialCoincide = pedidoObj.materiales.includes(parseInt(materialSeleccionadoId));
+                }
+            }
+
+            // Aplicar visibilidad
+            if (estaEnOtro || !materialCoincide) {
+                option.disabled = true;
+                option.style.display = 'none';
+            } else {
+                option.disabled = false;
+                option.style.display = '';
+            }
         });
     });
 }
+
+// Escuchar cuando se cambia un material para volver a filtrar
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'material[]') {
+        actualizarOrigenesDisponibles();
+        // (También tienes aquí la lógica de auto-rellenar el precio, déjala igual)
+    }
+});
+
+function eliminarOrigen(btn) {
+    btn.closest('.origen-item').remove();
+    actualizarOrigenesDisponibles();
+    calcularTotales();
+}
+
 
 // 3. CÁLCULO DE TOTALES
 function calcularTotales() {
