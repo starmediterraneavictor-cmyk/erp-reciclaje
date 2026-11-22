@@ -4,6 +4,7 @@ from django.utils import timezone
 from clientes.models import Cliente
 from proveedores.models import Proveedor
 from pedidos.models import Pedido
+from datetime import date # 🆕 Importamos date arriba
 
 
 class Factura(models.Model):
@@ -184,18 +185,19 @@ class CuentaPorPagar(models.Model):
     
     @property
     def dias_para_vencer(self):
-        from datetime import date
+        if not self.fecha_vencimiento:
+            return 0
         return (self.fecha_vencimiento - date.today()).days
     
     @property
     def esta_vencida(self):
-        return self.dias_para_vencer < 0 and self.estado != 'PAGADO'
+        return self.dias_para_vencer < 0 and self.estado not in ['PAGADO', 'ANULADO']
     
     @property
     def alerta(self):
-        if self.estado == 'PAGADO':
+        if self.estado in ['PAGADO', 'ANULADO']:
             return False
-        return self.dias_para_vencer <= 7
+        return 0 <= self.dias_para_vencer <= 7 # 🆕 Solo alerta si faltan 7 días o menos, pero no si ya pasó
 
     @property
     def tiene_factura(self):
@@ -318,24 +320,31 @@ class CuentaPorCobrar(models.Model):
     
     @property
     def dias_para_vencer(self):
-        from datetime import date
+        if not self.fecha_vencimiento:
+            return 0
         return (self.fecha_vencimiento - date.today()).days
     
     @property
+    def esta_vencida(self): # 🆕 Añadido igual que en Pagar
+        return self.dias_para_vencer < 0 and self.estado not in ['COBRADO', 'ANULADO']
+
+    @property
     def alerta(self):
-        if self.estado == 'COBRADO':
+        if self.estado in ['COBRADO', 'ANULADO']:
             return False
-        return self.dias_para_vencer <= 7
+        return 0 <= self.dias_para_vencer <= 7 # 🆕 Solo alerta si faltan 7 días o menos
 
     @property
     def tiene_factura(self):
         return Factura.objects.filter(numero_factura=self.numero_factura).exists() if self.numero_factura else False
 
     @property
+    def factura_asociada(self): # 🆕 Añadido igual que en Pagar
+        return Factura.objects.filter(numero_factura=self.numero_factura).first() if self.numero_factura else None
+    
+    @property
     def alerta_vencimiento(self):
-        if self.estado == 'COBRADO':
-            return False
-        return self.dias_para_vencer < 0
+        return self.esta_vencida
 
     class Meta:
         verbose_name = "Cuenta por cobrar"
