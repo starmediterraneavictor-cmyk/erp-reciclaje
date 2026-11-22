@@ -906,19 +906,19 @@ def libro_gastos_ingresos(request):
 
 @login_required
 def exportar_libro_excel(request):
-    """Exporta el libro COMPLETO (todos los ingresos y gastos) a Excel con 2 pestañas."""
+    """Exporta el libro separado por trimestres + hoja Resumen."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
     from datetime import date
 
-    # 1. Filtros (idénticos a la vista)
+    # 1. Filtros
     categoria = request.GET.get('categoria', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
+    year = request.GET.get('year', date.today().year) # Mantenemos el año por defecto
 
     # 2. Queryset base
-    facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
-    
+    facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('fecha')
     if categoria:
         facturas = facturas.filter(categoria=categoria)
     if desde:
@@ -926,77 +926,95 @@ def exportar_libro_excel(request):
     if hasta:
         facturas = facturas.filter(fecha__lte=hasta)
 
-    ingresos = facturas.filter(tipo='INGRESO')
-    gastos = facturas.filter(tipo='GASTO')
-
-    # 3. Crear el Excel
+    # 3. Preparar Excel
     wb = Workbook()
-    wb.remove(wb.active) # Borrar hoja por defecto
+    wb.remove(wb.active)
 
     cabeceras = ['Fecha', 'Nº Factura', 'Entidad', 'Categoría', 'Base (€)', 'IVA (%)', 'IVA (€)', 'Total (€)', 'Estado']
     estilo_cabecera = Font(bold=True, color='FFFFFF')
     fondo_ingresos = PatternFill('solid', fgColor='2D6A4F')
     fondo_gastos = PatternFill('solid', fgColor='DC3545')
 
-    # --- HOJA INGRESOS ---
-    ws_ing = wb.create_sheet(title="Ingresos")
-    ws_ing.append(cabeceras)
-    for cell in ws_ing[1]:
+    # --- Hoja RESUMEN ANUAL ---
+    ws_resumen = wb.create_sheet(title="Resumen Anual")
+    ws_resumen.append([f'RESUMEN ANUAL {year}'])
+    ws_resumen['A1'].font = Font(bold=True, size=14)
+    ws_resumen.append([])
+    ws_resumen.append(['Trimestre', 'Total Ingresos (€)', 'Total Gastos (€)', 'Beneficio (€)'])
+    for cell in ws_resumen[3]:
         cell.font = estilo_cabecera
         cell.fill = fondo_ingresos
 
-    total_ing = 0
-    for f in ingresos:
-        ws_ing.append([
-            f.fecha.strftime('%d/%m/%Y'),
-            f.numero_factura,
-            f.entidad_nombre,
-            f.get_categoria_display(),
-            float(f.base),
-            float(f.iva_porcentaje),
-            float(f.iva),
-            float(f.total),
-            f.get_estado_pago_display()
-        ])
-        total_ing += float(f.total)
-    
-    ws_ing.append(['TOTAL INGRESOS', '', '', '', '', '', '', total_ing, ''])
-    ws_ing.append([]) # Línea en blanco
-    
-    # Estilo a la fila de totales de ingresos
-    for cell in ws_ing[ws_ing.max_row]:
-        cell.font = Font(bold=True)
+    total_ing_año = 0
+    total_gas_año = 0
 
-    # --- HOJA GASTOS ---
-    ws_gas = wb.create_sheet(title="Gastos")
-    ws_gas.append(cabeceras)
-    for cell in ws_gas[1]:
-        cell.font = estilo_cabecera
-        cell.fill = fondo_gastos
+    # --- Hojas POR TRIMESTRE ---
+    for trimestre in range(1, 5):
+        mes_inicio = (trimestre - 1) * 3 + 1
+        mes_fin = mes_inicio + 2
 
-    total_gas = 0
-    for f in gastos:
-        ws_gas.append([
-            f.fecha.strftime('%d/%m/%Y'),
-            f.numero_factura,
-            f.entidad_nombre,
-            f.get_categoria_display(),
-            float(f.base),
-            float(f.iva_porcentaje),
-            float(f.iva),
-            float(f.total),
-            f.get_estado_pago_display()
-        ])
-        total_gas += float(f.total)
+        facturas_trim = facturas.filter(fecha__month__gte=mes_inicio, fecha__month__lte=mes_fin)
+        facturas_ing = facturas_trim.filter(tipo='INGRESO')
+        facturas_gas = facturas_trim.filter(tipo='GASTO')
 
-    ws_gas.append(['TOTAL GASTOS', '', '', '', '', '', '', total_gas, ''])
-    
-    # Estilo a la fila de totales de gastos
-    for cell in ws_gas[ws_gas.max_row]:
-        cell.font = Font(bold=True)
+        # Si no hay facturas en este trimestre, no creamos la hoja (opcional, pero más limpio)
+        if not facturas_ing.exists() and not facturas_gas.exists():
+            continue
 
-    # 4. Ajustar ancho de columnas automáticamente
-    for ws in [ws_ing, ws_gas]:
+        total_ing = sum((f.total for f in facturas_ing), 0)
+        total_gas = sum((f.total for f in facturas_gas), 0)
+        total_ing_año += total_ing
+        total_gas_año += total_gas
+
+        ws = wb.create_sheet(title=f"T{trimestre} {year}")
+
+        # Sección INGRESOS
+        ws.append([f'INGRESOS T{trimestre}'])
+        ws['A1'].font = Font(bold=True, size=12)
+        ws.append(cabeceras)
+        for cell in ws[2]:
+            cell.font = estilo_cabecera
+            cell.fill = fondo_ingresos
+        
+        for f in facturas_ing:
+            ws.append([f.fecha.strftime('%d/%m/%Y'), f.numero_factura, f.entidad_nombre, f.get_categoria_display(),
+                       float(f.base), float(f.iva_porcentaje), float(f.iva), float(f.total), f.get_estado_pago_display()])
+        
+        fila_total_ing = ws.max_row + 1
+        ws.append(['TOTAL INGRESOS', '', '', '', '', '', '', float(total_ing), ''])
+        ws.cell(row=fila_total_ing, column=1).font = Font(bold=True)
+        ws.cell(row=fila_total_ing, column=8).font = Font(bold=True)
+        
+        ws.append([]) # Línea en blanco
+
+        # Sección GASTOS
+        fila_gastos_titulo = ws.max_row + 1
+        ws.append([f'GASTOS T{trimestre}'])
+        ws.cell(row=fila_gastos_titulo, column=1).font = Font(bold=True, size=12)
+        
+        ws.append(cabeceras)
+        for cell in ws[ws.max_row]:
+            cell.font = estilo_cabecera
+            cell.fill = fondo_gastos
+            
+        for f in facturas_gas:
+            ws.append([f.fecha.strftime('%d/%m/%Y'), f.numero_factura, f.entidad_nombre, f.get_categoria_display(),
+                       float(f.base), float(f.iva_porcentaje), float(f.iva), float(f.total), f.get_estado_pago_display()])
+        
+        fila_total_gas = ws.max_row + 1
+        ws.append(['TOTAL GASTOS', '', '', '', '', '', '', float(total_gas), ''])
+        ws.cell(row=fila_total_gas, column=1).font = Font(bold=True)
+        ws.cell(row=fila_total_gas, column=8).font = Font(bold=True)
+
+        ws.append([])
+        
+        # Resumen del trimestre
+        fila_beneficio = ws.max_row + 1
+        ws.append([f'BENEFICIO T{trimestre}', '', '', '', '', '', '', float(total_ing - total_gas), ''])
+        ws.cell(row=fila_beneficio, column=1).font = Font(bold=True, color='2D6A4F')
+        ws.cell(row=fila_beneficio, column=8).font = Font(bold=True, color='2D6A4F')
+
+        # Ajustar ancho de columnas para esta hoja
         for col in ws.columns:
             max_length = 0
             col_letter = col[0].column_letter
@@ -1007,9 +1025,29 @@ def exportar_libro_excel(request):
                 except: pass
             ws.column_dimensions[col_letter].width = max(max_length + 2, 12)
 
-    # 5. Respuesta
+        # Añadir fila al Resumen
+        ws_resumen.append([f'T{trimestre}', float(total_ing), float(total_gas), float(total_ing - total_gas)])
+
+    # Rellenar totales del Resumen Anual
+    ws_resumen.append([])
+    ws_resumen.append(['TOTAL AÑO', float(total_ing_año), float(total_gas_año), float(total_ing_año - total_gas_año)])
+    for cell in ws_resumen[ws_resumen.max_row]:
+        cell.font = Font(bold=True)
+
+    # Ajustar ancho de columnas para la hoja Resumen
+    for col in ws_resumen.columns:
+        max_length = 0
+        col_letter = col[0].column_letter
+        for cell in col:
+            try:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            except: pass
+        ws_resumen.column_dimensions[col_letter].width = max(max_length + 2, 15)
+
+    # 4. Respuesta
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="Libro_Gastos_Ingresos.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="Libro_Trimestral_{year}.xlsx"'
     wb.save(response)
     return response
 
