@@ -245,11 +245,17 @@ class PagoCuentaPorPagar(models.Model):
         
         self.cuenta.save()
         
-        # 🆕 SINCRONIZAR CON LA FACTURA ASOCIADA (Igual que en los cobros)
+       # 🆕 BUSCAR LA FACTURA ASOCIADA (por número o por concepto)
         factura = None
         if self.cuenta.numero_factura:
             factura = Factura.objects.filter(numero_factura=self.cuenta.numero_factura).first()
         
+        # Si no se encuentra por número, intentamos por el concepto
+        if not factura and self.cuenta.concepto.startswith('Factura '):
+            num_factura = self.cuenta.concepto.replace('Factura ', '').strip()
+            factura = Factura.objects.filter(numero_factura=num_factura).first()
+
+        # Si aún no se encuentra, probamos con el pedido (por si acaso)
         if not factura and self.cuenta.concepto.startswith('Pedido '):
             from pedidos.models import Pedido
             num_pedido = self.cuenta.concepto.replace('Pedido ', '').strip()
@@ -258,7 +264,7 @@ class PagoCuentaPorPagar(models.Model):
                 factura = Factura.objects.filter(pedido=pedido).first()
         
         if factura:
-            if self.cuenta.estado == 'PAGADO':
+            if self.cuenta.estado == 'PAGADO' or self.cuenta.estado == 'COBRADO':
                 factura.estado_pago = 'PAGADO'
             elif self.cuenta.estado == 'PARCIAL':
                 factura.estado_pago = 'PARCIAL'
@@ -385,11 +391,17 @@ class CobroCuentaPorCobrar(models.Model):
         
         self.cuenta.save()
 
-        # 🆕 SINCRONIZAR CON LA FACTURA ASOCIADA
+        # 🆕 BUSCAR LA FACTURA ASOCIADA (por número o por concepto)
         factura = None
         if self.cuenta.numero_factura:
             factura = Factura.objects.filter(numero_factura=self.cuenta.numero_factura).first()
         
+        # Si no se encuentra por número, intentamos por el concepto
+        if not factura and self.cuenta.concepto.startswith('Factura '):
+            num_factura = self.cuenta.concepto.replace('Factura ', '').strip()
+            factura = Factura.objects.filter(numero_factura=num_factura).first()
+
+        # Si aún no se encuentra, probamos con el pedido (por si acaso)
         if not factura and self.cuenta.concepto.startswith('Pedido '):
             from pedidos.models import Pedido
             num_pedido = self.cuenta.concepto.replace('Pedido ', '').strip()
@@ -398,7 +410,7 @@ class CobroCuentaPorCobrar(models.Model):
                 factura = Factura.objects.filter(pedido=pedido).first()
         
         if factura:
-            if self.cuenta.estado == 'COBRADO':
+            if self.cuenta.estado == 'PAGADO' or self.cuenta.estado == 'COBRADO':
                 factura.estado_pago = 'PAGADO'
             elif self.cuenta.estado == 'PARCIAL':
                 factura.estado_pago = 'PARCIAL'
