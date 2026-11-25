@@ -628,6 +628,8 @@ def nueva_cuenta_por_pagar(request):
 def registrar_pago_cuenta(request, cuenta_id):
     """Registrar un pago parcial o total"""
     cuenta = get_object_or_404(CuentaPorPagar, id=cuenta_id)
+    # 🆕 Capturamos los filtros de la URL
+    url_retorno = request.GET.urlencode()
 
     if request.method == 'POST':
         try:
@@ -642,9 +644,10 @@ def registrar_pago_cuenta(request, cuenta_id):
             )
             messages.success(request, f'✅ Pago registrado: {request.POST.get("importe")}€')
             
-            url_retorno = request.POST.get('return_url', '')
-            if url_retorno:
-                return redirect(f"/finanzas/pagar/?{url_retorno}")
+            # 🆕 Redirigir manteniendo los filtros
+            url_retorno_post = request.POST.get('return_url', '')
+            if url_retorno_post:
+                return redirect(f"/finanzas/pagar/?{url_retorno_post}")
             
             return redirect('cuentas_por_pagar')
         except Exception as e:
@@ -653,6 +656,7 @@ def registrar_pago_cuenta(request, cuenta_id):
     context = {
         'cuenta': cuenta,
         'fecha_actual': date.today().strftime('%Y-%m-%d'),
+        'url_retorno': url_retorno, # 🆕 Pasamos los filtros al HTML
     }
     return render(request, 'finanzas/registrar_pago_cuenta.html', context)
 
@@ -741,6 +745,8 @@ def nueva_cuenta_por_cobrar(request):
 def registrar_cobro_cuenta(request, cuenta_id):
     """Registrar un cobro"""
     cuenta = get_object_or_404(CuentaPorCobrar, id=cuenta_id)
+    # 🆕 Capturamos los filtros de la URL
+    url_retorno = request.GET.urlencode()
 
     if request.method == 'POST':
         try:
@@ -755,9 +761,10 @@ def registrar_cobro_cuenta(request, cuenta_id):
             )
             messages.success(request, '✅ Cobro registrado')
             
-            url_retorno = request.POST.get('return_url', '')
-            if url_retorno:
-                return redirect(f"/finanzas/cobrar/?{url_retorno}")
+            # 🆕 Redirigir manteniendo los filtros
+            url_retorno_post = request.POST.get('return_url', '')
+            if url_retorno_post:
+                return redirect(f"/finanzas/cobrar/?{url_retorno_post}")
             
             return redirect('cuentas_por_cobrar')
         except Exception as e:
@@ -766,6 +773,7 @@ def registrar_cobro_cuenta(request, cuenta_id):
     context = {
         'cuenta': cuenta,
         'fecha_actual': date.today().strftime('%Y-%m-%d'),
+        'url_retorno': url_retorno, # 🆕 Pasamos los filtros al HTML
     }
     return render(request, 'finanzas/registrar_cobro_cuenta.html', context)
 
