@@ -86,16 +86,13 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Pedidos asociados (Mantén Ctrl/Cmd para seleccionar varios)</label>
-                    <select name="pedidos" class="form-select" multiple size="4" {% if bloqueado %}disabled{% endif %}>
+                    <select name="pedidos" class="form-select" multiple size="4">
                         {% for p in pedidos %}
                         <option value="{{ p.id }}" {% if pedido_defecto and pedido_defecto.id == p.id %}selected{% endif %}>
                             {{ p.numero_pedido }} - {{ p.entidad_nombre|truncatechars:25 }} ({{ p.get_tipo_display }})
                         </option>
                         {% endfor %}
                     </select>
-                    {% if bloqueado and pedido_defecto %}
-                    <input type="hidden" name="pedidos" value="{{ pedido_defecto.id }}">
-                    {% endif %}
                 </div>
             </div>
 
