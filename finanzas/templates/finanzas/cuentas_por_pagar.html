@@ -156,7 +156,7 @@
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-1 flex-wrap">
                                 {% if c.estado != 'PAGADO' %}
-                                <a href="{% url 'registrar_pago_cuenta' c.id %}?return_url={{ request.GET.urlencode|urlencode }}" class="btn btn-success btn-sm" title="Registrar pago">
+                                <a href="{% url 'registrar_pago_cuenta' c.id %}?{{ request.GET.urlencode }}" class="btn btn-success btn-sm" title="Registrar pago">
                                     <i class="bi bi-cash"></i> Pagar
                                 </a>
                                 {% endif %}
