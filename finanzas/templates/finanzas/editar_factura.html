@@ -82,15 +82,22 @@
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Pedidos asociados (Mantén Ctrl/Cmd para seleccionar varios)</label>
-                    <select name="pedidos" class="form-select" multiple size="5">
+                    <label class="form-label">Pedidos asociados</label>
+                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto; background-color: #f8f9fa;">
                         {% for p in pedidos %}
-                            <option value="{{ p.id }}" {% if p in factura.pedidos.all %}selected{% endif %}>
-                                {{ p.numero_pedido }} - {{ p.entidad_nombre|truncatechars:30 }} ({{ p.get_tipo_display }})
-                            </option>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="pedidos" value="{{ p.id }}" id="pedido_{{ p.id }}"
+                                       {% if p in factura.pedidos.all %}checked{% endif %}>
+                                <label class="form-check-label" for="pedido_{{ p.id }}">
+                                    {{ p.numero_pedido }} - {{ p.entidad_nombre|truncatechars:25 }}
+                                    <small class="text-muted">({{ p.get_tipo_display }})</small>
+                                </label>
+                            </div>
+                        {% empty %}
+                            <span class="text-muted small">No hay pedidos disponibles</span>
                         {% endfor %}
-                    </select>
-                    <small class="text-muted">Solo se muestran pedidos de este proveedor.</small>
+                    </div>
+                    <small class="text-muted">Marca los pedidos que corresponden a esta factura.</small>
                 </div>
             </div>
 
