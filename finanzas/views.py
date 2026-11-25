@@ -20,7 +20,7 @@ from decimal import Decimal
 from pedidos.models import Comercial, Comision
 from django.db.models import Sum
 from django.core.paginator import Paginator
-
+from core.utils import exportar_excel
 
 
 # ============================================
@@ -30,11 +30,8 @@ from django.core.paginator import Paginator
 def _crear_cuenta_para_factura(factura):
     """
     Crea la CuentaPorCobrar (si INGRESO) o CuentaPorPagar (si GASTO)
-    asociada a una factura. No hace nada si:
-    - Ya existe una cuenta con ese numero_factura
-    - No hay cliente/proveedor en la factura
+    asociada a una factura.
     """
-    # Evitar duplicados
     if factura.tipo == 'INGRESO':
         if CuentaPorCobrar.objects.filter(numero_factura=factura.numero_factura).exists():
             return None
@@ -60,7 +57,7 @@ def _crear_cuenta_para_factura(factura):
         
         return CuentaPorPagar.objects.create(
             concepto=f"Factura {factura.numero_factura}",
-            categoria=factura.categoria, # 🆕 Hereda la categoría de la factura
+            categoria=factura.categoria,
             proveedor=factura.proveedor,
             importe_total=factura.total,
             fecha_emision=factura.fecha,
@@ -101,7 +98,6 @@ def lista_facturas(request):
             Q(proveedor__nombre__icontains=buscar)
         )
 
-    # 🆕 Paginación (DESPUÉS de los filtros)
     paginator = Paginator(facturas, 15)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -115,11 +111,10 @@ def lista_facturas(request):
     total_gastos = totales['gastos'] or 0
     beneficio = total_ingresos - total_gastos
 
-    # 🆕 Contador total de facturas sin importar los filtros (o con ellos, según prefieras)
     num_facturas_totales = facturas.count() 
 
     context = {
-        'facturas': page_obj, # 🆕 Solo la página
+        'facturas': page_obj,
         'page_obj': page_obj,
         'total_ingresos': total_ingresos,
         'total_gastos': total_gastos,
@@ -135,10 +130,10 @@ def lista_facturas(request):
     }
     return render(request, 'finanzas/lista.html', context)
 
+
 @login_required
 def nueva_factura(request):
     """Formulario para crear una nueva factura"""
-    # 🆕 Recogemos el pedido_id de la URL
     pedido_id = request.GET.get('pedido_id')
     pedido_pre = None
     if pedido_id:
@@ -158,7 +153,6 @@ def nueva_factura(request):
                 fecha_vencimiento=request.POST.get('fecha_vencimiento') or None,
                 cliente_id=cliente_id or None,
                 proveedor_id=proveedor_id or None,
-                pedido_id=request.POST.get('pedido') or None,
                 categoria=request.POST.get('categoria', 'OTROS'),
                 base=request.POST.get('base', 0),
                 iva_porcentaje=request.POST.get('iva_porcentaje', 21),
@@ -166,6 +160,11 @@ def nueva_factura(request):
                 notas=request.POST.get('notas', ''),
                 archivo_justificante=request.FILES.get('archivo_factura') or None,
             )
+            
+            pedidos_seleccionados = request.POST.getlist('pedidos')
+            if pedidos_seleccionados:
+                factura.pedidos.set(pedidos_seleccionados)
+            
             if request.POST.get('crear_cuenta'):
                 _crear_cuenta_para_factura(factura)
 
@@ -175,13 +174,12 @@ def nueva_factura(request):
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
 
-    # 🆕 Si venimos de un pedido, configuramos los valores por defecto
     tipo_defecto = 'INGRESO'
     cliente_defecto = None
     proveedor_defecto = None
     pedido_defecto = None
     categoria_defecto = 'OTROS'
-    bloqueado = False # 🆕 Para bloquear los campos
+    bloqueado = False
 
     if pedido_pre:
         bloqueado = True
@@ -195,26 +193,24 @@ def nueva_factura(request):
         
         pedido_defecto = pedido_pre
 
-    # 🆕 Solo mostramos pedidos que NO tengan factura asociada
-    pedidos_disponibles = Pedido.objects.filter(facturas__isnull=True).order_by('-fecha')[:50]
+    pedidos_disponibles = Pedido.objects.filter(facturas__isnull=True).order_by('-fecha')[:100]
 
     context = {
         'clientes': Cliente.objects.all().order_by('nombre'),
         'proveedores': Proveedor.objects.all().order_by('nombre'),
         'proveedores_json': list(Proveedor.objects.values('id', 'nombre', 'tipo')),
-        'pedidos': pedidos_disponibles, # 🆕 Solo los que no tienen factura
+        'pedidos': pedidos_disponibles,
         'tipos': Factura.TIPO_FACTURA,
         'categorias': Factura.CATEGORIAS,
         'estados': Factura.ESTADO_PAGO,
         'fecha_actual': datetime.now().strftime('%Y-%m-%d'),
         
-        # 🆕 Pasamos los valores por defecto
         'tipo_defecto': tipo_defecto,
         'cliente_defecto': cliente_defecto,
         'proveedor_defecto': proveedor_defecto,
         'pedido_defecto': pedido_defecto,
         'categoria_defecto': categoria_defecto,
-        'bloqueado': bloqueado, # 🆕 Para saber si bloquear los campos
+        'bloqueado': bloqueado,
     }
     return render(request, 'finanzas/nueva_factura.html', context)
 
@@ -223,7 +219,7 @@ def nueva_factura(request):
 def editar_factura(request, factura_id):
     """Formulario para editar una factura existente"""
     factura = get_object_or_404(Factura, id=factura_id)
-    url_retorno = request.GET.get('return_url', '') # 🆕 Capturamos
+    url_retorno = request.GET.get('return_url', '')
 
     if request.method == 'POST':
         try:
@@ -231,24 +227,28 @@ def editar_factura(request, factura_id):
 
             numero_antiguo = factura.numero_factura
             factura.numero_factura = request.POST.get('numero_factura')
-            factura.numero_albaran = request.POST.get('numero_albaran', '') # 🆕
+            factura.numero_albaran = request.POST.get('numero_albaran', '')
             factura.tipo = tipo_factura
             factura.fecha = request.POST.get('fecha')
             factura.fecha_vencimiento = request.POST.get('fecha_vencimiento') or None
             factura.cliente_id = request.POST.get('cliente') if tipo_factura == 'INGRESO' else None
             factura.proveedor_id = request.POST.get('proveedor') if tipo_factura == 'GASTO' else None
-            factura.pedido_id = request.POST.get('pedido') or None
             factura.categoria = request.POST.get('categoria')
             factura.base = request.POST.get('base', 0)
             factura.iva_porcentaje = request.POST.get('iva_porcentaje', 21)
             factura.estado_pago = request.POST.get('estado_pago')
             factura.notas = request.POST.get('notas', '')
-            # Actualizar archivo si se ha subido uno nuevo
+            
             if request.FILES.get('archivo_factura'):
                 factura.archivo_factura = request.FILES.get('archivo_factura')
 
             factura.save()
-            # Sincronizar el nuevo número de factura en las cuentas asociadas (incluido el concepto)
+            
+            # 🆕 Guardamos la lista de pedidos seleccionados
+            pedidos_seleccionados = request.POST.getlist('pedidos')
+            factura.pedidos.set(pedidos_seleccionados)
+
+            # Sincronizar el nuevo número de factura en las cuentas asociadas
             if numero_antiguo != factura.numero_factura:
                 CuentaPorPagar.objects.filter(numero_factura=numero_antiguo).update(
                     numero_factura=factura.numero_factura,
@@ -257,11 +257,9 @@ def editar_factura(request, factura_id):
                 CuentaPorCobrar.objects.filter(numero_factura=numero_antiguo).update(
                     numero_factura=factura.numero_factura,
                     concepto=f"Factura {factura.numero_factura}"
-    )
-
+                )
 
             messages.success(request, f'✅ Factura {factura.numero_factura} actualizada')
-            # 🆕 Redirigir con los filtros si existen
             if url_retorno:
                 return redirect(f"/finanzas/?{url_retorno}")
             return redirect('lista_facturas')
@@ -273,8 +271,8 @@ def editar_factura(request, factura_id):
         'factura': factura,
         'clientes': Cliente.objects.all().order_by('nombre'),
         'proveedores': Proveedor.objects.all().order_by('nombre'),
-        'proveedores_json': list(Proveedor.objects.values('id', 'nombre', 'tipo')), # 🆕 Para el JS
-        'pedidos': Pedido.objects.all().order_by('-fecha')[:50],
+        'proveedores_json': list(Proveedor.objects.values('id', 'nombre', 'tipo')),
+        'pedidos': Pedido.objects.all().order_by('-fecha')[:100], # 🆕 Aumentamos el límite para ver más
         'tipos': Factura.TIPO_FACTURA,
         'categorias': Factura.CATEGORIAS,
         'estados': Factura.ESTADO_PAGO,
@@ -284,6 +282,7 @@ def editar_factura(request, factura_id):
 
 @login_required
 def confirmar_eliminar_factura(request, factura_id):
+    """Muestra la pantalla de confirmación antes de borrar una factura"""
     factura = get_object_or_404(Factura, id=factura_id)
     context = {
         'factura': factura,
@@ -366,12 +365,10 @@ def cuentas_por_pagar(request):
             Q(proveedor__nombre__icontains=buscar)
         )
 
-    # 🆕 PAGINACIÓN
-    paginator = Paginator(cuentas, 20) # 20 por página
+    paginator = Paginator(cuentas, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Para los totales usamos el queryset completo, no solo la página
     pendientes = cuentas.filter(estado__in=['PENDIENTE', 'PARCIAL'])
     vencidas = [c for c in pendientes if c.esta_vencida]
 
@@ -379,7 +376,7 @@ def cuentas_por_pagar(request):
     total_vencido = sum(c.saldo_pendiente for c in vencidas)
 
     context = {
-        'cuentas': page_obj, # 🆕 Solo la página
+        'cuentas': page_obj,
         'page_obj': page_obj,
         'pendientes': pendientes,
         'vencidas': vencidas,
@@ -393,6 +390,7 @@ def cuentas_por_pagar(request):
         'buscar_filtro': buscar,
     }
     return render(request, 'finanzas/cuentas_por_pagar.html', context)
+
 
 @login_required
 def nueva_cuenta_por_pagar(request):
@@ -424,7 +422,6 @@ def nueva_cuenta_por_pagar(request):
         except Exception as e:
             messages.error(request, f'❌ Error: {str(e)}')
 
-    # 🆕 Si venimos de un pedido, pre-rellenamos los datos
     contexto_extra = {}
     if pedido:
         if tipo == 'proforma':
@@ -433,10 +430,9 @@ def nueva_cuenta_por_pagar(request):
                 'importe_sugerido': pedido.total_importe,
             }
         else:
-            # Para factura definitiva, lo normal es que el importe sea el ajustado
             contexto_extra = {
                 'concepto_sugerido': f"Factura Definitiva {pedido.numero_pedido} - {pedido.proveedor.nombre if pedido.proveedor else ''}",
-                'importe_sugerido': pedido.total_importe, # Aquí el usuario pondrá el real
+                'importe_sugerido': pedido.total_importe,
             }
 
     context = {
@@ -444,7 +440,7 @@ def nueva_cuenta_por_pagar(request):
         'periodicidades': CuentaPorPagar.PERIODICIDAD,
         'proveedores': Proveedor.objects.all().order_by('nombre'),
         'fecha_actual': date.today().strftime('%Y-%m-%d'),
-        'pedido': pedido, # 🆕 Pasamos el pedido al formulario
+        'pedido': pedido,
         'tipo': tipo,
         **contexto_extra
     }
@@ -469,7 +465,6 @@ def registrar_pago_cuenta(request, cuenta_id):
             )
             messages.success(request, f'✅ Pago registrado: {request.POST.get("importe")}€')
             
-            # 🆕 Redirigir manteniendo los filtros
             url_retorno = request.POST.get('return_url', '')
             if url_retorno:
                 return redirect(f"/finanzas/pagar/?{url_retorno}")
@@ -510,7 +505,6 @@ def cuentas_por_cobrar(request):
             Q(proveedor__nombre__icontains=buscar)
         )
 
-    # 🆕 PAGINACIÓN
     paginator = Paginator(cuentas, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -522,7 +516,7 @@ def cuentas_por_cobrar(request):
     total_vencido = sum(c.saldo_pendiente for c in vencidas)
 
     context = {
-        'cuentas': page_obj, # 🆕 Solo la página
+        'cuentas': page_obj,
         'page_obj': page_obj,
         'pendientes': pendientes,
         'vencidas': vencidas,
@@ -584,7 +578,6 @@ def registrar_cobro_cuenta(request, cuenta_id):
             )
             messages.success(request, '✅ Cobro registrado')
             
-            # 🆕 Redirigir manteniendo los filtros
             url_retorno = request.POST.get('return_url', '')
             if url_retorno:
                 return redirect(f"/finanzas/cobrar/?{url_retorno}")
@@ -661,7 +654,6 @@ def registrar_cobro_pago_factura(request, factura_id):
     else:
         cuenta_existente = CuentaPorPagar.objects.filter(numero_factura=factura.numero_factura).first()
 
-    # 🆕 SI YA EXISTE, NOS LLEVA DIRECTAMENTE A REGISTRAR EL PAGO/COBRO
     if cuenta_existente:
         if cuenta_existente.estado == 'PAGADO' or cuenta_existente.estado == 'COBRADO':
             messages.info(request, 'ℹ️ Esta cuenta ya está pagada/cobrada en su totalidad.')
@@ -676,7 +668,6 @@ def registrar_cobro_pago_factura(request, factura_id):
         else:
             return redirect('registrar_pago_cuenta', cuenta_id=cuenta_existente.id)
 
-    # Si no existe, seguimos con el flujo normal de creación...
     if request.method == 'POST':
         try:
             fecha_vencimiento = request.POST.get('fecha_vencimiento')
@@ -697,7 +688,7 @@ def registrar_cobro_pago_factura(request, factura_id):
             else:
                 cuenta = CuentaPorPagar.objects.create(
                     concepto=f"Factura {factura.numero_factura}",
-                    categoria=factura.categoria, # 🆕 COPIAMOS LA CATEGORÍA DE LA FACTURA
+                    categoria=factura.categoria,
                     proveedor=factura.proveedor,
                     importe_total=factura.total,
                     fecha_emision=factura.fecha,
@@ -719,31 +710,23 @@ def registrar_cobro_pago_factura(request, factura_id):
     }
     return render(request, 'finanzas/registrar_cobro_pago_factura.html', context)
 
+
 # ============================================
 # ELIMINAR CUENTAS POR PAGAR / COBRAR
 # ============================================
 
 @login_required
 def confirmar_eliminar_cuenta_por_pagar(request, cuenta_id):
-    """Muestra página de confirmación para eliminar una cuenta por pagar"""
     cuenta = get_object_or_404(CuentaPorPagar, id=cuenta_id)
-
-    # Comprobar si tiene factura asociada
     tiene_factura = Factura.objects.filter(numero_factura=cuenta.numero_factura).exists()
-
-    context = {
-        'cuenta': cuenta,
-        'tiene_factura': tiene_factura,
-    }
+    context = {'cuenta': cuenta, 'tiene_factura': tiene_factura}
     return render(request, 'finanzas/confirmar_eliminar_cuenta_pagar.html', context)
 
 
 @login_required
 def eliminar_cuenta_por_pagar(request, cuenta_id):
-    """Elimina definitivamente una cuenta por pagar (solo si no tiene factura)"""
     cuenta = get_object_or_404(CuentaPorPagar, id=cuenta_id)
 
-    # Bloqueo backend: si tiene factura, no se puede borrar
     if Factura.objects.filter(numero_factura=cuenta.numero_factura).exists():
         messages.error(request, '❌ No se puede eliminar: tiene una factura asociada. Elimina primero la factura.')
         return redirect('cuentas_por_pagar')
@@ -759,21 +742,14 @@ def eliminar_cuenta_por_pagar(request, cuenta_id):
 
 @login_required
 def confirmar_eliminar_cuenta_por_cobrar(request, cuenta_id):
-    """Muestra página de confirmación para eliminar una cuenta por cobrar"""
     cuenta = get_object_or_404(CuentaPorCobrar, id=cuenta_id)
-
     tiene_factura = Factura.objects.filter(numero_factura=cuenta.numero_factura).exists()
-
-    context = {
-        'cuenta': cuenta,
-        'tiene_factura': tiene_factura,
-    }
+    context = {'cuenta': cuenta, 'tiene_factura': tiene_factura}
     return render(request, 'finanzas/confirmar_eliminar_cuenta_cobrar.html', context)
 
 
 @login_required
 def eliminar_cuenta_por_cobrar(request, cuenta_id):
-    """Elimina definitivamente una cuenta por cobrar (solo si no tiene factura)"""
     cuenta = get_object_or_404(CuentaPorCobrar, id=cuenta_id)
 
     if Factura.objects.filter(numero_factura=cuenta.numero_factura).exists():
@@ -788,20 +764,16 @@ def eliminar_cuenta_por_cobrar(request, cuenta_id):
 
     return redirect('confirmar_eliminar_cuenta_por_cobrar', cuenta_id=cuenta_id)
 
+
 # ============================================
 # EXPORTAR A EXCEL
 # ============================================
-
-from core.utils import exportar_excel
-from datetime import date
-
 
 @login_required
 def exportar_facturas_excel(request):
     """Exporta facturas a Excel."""
     facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
 
-    # Filtros opcionales
     desde = request.GET.get('desde')
     hasta = request.GET.get('hasta')
     tipo = request.GET.get('tipo')
@@ -842,6 +814,7 @@ def exportar_facturas_excel(request):
 
     return exportar_excel(nombre, cabeceras, filas, titulo_hoja="Facturas")
 
+
 # ============================================
 # LIBRO DE GASTOS E INGRESOS
 # ============================================
@@ -849,12 +822,8 @@ def exportar_facturas_excel(request):
 @login_required
 def libro_gastos_ingresos(request):
     """Libro mayor con ingresos y gastos separados, con filtros."""
-    from django.db.models import Sum
-    from decimal import Decimal
-
     facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('-fecha')
 
-    # Filtros
     categoria = request.GET.get('categoria', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
@@ -866,22 +835,18 @@ def libro_gastos_ingresos(request):
     if hasta:
         facturas = facturas.filter(fecha__lte=hasta)
 
-    # Separar en dos listas (ANTES de paginar)
     facturas_ingresos = facturas.filter(tipo='INGRESO')
     facturas_gastos = facturas.filter(tipo='GASTO')
 
-    # 🆕 PAGINACIÓN (DESPUÉS de separar)
     paginator_ing = Paginator(facturas_ingresos, 15)
     paginator_gas = Paginator(facturas_gastos, 15)
     page_ing = paginator_ing.get_page(request.GET.get('page_ing'))
     page_gas = paginator_gas.get_page(request.GET.get('page_gas'))
 
-    # Totales (del queryset completo, no solo de la página)
     total_ingresos = facturas_ingresos.aggregate(t=Sum('total'))['t'] or Decimal('0')
     total_gastos = facturas_gastos.aggregate(t=Sum('total'))['t'] or Decimal('0')
     beneficio = total_ingresos - total_gastos
     
-    # 🆕 Contadores
     num_facturas = facturas.count()
     num_ingresos = facturas_ingresos.count()
     num_gastos = facturas_gastos.count()
@@ -895,8 +860,8 @@ def libro_gastos_ingresos(request):
         'total_gastos': total_gastos,
         'beneficio': beneficio,
         'num_facturas': num_facturas,
-        'num_ingresos': num_ingresos, # 🆕
-        'num_gastos': num_gastos, # 🆕
+        'num_ingresos': num_ingresos,
+        'num_gastos': num_gastos,
         'categorias': Factura.CATEGORIAS,
         'categoria_filtro': categoria,
         'desde_filtro': desde,
@@ -904,20 +869,18 @@ def libro_gastos_ingresos(request):
     }
     return render(request, 'finanzas/libro_gastos_ingresos.html', context)
 
+
 @login_required
 def exportar_libro_excel(request):
     """Exporta el libro separado por trimestres + hoja Resumen, incluyendo NIF y Albarán."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
-    from datetime import date
 
-    # 1. Filtros
     categoria = request.GET.get('categoria', '')
     desde = request.GET.get('desde', '')
     hasta = request.GET.get('hasta', '')
     year = request.GET.get('year', date.today().year)
 
-    # 2. Queryset base
     facturas = Factura.objects.exclude(estado_pago='ANULADO').order_by('fecha')
     if categoria:
         facturas = facturas.filter(categoria=categoria)
@@ -926,17 +889,14 @@ def exportar_libro_excel(request):
     if hasta:
         facturas = facturas.filter(fecha__lte=hasta)
 
-    # 3. Preparar Excel
     wb = Workbook()
     wb.remove(wb.active)
 
-    # 🆕 Añadimos NIF y Albarán a las cabeceras
     cabeceras = ['Fecha', 'Nº Factura', 'Nº Albarán', 'Entidad', 'NIF', 'Categoría', 'Base (€)', 'IVA (%)', 'IVA (€)', 'Total (€)', 'Estado']
     estilo_cabecera = Font(bold=True, color='FFFFFF')
     fondo_ingresos = PatternFill('solid', fgColor='2D6A4F')
     fondo_gastos = PatternFill('solid', fgColor='DC3545')
 
-    # --- Hoja RESUMEN ANUAL ---
     ws_resumen = wb.create_sheet(title="Resumen Anual")
     ws_resumen.append([f'RESUMEN ANUAL {year}'])
     ws_resumen['A1'].font = Font(bold=True, size=14)
@@ -949,7 +909,6 @@ def exportar_libro_excel(request):
     total_ing_año = 0
     total_gas_año = 0
 
-    # --- Hojas POR TRIMESTRE ---
     for trimestre in range(1, 5):
         mes_inicio = (trimestre - 1) * 3 + 1
         mes_fin = mes_inicio + 2
@@ -968,7 +927,6 @@ def exportar_libro_excel(request):
 
         ws = wb.create_sheet(title=f"T{trimestre} {year}")
 
-        # Sección INGRESOS
         ws.append([f'INGRESOS T{trimestre}'])
         ws['A1'].font = Font(bold=True, size=12)
         ws.append(cabeceras)
@@ -977,21 +935,11 @@ def exportar_libro_excel(request):
             cell.fill = fondo_ingresos
         
         for f in facturas_ing:
-            # 🆕 Extraemos el NIF de la entidad correspondiente
             nif = f.cliente.nif if f.cliente else (f.proveedor.nif if f.proveedor else '')
-            
             ws.append([
-                f.fecha.strftime('%d/%m/%Y'), 
-                f.numero_factura, 
-                f.numero_albaran or '', # 🆕 Albarán
-                f.entidad_nombre, 
-                nif,                    # 🆕 NIF
-                f.get_categoria_display(),
-                float(f.base), 
-                float(f.iva_porcentaje), 
-                float(f.iva), 
-                float(f.total), 
-                f.get_estado_pago_display()
+                f.fecha.strftime('%d/%m/%Y'), f.numero_factura, f.numero_albaran or '',
+                f.entidad_nombre, nif, f.get_categoria_display(),
+                float(f.base), float(f.iva_porcentaje), float(f.iva), float(f.total), f.get_estado_pago_display()
             ])
         
         fila_total_ing = ws.max_row + 1
@@ -999,9 +947,8 @@ def exportar_libro_excel(request):
         ws.cell(row=fila_total_ing, column=1).font = Font(bold=True)
         ws.cell(row=fila_total_ing, column=10).font = Font(bold=True)
         
-        ws.append([]) # Línea en blanco
+        ws.append([])
 
-        # Sección GASTOS
         fila_gastos_titulo = ws.max_row + 1
         ws.append([f'GASTOS T{trimestre}'])
         ws.cell(row=fila_gastos_titulo, column=1).font = Font(bold=True, size=12)
@@ -1012,21 +959,11 @@ def exportar_libro_excel(request):
             cell.fill = fondo_gastos
             
         for f in facturas_gas:
-            # 🆕 Extraemos el NIF de la entidad correspondiente
             nif = f.proveedor.nif if f.proveedor else (f.cliente.nif if f.cliente else '')
-            
             ws.append([
-                f.fecha.strftime('%d/%m/%Y'), 
-                f.numero_factura, 
-                f.numero_albaran or '', # 🆕 Albarán
-                f.entidad_nombre, 
-                nif,                    # 🆕 NIF
-                f.get_categoria_display(),
-                float(f.base), 
-                float(f.iva_porcentaje), 
-                float(f.iva), 
-                float(f.total), 
-                f.get_estado_pago_display()
+                f.fecha.strftime('%d/%m/%Y'), f.numero_factura, f.numero_albaran or '',
+                f.entidad_nombre, nif, f.get_categoria_display(),
+                float(f.base), float(f.iva_porcentaje), float(f.iva), float(f.total), f.get_estado_pago_display()
             ])
         
         fila_total_gas = ws.max_row + 1
@@ -1041,7 +978,6 @@ def exportar_libro_excel(request):
         ws.cell(row=fila_beneficio, column=1).font = Font(bold=True, color='2D6A4F')
         ws.cell(row=fila_beneficio, column=10).font = Font(bold=True, color='2D6A4F')
 
-        # Ajustar ancho de columnas
         for col in ws.columns:
             max_length = 0
             col_letter = col[0].column_letter
@@ -1052,16 +988,13 @@ def exportar_libro_excel(request):
                 except: pass
             ws.column_dimensions[col_letter].width = max(max_length + 2, 12)
 
-        # Añadir fila al Resumen
         ws_resumen.append([f'T{trimestre}', float(total_ing), float(total_gas), float(total_ing - total_gas)])
 
-    # Rellenar totales del Resumen Anual
     ws_resumen.append([])
     ws_resumen.append(['TOTAL AÑO', float(total_ing_año), float(total_gas_año), float(total_ing_año - total_gas_año)])
     for cell in ws_resumen[ws_resumen.max_row]:
         cell.font = Font(bold=True)
 
-    # Ajustar ancho de columnas para la hoja Resumen
     for col in ws_resumen.columns:
         max_length = 0
         col_letter = col[0].column_letter
@@ -1072,11 +1005,11 @@ def exportar_libro_excel(request):
             except: pass
         ws_resumen.column_dimensions[col_letter].width = max(max_length + 2, 15)
 
-    # 4. Respuesta
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="Libro_Trimestral_{year}.xlsx"'
     wb.save(response)
     return response
+
 
 @login_required
 def anular_factura(request, factura_id):
@@ -1088,24 +1021,21 @@ def anular_factura(request, factura_id):
         factura.estado_pago = 'ANULADO'
         factura.save()
         
-        # Anular también sus cuentas asociadas
-        # 1. Por numero_factura exacto
         CuentaPorCobrar.objects.filter(numero_factura=numero).update(estado='ANULADO')
         CuentaPorPagar.objects.filter(numero_factura=numero).update(estado='ANULADO')
         
-        # 2. Por concepto que contenga el número
         CuentaPorCobrar.objects.filter(concepto__icontains=numero).update(estado='ANULADO')
         CuentaPorPagar.objects.filter(concepto__icontains=numero).update(estado='ANULADO')
         
-        # 3. Por pedido asociado (si la factura tiene pedido)
-        if factura.pedido:
-            CuentaPorCobrar.objects.filter(concepto__icontains=factura.pedido.numero_pedido).update(estado='ANULADO')
-            CuentaPorPagar.objects.filter(concepto__icontains=factura.pedido.numero_pedido).update(estado='ANULADO')
+        for pedido in factura.pedidos.all():
+            CuentaPorCobrar.objects.filter(concepto__icontains=pedido.numero_pedido).update(estado='ANULADO')
+            CuentaPorPagar.objects.filter(concepto__icontains=pedido.numero_pedido).update(estado='ANULADO')
         
         messages.success(request, f'✅ Factura {numero} y sus cuentas asociadas anuladas')
         return redirect('lista_facturas')
 
     return redirect('lista_facturas')
+
 
 @login_required
 def lista_comisiones(request):
@@ -1119,16 +1049,13 @@ def lista_comisiones(request):
             comision = get_object_or_404(Comision, id=comision_id)
             if accion == 'pagar':
                 comision.pagado = True
-                # 🆕 Cogemos la fecha del formulario. Si viene vacía, ponemos la de hoy.
                 fecha_str = request.POST.get('fecha_pago')
                 comision.fecha_pago = fecha_str if fecha_str else date.today()
-                
-            elif accion == 'editar_fecha': # 🆕 Nueva acción para editar fecha
+            elif accion == 'editar_fecha':
                 fecha_str = request.POST.get('fecha_pago')
                 if fecha_str:
                     comision.fecha_pago = fecha_str
-                    
-            else: # Desmarcar (volver a pendiente)
+            else:
                 comision.pagado = False
                 comision.fecha_pago = None
                 
@@ -1156,8 +1083,7 @@ def lista_comisiones(request):
     
     datos_comerciales = sorted(datos_comerciales, key=lambda x: x['total_comision'], reverse=True)
     
-    # 🆕 Paginación
-    paginator = Paginator(datos_comerciales, 5) # 5 comerciales por página
+    paginator = Paginator(datos_comerciales, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     

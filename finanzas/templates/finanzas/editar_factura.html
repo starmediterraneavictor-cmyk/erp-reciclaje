@@ -82,11 +82,12 @@
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Pedido asociado</label>
-                    <select name="pedido" class="form-select">
-                        <option value="">-- Sin pedido --</option>
+                    <label class="form-label">Pedidos asociados (Mantén Ctrl/Cmd para seleccionar varios)</label>
+                    <select name="pedidos" class="form-select" multiple size="4">
                         {% for p in pedidos %}
-                        <option value="{{ p.id }}" {% if factura.pedido and factura.pedido.id == p.id %}selected{% endif %}>{{ p.numero_pedido }} - {{ p.cliente.nombre }}</option>
+                        <option value="{{ p.id }}" {% if p in factura.pedidos.all %}selected{% endif %}>
+                            {{ p.numero_pedido }} - {{ p.entidad_nombre|truncatechars:25 }} ({{ p.get_tipo_display }})
+                        </option>
                         {% endfor %}
                     </select>
                 </div>

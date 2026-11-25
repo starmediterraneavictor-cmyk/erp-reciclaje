@@ -690,6 +690,7 @@ def generar_factura_desde_pedido(request, pedido_id):
                 notas=f'Generada automáticamente desde el pedido {pedido.numero_pedido}',
                 numero_albaran=request.POST.get('numero_albaran', ''),
             )
+            factura.pedidos.add(pedido)
 
             from finanzas.views import _crear_cuenta_para_factura
             _crear_cuenta_para_factura(factura)

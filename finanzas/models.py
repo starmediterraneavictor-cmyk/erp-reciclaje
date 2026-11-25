@@ -48,9 +48,11 @@ class Factura(models.Model):
         null=True, blank=True, related_name='facturas'
     )
     
-    pedido = models.ForeignKey(
-        Pedido, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='facturas'
+    pedidos = models.ManyToManyField(
+        Pedido, 
+        blank=True, 
+        related_name='facturas',
+        verbose_name="Pedidos asociados"
     )
     
     categoria = models.CharField(max_length=50, choices=CATEGORIAS, default='OTROS')
@@ -261,7 +263,8 @@ class PagoCuentaPorPagar(models.Model):
             num_pedido = self.cuenta.concepto.replace('Pedido ', '').strip()
             pedido = Pedido.objects.filter(numero_pedido=num_pedido).first()
             if pedido:
-                factura = Factura.objects.filter(pedido=pedido).first()
+                # 🆕 CAMBIO AQUÍ: De pedido a pedidos
+                factura = Factura.objects.filter(pedidos=pedido).first()
         
         if factura:
             if self.cuenta.estado == 'PAGADO' or self.cuenta.estado == 'COBRADO':
@@ -407,7 +410,8 @@ class CobroCuentaPorCobrar(models.Model):
             num_pedido = self.cuenta.concepto.replace('Pedido ', '').strip()
             pedido = Pedido.objects.filter(numero_pedido=num_pedido).first()
             if pedido:
-                factura = Factura.objects.filter(pedido=pedido).first()
+                # 🆕 CAMBIO AQUÍ: De pedido a pedidos
+                factura = Factura.objects.filter(pedidos=pedido).first()
         
         if factura:
             if self.cuenta.estado == 'PAGADO' or self.cuenta.estado == 'COBRADO':
