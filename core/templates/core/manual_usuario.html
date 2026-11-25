@@ -102,6 +102,28 @@
             </div>
         </div>
     </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pasoFacturaAgrupada">
+                🧾 {% trans "Facturas que agrupan varios pedidos (Proveedores)" %}
+            </button>
+        </h2>
+        <div id="pasoFacturaAgrupada" class="accordion-collapse collapse" data-bs-parent="#acordeonManual">
+            <div class="accordion-body">
+                <p>Cuando un proveedor te envía <strong>una sola factura para varios viajes (pedidos)</strong>, sigue estos pasos:</p>
+                <ol>
+                    <li>Ve a <strong>Pedidos</strong> y abre el pedido principal (el más antiguo o el que quieras usar como base).</li>
+                    <li>Pulsa en <strong>💸 Gestionar Pago</strong> y selecciona <strong>2. Registrar Factura Definitiva</strong>.</li>
+                    <li>En la pantalla que se abre, rellena los datos de la factura del proveedor (Nº Factura, Importe total, etc.).</li>
+                    <li>En el desplegable de <strong>Pedidos asociados</strong>, mantén pulsada la tecla <kbd>Ctrl</kbd> (o <kbd>Cmd</kbd> en Mac) y haz clic en los pedidos que incluye esta factura.</li>
+                    <li>Haz clic en <strong>Guardar Factura</strong>.</li>
+                </ol>
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> <strong>Resultado:</strong> La factura quedará asociada a todos los pedidos seleccionados, todos pasarán a estar "Facturados", y la gestoría solo verá una factura con el importe total en el Libro de Gastos.
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 5. ARCHIVO CRONOLÓGICO -->
     <div class="accordion-item">

@@ -267,12 +267,20 @@ def editar_factura(request, factura_id):
             messages.error(request, f'❌ Error: {str(e)}')
 
 
+    # Si es un gasto, solo mostramos los pedidos de ese proveedor.
+    if factura.tipo == 'GASTO' and factura.proveedor:
+        pedidos_disponibles = Pedido.objects.filter(
+            Q(proveedor=factura.proveedor) | Q(id__in=factura.pedidos.all())
+        ).order_by('-fecha')
+    else:
+        pedidos_disponibles = Pedido.objects.all().order_by('-fecha')[:200]
+
     context = {
         'factura': factura,
         'clientes': Cliente.objects.all().order_by('nombre'),
         'proveedores': Proveedor.objects.all().order_by('nombre'),
         'proveedores_json': list(Proveedor.objects.values('id', 'nombre', 'tipo')),
-        'pedidos': Pedido.objects.all().order_by('-fecha')[:100], # 🆕 Aumentamos el límite para ver más
+        'pedidos': pedidos_disponibles, # 🆕 Usamos la lista filtrada
         'tipos': Factura.TIPO_FACTURA,
         'categorias': Factura.CATEGORIAS,
         'estados': Factura.ESTADO_PAGO,

@@ -83,13 +83,14 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Pedidos asociados (Mantén Ctrl/Cmd para seleccionar varios)</label>
-                    <select name="pedidos" class="form-select" multiple size="4">
+                    <select name="pedidos" class="form-select" multiple size="5">
                         {% for p in pedidos %}
-                        <option value="{{ p.id }}" {% if p in factura.pedidos.all %}selected{% endif %}>
-                            {{ p.numero_pedido }} - {{ p.entidad_nombre|truncatechars:25 }} ({{ p.get_tipo_display }})
-                        </option>
+                            <option value="{{ p.id }}" {% if p in factura.pedidos.all %}selected{% endif %}>
+                                {{ p.numero_pedido }} - {{ p.entidad_nombre|truncatechars:30 }} ({{ p.get_tipo_display }})
+                            </option>
                         {% endfor %}
                     </select>
+                    <small class="text-muted">Solo se muestran pedidos de este proveedor.</small>
                 </div>
             </div>
 
