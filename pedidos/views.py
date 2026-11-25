@@ -181,10 +181,18 @@ def detalle_pedido(request, pedido_id):
     proforma_pagada = None
     
     if pedido.tipo in ['COMPRA_MAT', 'MAQUILA']:
-        # 🆕 BUSCAMOS LA FACTURA DEFINITIVA EXACTA
-        cuenta_pagar_existente = CuentaPorPagar.objects.filter(
-            concepto=f"Pedido {pedido.numero_pedido}"
-        ).exclude(estado='ANULADO').first()
+        # 🆕 BUSCAMOS LA FACTURA DEFINITIVA
+        # 1. Si ya hay una factura asociada, la usamos como referencia
+        if factura_existente:
+            cuenta_pagar_existente = CuentaPorPagar.objects.filter(
+                numero_factura=factura_existente.numero_factura
+            ).first()
+        
+        # 2. Si no, buscamos por concepto (por si se creó manualmente)
+        if not cuenta_pagar_existente:
+            cuenta_pagar_existente = CuentaPorPagar.objects.filter(
+                concepto=f"Pedido {pedido.numero_pedido}"
+            ).exclude(estado='ANULADO').first()
 
         # 🆕 BUSCAMOS LA PROFORMA (Solo para el cartel informativo)
         proforma_pagada = CuentaPorPagar.objects.filter(

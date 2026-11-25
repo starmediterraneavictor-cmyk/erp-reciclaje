@@ -290,16 +290,36 @@
     <div class="card-body">
         <div class="row">
             <div class="col-md-4">
-                <h6 class="text-muted">€/TN Compra</h6>
+                <h6 class="text-muted">€/TN Compra (Referencia)</h6>
                 <h3 class="text-secondary">{{ pedido.precio_compra_tn|formato_es }} €</h3>
             </div>
+            
+            <!-- 🆕 Cantidad: Mostramos Previsto y Real si existe -->
             <div class="col-md-4">
                 <h6 class="text-muted">Cantidad</h6>
-                <h3>{{ pedido.total_kg|formato_es }} tn</h3>
+                {% if pedido.peso_real_tn %}
+                    <h3 class="mb-1">{{ pedido.peso_real_tn|formato_es }} tn <small class="text-success">(Real)</small></h3>
+                    <small class="text-muted">Previsto: {{ pedido.total_kg|formato_es }} tn</small>
+                {% elif pedido.pesadas.exists %}
+                    <h3 class="mb-1">{{ total_real|formato_es }} tn <small class="text-success">(Real)</small></h3>
+                    <small class="text-muted">Previsto: {{ pedido.total_kg|formato_es }} tn</small>
+                {% else %}
+                    <h3>{{ pedido.total_kg|formato_es }} tn</h3>
+                {% endif %}
             </div>
+            
+            <!-- 🆕 Importe Total: Mostramos ajustado si existe -->
             <div class="col-md-4">
                 <h6 class="text-muted">Importe total</h6>
-                <h3>{{ pedido.total_importe|formato_es }} €</h3>
+                {% if pedido.peso_real_tn %}
+                    <h3 class="mb-1">{{ pedido.importe_ajuste|add:pedido.total_importe|formato_es }} € <small class="text-success">(Ajustado)</small></h3>
+                    <small class="text-muted">Original: {{ pedido.total_importe|formato_es }} €</small>
+                {% elif pedido.pesadas.exists %}
+                    <h3 class="mb-1">{{ total_impacto|add:pedido.total_importe|formato_es }} € <small class="text-success">(Ajustado)</small></h3>
+                    <small class="text-muted">Original: {{ pedido.total_importe|formato_es }} €</small>
+                {% else %}
+                    <h3>{{ pedido.total_importe|formato_es }} €</h3>
+                {% endif %}
             </div>
         </div>
     </div>
