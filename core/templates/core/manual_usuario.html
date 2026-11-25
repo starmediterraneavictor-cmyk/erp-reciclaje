@@ -96,25 +96,27 @@
                 <p><strong>{% trans "Flujo recomendado:" %}</strong></p>
                 <ol>
                     <li><strong>{% trans "Pago a Cuenta (Proforma):" %}</strong> {% trans "Ve al pedido y pulsa Gestionar Pago > Registrar Pago a Cuenta. Rellena el importe de la proforma y registra el pago." %}</li>
-                    <li><strong>{% trans "Factura Definitiva:" %}</strong> {% trans "Cuando llegue el material y tengas la factura real, ve al pedido y pulsa Gestionar Pago > Registrar Factura Definitiva. Pon el importe real con el peso ajustado." %}</li>
+                    <li><strong>{% trans "Factura Definitiva:" %}</strong> {% trans "Cuando llegue el material y tengas la factura real (con el peso ajustado), ve al pedido y pulsa Gestionar Pago > Registrar Factura Definitiva. Pon el importe real de la factura del proveedor." %}</li>
                     <li><strong>{% trans "Compensar:" %}</strong> {% trans "Si la proforma era mayor que la factura, el sistema te mostrará un saldo a favor. Puedes dejarlo para la próxima factura." %}</li>
                 </ol>
             </div>
         </div>
     </div>
+
+    <!-- 5. FACTURAS AGRUPADAS -->
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pasoFacturaAgrupada">
-                🧾 {% trans "Facturas que agrupan varios pedidos (Proveedores)" %}
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#paso5">
+                🧾 {% trans "5. Facturas que agrupan varios pedidos (Proveedores)" %}
             </button>
         </h2>
-        <div id="pasoFacturaAgrupada" class="accordion-collapse collapse" data-bs-parent="#acordeonManual">
+        <div id="paso5" class="accordion-collapse collapse" data-bs-parent="#acordeonManual">
             <div class="accordion-body">
                 <p>Cuando un proveedor te envía <strong>una sola factura para varios viajes (pedidos)</strong>, sigue estos pasos:</p>
                 <ol>
                     <li>Ve a <strong>Pedidos</strong> y abre el pedido principal (el más antiguo o el que quieras usar como base).</li>
                     <li>Pulsa en <strong>💸 Gestionar Pago</strong> y selecciona <strong>2. Registrar Factura Definitiva</strong>.</li>
-                    <li>En la pantalla que se abre, rellena los datos de la factura del proveedor (Nº Factura, Importe total, etc.).</li>
+                    <li>En la pantalla que se abre, rellena los datos de la factura del proveedor (Nº Factura, Importe total con el peso ajustado, etc.).</li>
                     <li>En el desplegable de <strong>Pedidos asociados</strong>, mantén pulsada la tecla <kbd>Ctrl</kbd> (o <kbd>Cmd</kbd> en Mac) y haz clic en los pedidos que incluye esta factura.</li>
                     <li>Haz clic en <strong>Guardar Factura</strong>.</li>
                 </ol>
@@ -125,14 +127,14 @@
         </div>
     </div>
 
-    <!-- 5. ARCHIVO CRONOLÓGICO -->
+    <!-- 6. ARCHIVO CRONOLÓGICO -->
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#paso5">
-                📚 {% trans "5. Archivo Cronológico (Inspecciones)" %}
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#paso6">
+                📚 {% trans "6. Archivo Cronológico (Inspecciones)" %}
             </button>
         </h2>
-        <div id="paso5" class="accordion-collapse collapse" data-bs-parent="#acordeonManual">
+        <div id="paso6" class="accordion-collapse collapse" data-bs-parent="#acordeonManual">
             <div class="accordion-body">
                 <ol>
                     <li>{% trans "Ve a Pedidos > Archivo Cronológico." %}</li>
@@ -145,14 +147,14 @@
         </div>
     </div>
 
-    <!-- 6. CONSULTAR INVENTARIO -->
+    <!-- 7. CONSULTAR INVENTARIO -->
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#paso6">
-                📦 {% trans "6. Consultar Inventario y Stock Real" %}
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#paso7">
+                📦 {% trans "7. Consultar Inventario y Stock Real" %}
             </button>
         </h2>
-        <div id="paso6" class="accordion-collapse collapse" data-bs-parent="#acordeonManual">
+        <div id="paso7" class="accordion-collapse collapse" data-bs-parent="#acordeonManual">
             <div class="accordion-body">
                 <ol>
                     <li>{% trans "Ve a Inventario." %}</li>
@@ -164,14 +166,14 @@
         </div>
     </div>
 
-    <!-- 7. COBROS Y PAGOS -->
+    <!-- 8. COBROS Y PAGOS -->
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#paso7">
-                💰 {% trans "7. Registrar Cobros y Pagos" %}
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#paso8">
+                💰 {% trans "8. Registrar Cobros y Pagos" %}
             </button>
         </h2>
-        <div id="paso7" class="accordion-collapse collapse" data-bs-parent="#acordeonManual">
+        <div id="paso8" class="accordion-collapse collapse" data-bs-parent="#acordeonManual">
             <div class="accordion-body">
                 <ol>
                     <li>{% trans "Ve a Finanzas > Cuentas por Cobrar (lo que te deben) o Cuentas por Pagar (lo que debes)." %}</li>

@@ -12,7 +12,7 @@
 </div>
 {% endif %}
 
-<!-- 🆕 AVISO DE PROFORMA PAGADA (Siempre visible si existe) -->
+<!-- 🆕 AVISO DE PROFORMA PAGADA -->
 {% if proforma_pagada %}
 <div class="alert alert-info mb-4 shadow-sm">
     <i class="bi bi-info-circle"></i> <strong>Pago a cuenta (Proforma) registrado:</strong> 
@@ -52,7 +52,8 @@
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="{% url 'nueva_cuenta_por_pagar' %}?pedido_id={{ pedido.id }}&tipo=definitiva">
+                        <!-- 🆕 AQUÍ APUNTAMOS A NUEVA_FACTURA -->
+                        <a class="dropdown-item" href="{% url 'nueva_factura' %}?pedido_id={{ pedido.id }}&tipo=definitiva">
                             <i class="bi bi-receipt"></i> 2. Registrar Factura Definitiva
                         </a>
                     </li>
@@ -391,7 +392,6 @@
                 </tr>
                 {% endfor %}
 
-                {# 🆕 FILA DE TOTALES #}
                 {% if pedido.pesadas.exists %}
                 <tr class="table-dark fw-bold">
                     <td colspan="2" class="text-end">TOTALES:</td>
@@ -426,7 +426,6 @@
     </div>
     <div class="card-body">
         
-        <!-- Formulario oculto para añadir -->
         <div class="collapse mb-3" id="formComision">
             <form method="POST" action="{% url 'nueva_comision' pedido.id %}">
                 {% csrf_token %}
@@ -459,7 +458,6 @@
             </form>
         </div>
 
-        <!-- Tabla de comisiones -->
         <table class="table table-sm table-hover">
             <thead>
                 <tr>
